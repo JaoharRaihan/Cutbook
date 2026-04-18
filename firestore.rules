@@ -1,0 +1,60 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(orgId) {
+       return isAuthenticated() &&
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.orgId == orgId &&
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'owner';
+    }
+
+    function isMember(orgId) {
+       return isAuthenticated() &&
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.orgId == orgId;
+    }
+
+    // Users
+    match /users/{userId} {
+      // Users can read/write their own profile
+      allow read, write: if isAuthenticated() && request.auth.uid == userId;
+      // Org members can read other members in same org (simplified for now)
+      allow read: if isAuthenticated();
+    }
+
+    // Organizations
+    match /organizations/{orgId} {
+      allow create: if isAuthenticated();
+      allow read: if isMember(orgId); // Only members see org details
+      allow update: if isOwner(orgId); // Only owner can update settings
+
+      // Allow joining via invite code query (handled via collection query rules mostly)
+      // Since we query by inviteCode, we need list permission
+      allow list: if isAuthenticated();
+    }
+
+    // Services
+    match /services/{serviceId} {
+      allow read: if isAuthenticated();
+      allow write: if isOwner(resource.data.orgId) || isOwner(request.resource.data.orgId);
+    }
+
+    // Work Entries
+    match /workEntries/{entryId} {
+      allow read: if isMember(resource.data.orgId);
+      allow create: if isMember(request.resource.data.orgId);
+      // Only creator or owner can update/delete?
+      allow update, delete: if isMember(resource.data.orgId);
+    }
+
+    // Daily Summaries
+    match /dailySummaries/{summaryId} {
+      allow read: if isMember(resource.data.orgId);
+      allow write: if isMember(resource.data.orgId); // Usually server-side or triggered by clients
+    }
+  }
+}

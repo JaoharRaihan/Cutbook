@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "996374615120",
+    "firebase_url": "https://cutbook-47881-default-rtdb.firebaseio.com",
+    "project_id": "cutbook-47881",
+    "storage_bucket": "cutbook-47881.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:996374615120:android:9913a2dc2e2686771fad55",
+        "android_client_info": {
+          "package_name": "com.cutbook"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCeL8kjlXZ5lBKV_pod2AiFIYHeV-YnrJ8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
