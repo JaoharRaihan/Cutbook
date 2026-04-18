@@ -1,97 +1,190 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+# CutBook - Professional Salon Management System
 
-# Getting Started
+A modern, cross-platform salon management application built with React Native, Firebase, and TypeScript.
 
-> **Note**: Make sure you have completed the [Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment) guide before proceeding.
+## 🎯 Features
 
-## Step 1: Start Metro
+- **👨‍💼 Owner Dashboard**: Manage employees, services, bookings, and revenue analytics
+- **⏱️ Employee Tracking**: Work entries, commission tracking, and performance analytics
+- **📱 Cross-Platform**: iOS, Android, and Web support
+- **🔐 Secure Authentication**: Firebase authentication with OTP support
+- **💾 Offline Support**: Complete offline functionality with automatic sync
+- **📊 Real-time Analytics**: Performance statistics and revenue reports
+- **🌐 Multi-language**: Support for Bengali and English
 
-First, you will need to run **Metro**, the JavaScript build tool for React Native.
+## 🚀 Getting Started
 
-To start the Metro dev server, run the following command from the root of your React Native project:
+### Prerequisites
+- Node.js 20 or higher
+- npm or yarn
+- iOS: Xcode 14+ (for iOS development)
+- Android: Android Studio (for Android development)
 
-```sh
-# Using npm
-npm start
+### Installation
 
-# OR using Yarn
-yarn start
+```bash
+# Install dependencies
+npm install
+
+# or with yarn
+yarn install
 ```
 
-## Step 2: Build and run your app
+### Running the App
 
-With Metro running, open a new terminal window/pane from the root of your React Native project, and use one of the following commands to build and run your Android or iOS app:
-
-### Android
-
-```sh
-# Using npm
-npm run android
-
-# OR using Yarn
-yarn android
-```
-
-### iOS
-
-For iOS, remember to install CocoaPods dependencies (this only needs to be run on first clone or after updating native deps).
-
-The first time you create a new project, run the Ruby bundler to install CocoaPods itself:
-
-```sh
-bundle install
-```
-
-Then, and every time you update your native dependencies, run:
-
-```sh
-bundle exec pod install
-```
-
-For more information, please visit [CocoaPods Getting Started guide](https://guides.cocoapods.org/using/getting-started.html).
-
-```sh
-# Using npm
+#### iOS
+```bash
 npm run ios
-
-# OR using Yarn
+# or
 yarn ios
 ```
 
-If everything is set up correctly, you should see your new app running in the Android Emulator, iOS Simulator, or your connected device.
+#### Android
+```bash
+npm run android
+# or
+yarn android
+```
 
-This is one way to run your app — you can also build it directly from Android Studio or Xcode.
+#### Web
+```bash
+npm run web
+# or
+yarn web
+```
 
-## Step 3: Modify your app
+#### Development Server
+```bash
+npm start
+# or
+yarn start
+```
 
-Now that you have successfully run the app, let's make changes!
+## 📁 Project Structure
 
-Open `App.tsx` in your text editor of choice and make some changes. When you save, your app will automatically update and reflect these changes — this is powered by [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
+```
+src/
+├── components/        # Reusable UI components
+│   ├── UI/           # Base UI components (Button, Input, Card, etc.)
+│   └── shared/       # Business logic components
+├── screens/          # App screens/pages
+│   ├── auth/         # Authentication screens
+│   ├── owner/        # Owner-specific screens
+│   ├── employee/     # Employee-specific screens
+│   └── onboarding/   # Onboarding screens
+├── navigation/       # Navigation configuration
+├── context/          # React Context for state management
+├── hooks/            # Custom React hooks
+├── types/            # TypeScript type definitions
+├── utils/            # Utility functions
+├── constants/        # App constants and theme
+└── assets/           # Static assets
+```
 
-When you want to forcefully reload, for example to reset the state of your app, you can perform a full reload:
+## 🔧 Available Scripts
 
-- **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Dev Menu**, accessed via <kbd>Ctrl</kbd> + <kbd>M</kbd> (Windows/Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (macOS).
-- **iOS**: Press <kbd>R</kbd> in iOS Simulator.
+- `npm start` - Start Metro dev server
+- `npm run android` - Build & run Android app
+- `npm run ios` - Build & run iOS app
+- `npm run web` - Run web version
+- `npm test` - Run tests
+- `npm run lint` - Run ESLint
+- `npm run lint:fix` - Fix linting issues
+- `npm run format` - Format code with Prettier
+- `npm run type-check` - Check TypeScript types
+- `npm run clean` - Clean native build files
+- `npm run clean:cache` - Clean cache and reinstall
 
-## Congratulations! :tada:
+## 🔐 Firebase Setup
 
-You've successfully run and modified your React Native App. :partying_face:
+The app uses Firebase for:
+- Authentication
+- Firestore Database
+- Real-time Data Sync
+- Offline Persistence
 
-### Now what?
+Firebase configuration is pre-configured in `firebase.json` and `firestore.rules`.
 
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [docs](https://reactnative.dev/docs/getting-started).
+## 📱 User Roles
 
-# Troubleshooting
+### Owner
+- Create and manage salon organization
+- Add/remove employees
+- Manage services and pricing
+- View revenue analytics
+- Track work entries
+- Generate reports
 
-If you're having issues getting the above steps to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
+### Employee
+- View assigned work
+- Log work entries
+- Track commission
+- View performance metrics
+- Manage profile
 
-# Learn More
+## 🎨 Styling & Theme
 
-To learn more about React Native, take a look at the following resources:
+The app uses a custom theme system with:
+- Consistent color palette
+- Typography guidelines
+- Spacing standards
+- Component library
 
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+See `src/constants/theme.ts` for theme configuration.
+
+## 🧪 Testing
+
+```bash
+npm test
+npm run test:watch
+npm run test:coverage
+```
+
+## 🛠️ Development
+
+### Code Style
+- ESLint for code quality
+- Prettier for code formatting
+- TypeScript for type safety
+
+### Best Practices
+- Component-based architecture
+- Context API for state management
+- Custom hooks for reusable logic
+- Proper error handling and loading states
+- Accessibility considerations
+
+## 📦 Dependencies
+
+### Core
+- React Native 0.83.0
+- React 19.2.0
+- TypeScript 5.8.3
+
+### Navigation & UI
+- React Navigation 7.x
+- React Native Safe Area Context
+- React Native Gesture Handler
+
+### State & Data
+- Firebase Admin SDK 23.8.3
+- Async Storage 2.2.0
+- date-fns 4.1.0
+
+### Development
+- Babel 7.25.x
+- Webpack 5.104.x
+- Jest 29.6.3
+
+## 📄 License
+
+Proprietary - CutBook Project
+
+## 👥 Support
+
+For issues or questions, please contact the development team.
+
+---
+
+**Version**: 1.0.0  
+**Last Updated**: April 18, 2026
