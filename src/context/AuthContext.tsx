@@ -96,6 +96,13 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) 
         const userData = userDoc.data() as User;
         // Ensure ID matches
         userData.id = uid;
+        
+        // Ensure role is properly set (should never be undefined)
+        if (!userData.role || !Object.values(UserRole).includes(userData.role)) {
+          console.warn('⚠️ Invalid or missing role for user:', uid, 'Setting to EMPLOYEE');
+          userData.role = UserRole.EMPLOYEE;
+        }
+        
         // Handle date conversions if necessary (Firestore timestamps)
         if (
           userData.createdAt &&
@@ -114,7 +121,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) 
 
         setUser(userData);
         await AsyncStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(userData));
-        console.log('✅ User profile loaded:', userData.name);
+        console.log('✅ User profile loaded:', userData.name, 'Role:', userData.role);
       } else {
         console.warn('⚠️ User document does not exist for uid:', uid);
         // Fallback or handle incomplete registration?
@@ -188,7 +195,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) 
     setSuccessMessage(null);
 
     try {
-      console.log('📝 Registering new user:', data.email || data.phone);
+      console.log('📝 Registering new user:', data.email || data.phone, 'Role:', data.role);
 
       // Convert phone to email format if email not provided
       const email = data.email || `${data.phone}@cutbook.app`;
@@ -207,23 +214,25 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) 
       const userCredential = await auth().createUserWithEmailAndPassword(email, data.password);
       const uid = userCredential.user.uid;
 
-      // Prepare User Model
+      // Prepare User Model with correct role assignment
       const newUser: User = {
         id: uid,
         orgId: '',
-        role: data.role,
+        role: data.role || UserRole.EMPLOYEE, // Ensure role is set, default to EMPLOYEE if missing
         name: data.name,
         phone: data.phone,
         email: email,
         status: UserStatus.ACTIVE,
         createdAt: new Date(),
         updatedAt: new Date(),
-        // Add any other fields from User type
       };
 
-      if (data.role === UserRole.EMPLOYEE) {
-        newUser.commissionPercentage = 10; // Default or from data
+      // Set commission for employees
+      if (newUser.role === UserRole.EMPLOYEE) {
+        newUser.commissionPercentage = 10;
       }
+
+      console.log('📋 Creating user document with role:', newUser.role);
 
       // Create Firestore Document
       await firestore().collection('users').doc(uid).set(newUser);
@@ -234,7 +243,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) 
       });
 
       setSuccessMessage(SUCCESS_MESSAGES.registrationSuccess);
-      console.log('✅ Registration successful for:', uid);
+      console.log('✅ Registration successful for:', uid, 'with role:', newUser.role);
     } catch (err: any) {
       let errorMessage: string = ERROR_MESSAGES.somethingWentWrong;
 
