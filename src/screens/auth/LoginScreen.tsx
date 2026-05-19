@@ -90,12 +90,12 @@ const LoginScreen: React.FC = () => {
 
     try {
       // Remove the leading 0 and add country code
-      // 01712345678 -> 1712345678 -> +8801712345678
+      // 01712345678
       const phoneDigits = phone.replace(/\D/g, '');
       const phoneWithoutLeadingZero = phoneDigits.startsWith('0')
         ? phoneDigits.slice(1)
         : phoneDigits;
-      const cleanPhone = '+880' + phoneWithoutLeadingZero;
+      const cleanPhone = '+88' + phoneWithoutLeadingZero;
 
       console.log('🔍 Login Debug:', {
         rawPhone: phone,

@@ -49,5 +49,6 @@
   "emmet.includeLanguages": {
     "typescript": "typescriptreact",
     "javascript": "javascriptreact"
-  }
+  },
+  "cmake.sourceDirectory": "/Users/jaoharraihan/Desktop/iBos/Cutbook/node_modules/react-native-screens/android"
 }
