@@ -212,9 +212,11 @@ export const OrgProvider: React.FC<{children: React.ReactNode}> = ({children}) =
           timezone: payload.timezone,
           currency: payload.currency,
           defaultCommissionMode: payload.defaultCommissionMode,
-          defaultCommissionValue: payload.defaultCommissionValue,
-          phone: payload.phone,
-          address: payload.address,
+          ...(payload.defaultCommissionValue !== undefined && {
+            defaultCommissionValue: payload.defaultCommissionValue,
+          }),
+          ...(payload.phone && {phone: payload.phone}),
+          ...(payload.address && {address: payload.address}),
           inviteCode: inviteCode,
           createdAt: new Date(), // Firestore converts Date to Timestamp
           updatedAt: new Date(),
