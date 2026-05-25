@@ -151,7 +151,7 @@ export default function AddEmployeeScreen({navigation}: any): React.ReactElement
       );
     } catch (err: any) {
       console.error('Error registering employee:', err);
-      
+
       let errorMessage = 'Failed to register employee';
       if (err.code === 'auth/email-already-in-use') {
         errorMessage = 'This phone number is already registered. Use a different phone number.';
@@ -160,7 +160,7 @@ export default function AddEmployeeScreen({navigation}: any): React.ReactElement
       } else if (err.code === 'auth/invalid-email') {
         errorMessage = 'Invalid phone number format.';
       }
-      
+
       Alert.alert('Error', errorMessage);
     } finally {
       setLoading(false);
@@ -272,7 +272,8 @@ export default function AddEmployeeScreen({navigation}: any): React.ReactElement
           <View style={styles.infoCard}>
             <Text style={styles.infoIcon}>💡</Text>
             <Text style={styles.infoText}>
-              The employee can use their phone number and password to log in to the app after registration.
+              The employee can use their phone number and password to log in to the app after
+              registration.
             </Text>
           </View>
         </ScrollView>

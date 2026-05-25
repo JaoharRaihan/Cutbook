@@ -89,8 +89,7 @@ export default function EmployeesScreen({navigation}: any): React.ReactElement {
       <TouchableOpacity
         style={styles.inviteCodeBox}
         onPress={handleCopyInviteCode}
-        activeOpacity={0.7}
-      >
+        activeOpacity={0.7}>
         <Text style={styles.inviteCodeText}>{currentOrg?.inviteCode || 'N/A'}</Text>
         <Text style={styles.inviteCodeHint}>Tap to copy</Text>
       </TouchableOpacity>
@@ -169,7 +168,9 @@ export default function EmployeesScreen({navigation}: any): React.ReactElement {
             )}
             contentContainerStyle={styles.listContent}
             ListEmptyComponent={searchQuery.trim() ? renderNoResults() : renderEmpty()}
-            ListFooterComponent={!searchQuery.trim() && filteredEmployees.length > 0 ? renderInviteCodeFooter : null}
+            ListFooterComponent={
+              !searchQuery.trim() && filteredEmployees.length > 0 ? renderInviteCodeFooter : null
+            }
             refreshControl={
               <RefreshControl
                 refreshing={refreshing}

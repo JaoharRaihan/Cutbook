@@ -139,17 +139,17 @@ export default function OrganizationSettingsScreen({navigation}: any): React.Rea
           onPress: async () => {
             try {
               setGeneratingCode(true);
-              
+
               // Generate new 6-character uppercase code
               const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
               let newCode = '';
               for (let i = 0; i < 6; i++) {
                 newCode += chars.charAt(Math.floor(Math.random() * chars.length));
               }
-              
+
               // Update organization in Firestore
               await updateOrg({inviteCode: newCode});
-              
+
               Alert.alert(
                 'New Code Generated',
                 `New organization code: ${newCode}\n\nShare this with new employees.`,

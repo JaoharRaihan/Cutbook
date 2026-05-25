@@ -14,8 +14,8 @@ import {
   StatusBar,
   RefreshControl,
 } from 'react-native';
-import {useOrg} from '@/context';
-import {WorkEntry, PaymentMethod, User} from '@/types';
+import {useOrg, useData} from '@/context';
+import {WorkEntry} from '@/types';
 import {formatBDT} from '@/utils';
 import WorkEntryCard from '@/components/WorkEntryCard';
 
@@ -30,140 +30,11 @@ type DateFilter = 'today' | 'yesterday' | 'week' | 'month';
 // ============================================================================
 
 export default function WorkEntriesScreen({navigation}: any): React.ReactElement {
-  const {currentOrg} = useOrg();
+  const {currentOrg, orgUsers} = useOrg();
+  const {workEntries, refreshData} = useData();
   const [refreshing, setRefreshing] = useState(false);
   const [dateFilter, setDateFilter] = useState<DateFilter>('today');
   const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
-
-  // Mock data
-  const mockEmployees: User[] = [
-    {
-      id: 'user_2',
-      name: 'Karim Ahmed',
-      phone: '+8801712345678',
-      role: 'employee' as any,
-      orgId: 'org_1',
-      commissionPercentage: 60,
-      status: 'active' as any,
-      createdAt: new Date('2024-01-15'),
-    },
-    {
-      id: 'user_3',
-      name: 'Rahim Islam',
-      phone: '+8801812345678',
-      role: 'employee' as any,
-      orgId: 'org_1',
-      commissionPercentage: 55,
-      status: 'active' as any,
-      createdAt: new Date('2024-02-01'),
-    },
-    {
-      id: 'user_4',
-      name: 'Sabbir Khan',
-      phone: '+8801912345678',
-      role: 'employee' as any,
-      orgId: 'org_1',
-      commissionPercentage: 50,
-      status: 'active' as any,
-      createdAt: new Date('2024-03-10'),
-    },
-  ];
-
-  const mockEntries: WorkEntry[] = [
-    {
-      id: 'entry_1',
-      orgId: 'org_1',
-      employeeId: 'user_2',
-      employeeName: 'Karim Ahmed',
-      serviceId: 'service_1',
-      serviceName: 'Regular Haircut',
-      price: 300,
-      tip: 50,
-      paymentMethod: PaymentMethod.CASH,
-      createdBy: 'user_1',
-      createdByName: 'Owner',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      edited: false,
-    },
-    {
-      id: 'entry_2',
-      orgId: 'org_1',
-      employeeId: 'user_3',
-      employeeName: 'Rahim Islam',
-      serviceId: 'service_3',
-      serviceName: 'Clean Shave',
-      price: 100,
-      paymentMethod: PaymentMethod.BKASH,
-      createdBy: 'user_1',
-      createdByName: 'Owner',
-      createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
-      updatedAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
-      edited: false,
-    },
-    {
-      id: 'entry_3',
-      orgId: 'org_1',
-      employeeId: 'user_2',
-      employeeName: 'Karim Ahmed',
-      serviceId: 'service_5',
-      serviceName: 'Beard Styling',
-      price: 200,
-      tip: 20,
-      paymentMethod: PaymentMethod.CARD,
-      createdBy: 'user_1',
-      createdByName: 'Owner',
-      createdAt: new Date(Date.now() - 4 * 60 * 60 * 1000), // 4 hours ago
-      updatedAt: new Date(Date.now() - 3 * 60 * 60 * 1000),
-      edited: true,
-    },
-    {
-      id: 'entry_4',
-      orgId: 'org_1',
-      employeeId: 'user_4',
-      employeeName: 'Sabbir Khan',
-      serviceId: 'service_2',
-      serviceName: 'Premium Haircut',
-      price: 500,
-      tip: 100,
-      paymentMethod: PaymentMethod.CASH,
-      createdBy: 'user_1',
-      createdByName: 'Owner',
-      createdAt: new Date(Date.now() - 6 * 60 * 60 * 1000), // 6 hours ago
-      updatedAt: new Date(Date.now() - 6 * 60 * 60 * 1000),
-      edited: false,
-    },
-    {
-      id: 'entry_5',
-      orgId: 'org_1',
-      employeeId: 'user_3',
-      employeeName: 'Rahim Islam',
-      serviceId: 'service_7',
-      serviceName: 'Facial',
-      price: 600,
-      paymentMethod: PaymentMethod.NAGAD,
-      createdBy: 'user_1',
-      createdByName: 'Owner',
-      createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000), // Yesterday
-      updatedAt: new Date(Date.now() - 24 * 60 * 60 * 1000),
-      edited: false,
-    },
-    {
-      id: 'entry_6',
-      orgId: 'org_1',
-      employeeId: 'user_2',
-      employeeName: 'Karim Ahmed',
-      serviceName: 'Custom Style',
-      price: 400,
-      tip: 50,
-      paymentMethod: PaymentMethod.CASH,
-      createdBy: 'user_1',
-      createdByName: 'Owner',
-      createdAt: new Date(Date.now() - 25 * 60 * 60 * 1000), // Yesterday
-      updatedAt: new Date(Date.now() - 25 * 60 * 60 * 1000),
-      edited: false,
-    },
-  ];
 
   // ============================================================================
   // FILTERING LOGIC
@@ -191,7 +62,7 @@ export default function WorkEntriesScreen({navigation}: any): React.ReactElement
   };
 
   const filteredEntries = useMemo(() => {
-    let entries = [...mockEntries];
+    let entries = [...workEntries];
 
     // Filter by date
     const {start, end} = getDateRange(dateFilter);
@@ -209,7 +80,7 @@ export default function WorkEntriesScreen({navigation}: any): React.ReactElement
     entries.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
     return entries;
-  }, [dateFilter, selectedEmployee, mockEntries]);
+  }, [dateFilter, selectedEmployee, workEntries]);
 
   // ============================================================================
   // CALCULATIONS
@@ -229,9 +100,15 @@ export default function WorkEntriesScreen({navigation}: any): React.ReactElement
   // HANDLERS
   // ============================================================================
 
-  const handleRefresh = () => {
+  const handleRefresh = async () => {
     setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 500);
+    try {
+      await refreshData();
+    } catch (error) {
+      console.error('Error refreshing work entries:', error);
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   const handleEntryPress = (entry: WorkEntry) => {
@@ -243,7 +120,7 @@ export default function WorkEntriesScreen({navigation}: any): React.ReactElement
   };
 
   const getEmployeeName = (employeeId: string): string => {
-    const employee = mockEmployees.find(e => e.id === employeeId);
+    const employee = orgUsers.find(e => e.id === employeeId);
     return employee ? employee.name : 'Unknown';
   };
 
@@ -297,7 +174,7 @@ export default function WorkEntriesScreen({navigation}: any): React.ReactElement
               All
             </Text>
           </TouchableOpacity>
-          {mockEmployees.map(employee => (
+          {orgUsers.map(employee => (
             <TouchableOpacity
               key={employee.id}
               style={[

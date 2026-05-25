@@ -197,7 +197,7 @@ export const DataProvider: React.FC<{children: React.ReactNode}> = ({children}) 
         }
 
         const newEntryRef = firestore().collection('workEntries').doc();
-        
+
         // Create new work entry with only defined values
         const newEntry: any = {
           id: newEntryRef.id,

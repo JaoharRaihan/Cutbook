@@ -14,8 +14,8 @@ import {
   StatusBar,
   Alert,
 } from 'react-native';
-import {useOrg} from '@/context';
-import {WorkEntry, PaymentMethod} from '@/types';
+import {useOrg, useData} from '@/context';
+import {PaymentMethod} from '@/types';
 import {formatBDT} from '@/utils';
 
 // ============================================================================
@@ -46,113 +46,8 @@ interface PaymentStats {
 
 export default function ReportsScreen({navigation}: any): React.ReactElement {
   const {currentOrg} = useOrg();
+  const {workEntries} = useData();
   const [dateRange, setDateRange] = useState<DateRange>('today');
-
-  const mockEntries: WorkEntry[] = [
-    {
-      id: 'entry_1',
-      orgId: 'org_1',
-      employeeId: 'user_2',
-      employeeName: 'Karim Ahmed',
-      serviceName: 'Regular Haircut',
-      price: 300,
-      tip: 50,
-      paymentMethod: PaymentMethod.CASH,
-      createdBy: 'user_1',
-      createdByName: 'Owner',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      edited: false,
-    },
-    {
-      id: 'entry_2',
-      orgId: 'org_1',
-      employeeId: 'user_3',
-      employeeName: 'Rahim Islam',
-      serviceName: 'Clean Shave',
-      price: 100,
-      paymentMethod: PaymentMethod.BKASH,
-      createdBy: 'user_1',
-      createdByName: 'Owner',
-      createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
-      updatedAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
-      edited: false,
-    },
-    {
-      id: 'entry_3',
-      orgId: 'org_1',
-      employeeId: 'user_2',
-      employeeName: 'Karim Ahmed',
-      serviceName: 'Beard Styling',
-      price: 200,
-      tip: 20,
-      paymentMethod: PaymentMethod.CARD,
-      createdBy: 'user_1',
-      createdByName: 'Owner',
-      createdAt: new Date(Date.now() - 4 * 60 * 60 * 1000),
-      updatedAt: new Date(Date.now() - 3 * 60 * 60 * 1000),
-      edited: true,
-    },
-    {
-      id: 'entry_4',
-      orgId: 'org_1',
-      employeeId: 'user_4',
-      employeeName: 'Sabbir Khan',
-      serviceName: 'Premium Haircut',
-      price: 500,
-      tip: 100,
-      paymentMethod: PaymentMethod.CASH,
-      createdBy: 'user_1',
-      createdByName: 'Owner',
-      createdAt: new Date(Date.now() - 6 * 60 * 60 * 1000),
-      updatedAt: new Date(Date.now() - 6 * 60 * 60 * 1000),
-      edited: false,
-    },
-    {
-      id: 'entry_5',
-      orgId: 'org_1',
-      employeeId: 'user_3',
-      employeeName: 'Rahim Islam',
-      serviceName: 'Facial',
-      price: 600,
-      paymentMethod: PaymentMethod.NAGAD,
-      createdBy: 'user_1',
-      createdByName: 'Owner',
-      createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
-      updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
-      edited: false,
-    },
-    {
-      id: 'entry_6',
-      orgId: 'org_1',
-      employeeId: 'user_2',
-      employeeName: 'Karim Ahmed',
-      serviceName: 'Custom Style',
-      price: 400,
-      tip: 50,
-      paymentMethod: PaymentMethod.CASH,
-      createdBy: 'user_1',
-      createdByName: 'Owner',
-      createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-      updatedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-      edited: false,
-    },
-    {
-      id: 'entry_7',
-      orgId: 'org_1',
-      employeeId: 'user_4',
-      employeeName: 'Sabbir Khan',
-      serviceName: 'Hair Color',
-      price: 1500,
-      tip: 200,
-      paymentMethod: PaymentMethod.BKASH,
-      createdBy: 'user_1',
-      createdByName: 'Owner',
-      createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
-      updatedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
-      edited: false,
-    },
-  ];
 
   // ============================================================================
   // FILTERING LOGIC
@@ -190,11 +85,11 @@ export default function ReportsScreen({navigation}: any): React.ReactElement {
 
   const filteredEntries = useMemo(() => {
     const {start, end} = getDateRange(dateRange);
-    return mockEntries.filter(entry => {
+    return workEntries.filter(entry => {
       const entryDate = new Date(entry.createdAt);
       return entryDate >= start && entryDate < end;
     });
-  }, [dateRange, mockEntries]);
+  }, [dateRange, workEntries]);
 
   // ============================================================================
   // CALCULATIONS
@@ -320,7 +215,7 @@ export default function ReportsScreen({navigation}: any): React.ReactElement {
     }
   };
 
-  const getRangeLabelgetRangeLabel = (range: DateRange): string => {
+  const getRangeLabel = (range: DateRange): string => {
     switch (range) {
       case 'today':
         return 'Today';
@@ -380,7 +275,7 @@ export default function ReportsScreen({navigation}: any): React.ReactElement {
         <View>
           <Text style={styles.headerTitle}>Reports & Analytics</Text>
           <Text style={styles.headerSubtitle}>
-            {getRangeLabelgetRangeLabel(dateRange)} • {currentOrg?.name}
+            {getRangeLabel(dateRange)} • {currentOrg?.name}
           </Text>
         </View>
       </View>
