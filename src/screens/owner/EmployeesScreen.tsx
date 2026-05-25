@@ -15,6 +15,8 @@ import {
   TextInput,
   RefreshControl,
   ActivityIndicator,
+  Clipboard,
+  Alert,
 } from 'react-native';
 import {useOrg} from '@/context';
 import EmployeeCard from '@/components/EmployeeCard';
@@ -25,7 +27,7 @@ import {User, UserRole} from '@/types';
 // ============================================================================
 
 export default function EmployeesScreen({navigation}: any): React.ReactElement {
-  const {orgUsers, loading, fetchOrgData} = useOrg();
+  const {orgUsers, loading, fetchOrgData, currentOrg} = useOrg();
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
 
@@ -70,9 +72,33 @@ export default function EmployeesScreen({navigation}: any): React.ReactElement {
     navigation.navigate('AddEmployee');
   };
 
+  const handleCopyInviteCode = async () => {
+    if (currentOrg?.inviteCode) {
+      await Clipboard.setString(currentOrg.inviteCode);
+      Alert.alert('Success', 'Invite code copied to clipboard!');
+    }
+  };
+
   // ============================================================================
   // RENDER
   // ============================================================================
+
+  const renderInviteCodeFooter = () => (
+    <View style={styles.inviteCodeSection}>
+      <Text style={styles.inviteCodeLabel}>Organization Invite Code</Text>
+      <TouchableOpacity
+        style={styles.inviteCodeBox}
+        onPress={handleCopyInviteCode}
+        activeOpacity={0.7}
+      >
+        <Text style={styles.inviteCodeText}>{currentOrg?.inviteCode || 'N/A'}</Text>
+        <Text style={styles.inviteCodeHint}>Tap to copy</Text>
+      </TouchableOpacity>
+      <Text style={styles.inviteCodeDescription}>
+        Share this code with employees so they can join your organization
+      </Text>
+    </View>
+  );
 
   const renderEmpty = () => (
     <View style={styles.emptyState}>
@@ -143,6 +169,7 @@ export default function EmployeesScreen({navigation}: any): React.ReactElement {
             )}
             contentContainerStyle={styles.listContent}
             ListEmptyComponent={searchQuery.trim() ? renderNoResults() : renderEmpty()}
+            ListFooterComponent={!searchQuery.trim() && filteredEmployees.length > 0 ? renderInviteCodeFooter : null}
             refreshControl={
               <RefreshControl
                 refreshing={refreshing}
@@ -297,5 +324,51 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#757575',
     fontWeight: '500',
+  },
+  inviteCodeSection: {
+    marginTop: 32,
+    marginBottom: 16,
+    backgroundColor: '#E3F2FD',
+    borderRadius: 12,
+    padding: 20,
+    borderWidth: 2,
+    borderColor: '#2196F3',
+  },
+  inviteCodeLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#212121',
+    marginBottom: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  inviteCodeBox: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 12,
+    borderWidth: 2,
+    borderColor: '#2196F3',
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  inviteCodeText: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#2196F3',
+    letterSpacing: 4,
+    marginBottom: 8,
+  },
+  inviteCodeHint: {
+    fontSize: 12,
+    color: '#757575',
+    fontWeight: '500',
+  },
+  inviteCodeDescription: {
+    fontSize: 13,
+    color: '#1976D2',
+    lineHeight: 20,
+    textAlign: 'center',
   },
 });

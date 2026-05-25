@@ -107,22 +107,28 @@ export default function AddWorkEntryScreen({navigation}: any): React.ReactElemen
       }
 
       // Prepare work entry
-      const newEntry: Partial<WorkEntry> = {
+      const newEntry: any = {
         orgId: currentOrg?.id,
         employeeId: selectedEmployee,
         employeeName: employee.name,
         serviceId,
         serviceName,
         price: parseFloat(price),
-        tip: tip ? parseFloat(tip) : undefined,
         paymentMethod,
-        note: note.trim() || undefined,
         createdBy: user?.id || 'unknown',
         createdByName: user?.name || 'Owner',
         edited: false,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
+
+      // Only add optional fields if they have values
+      if (tip && parseFloat(tip) > 0) {
+        newEntry.tip = parseFloat(tip);
+      }
+      if (note.trim()) {
+        newEntry.note = note.trim();
+      }
 
       // Save to Firebase
       await addWorkEntry(newEntry as WorkEntry);

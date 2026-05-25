@@ -15,6 +15,7 @@ import {
   TextInput,
   Alert,
   Switch,
+  Share,
 } from 'react-native';
 import {useOrg} from '@/context';
 import {CommissionMode} from '@/types';
@@ -24,7 +25,7 @@ import {CommissionMode} from '@/types';
 // ============================================================================
 
 export default function OrganizationSettingsScreen({navigation}: any): React.ReactElement {
-  const {currentOrg} = useOrg();
+  const {currentOrg, updateOrg} = useOrg();
 
   // Form state
   const [orgName, setOrgName] = useState(currentOrg?.name || '');
@@ -35,9 +36,10 @@ export default function OrganizationSettingsScreen({navigation}: any): React.Rea
   );
   const [autoBackup, setAutoBackup] = useState(true);
   const [isDirty, setIsDirty] = useState(false);
+  const [generatingCode, setGeneratingCode] = useState(false);
 
-  // Mock org code for invites
-  const orgCode = currentOrg?.id?.slice(0, 6).toUpperCase() || 'ABC123';
+  // Organization code from Firestore
+  const orgCode = currentOrg?.inviteCode || 'LOADING...';
 
   // ============================================================================
   // HANDLERS
@@ -110,12 +112,19 @@ export default function OrganizationSettingsScreen({navigation}: any): React.Rea
   };
 
   const handleCopyOrgCode = () => {
-    // Mock copy to clipboard
-    Alert.alert(
-      'Code Copied',
-      `Organization code "${orgCode}" copied to clipboard!\n\nShare this code with employees to let them join your organization.`,
-      [{text: 'OK'}],
-    );
+    Share.share({
+      message: `Join my salon on CutBook! Use this code to join: ${orgCode}`,
+      title: 'CutBook Organization Code',
+      url: undefined,
+    }).catch(err => {
+      console.log('Share error:', err);
+      // Fallback: just show alert with code
+      Alert.alert(
+        'Code Ready to Share',
+        `Organization code: ${orgCode}\n\nShare this code with employees to let them join your organization.`,
+        [{text: 'OK'}],
+      );
+    });
   };
 
   const handleGenerateNewCode = () => {
@@ -127,12 +136,31 @@ export default function OrganizationSettingsScreen({navigation}: any): React.Rea
         {
           text: 'Generate',
           style: 'destructive',
-          onPress: () => {
-            Alert.alert(
-              'New Code Generated',
-              `New organization code: ${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
-              [{text: 'OK'}],
-            );
+          onPress: async () => {
+            try {
+              setGeneratingCode(true);
+              
+              // Generate new 6-character uppercase code
+              const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+              let newCode = '';
+              for (let i = 0; i < 6; i++) {
+                newCode += chars.charAt(Math.floor(Math.random() * chars.length));
+              }
+              
+              // Update organization in Firestore
+              await updateOrg({inviteCode: newCode});
+              
+              Alert.alert(
+                'New Code Generated',
+                `New organization code: ${newCode}\n\nShare this with new employees.`,
+                [{text: 'OK'}],
+              );
+            } catch (err: any) {
+              console.error('Error generating new code:', err);
+              Alert.alert('Error', err.message || 'Failed to generate new code');
+            } finally {
+              setGeneratingCode(false);
+            }
           },
         },
       ],

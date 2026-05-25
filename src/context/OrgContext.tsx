@@ -403,8 +403,14 @@ export const OrgProvider: React.FC<{children: React.ReactNode}> = ({children}) =
 
       try {
         const newServiceRef = firestore().collection('services').doc();
+        
+        // Clean up the data to remove undefined values (Firestore doesn't support undefined)
+        const cleanedData = Object.fromEntries(
+          Object.entries(serviceData).filter(([_, value]) => value !== undefined)
+        ) as any;
+        
         const newService: Service = {
-          ...serviceData,
+          ...cleanedData,
           id: newServiceRef.id,
           orgId: currentOrg.id,
           createdAt: new Date(),

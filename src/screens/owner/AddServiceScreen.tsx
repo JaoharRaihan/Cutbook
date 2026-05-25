@@ -92,10 +92,16 @@ export default function AddServiceScreen({navigation}: any): React.ReactElement 
         name: serviceName.trim(),
         category,
         defaultPrice: defaultPrice ? parseFloat(defaultPrice) : 0,
-        description: description.trim() || undefined,
-        duration: duration ? parseInt(duration) : undefined,
         isActive: true,
       };
+
+      // Only add optional fields if they have values (avoid undefined)
+      if (description.trim()) {
+        serviceData.description = description.trim();
+      }
+      if (duration.trim()) {
+        serviceData.duration = parseInt(duration);
+      }
 
       await addService(serviceData);
 

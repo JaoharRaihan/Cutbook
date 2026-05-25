@@ -93,10 +93,10 @@ export const DataProvider: React.FC<{children: React.ReactNode}> = ({children}) 
 
       // 1. Listen to Work Entries for this Org
       // Optimization: Limit to last 30 days? For now, all entries to keep it simple as expected by UI logic
+      // Note: Removed orderBy from query to avoid composite index requirement - sort in memory instead
       entriesUnsubscribe = firestore()
         .collection('workEntries')
         .where('orgId', '==', currentOrg.id)
-        .orderBy('createdAt', 'desc')
         .onSnapshot(
           (querySnapshot: any) => {
             const entries: WorkEntry[] = [];
@@ -120,36 +120,16 @@ export const DataProvider: React.FC<{children: React.ReactNode}> = ({children}) 
               }
               entries.push(data);
             });
+            // Sort by createdAt in descending order (most recent first)
+            entries.sort(
+              (a, b) => (b.createdAt as Date).getTime() - (a.createdAt as Date).getTime(),
+            );
             setWorkEntries(entries);
             AsyncStorage.setItem(STORAGE_KEYS.WORK_ENTRIES, JSON.stringify(entries));
           },
           (err: any) => {
             console.error('Error syncing work entries:', err);
-            if (err.message.includes('index')) {
-              firestore()
-                .collection('workEntries')
-                .where('orgId', '==', currentOrg.id)
-                .get()
-                .then((qs: any) => {
-                  const entries: WorkEntry[] = [];
-                  qs.forEach((docSnap: any) => {
-                    const data = docSnap.data() as WorkEntry;
-                    data.id = docSnap.id;
-                    if (data.createdAt && 'toDate' in (data.createdAt as any)) {
-                      data.createdAt = (data.createdAt as any).toDate();
-                    }
-                    if (data.updatedAt && 'toDate' in (data.updatedAt as any)) {
-                      data.updatedAt = (data.updatedAt as any).toDate();
-                    }
-                    entries.push(data);
-                  });
-                  setWorkEntries(
-                    entries.sort(
-                      (a, b) => (b.createdAt as Date).getTime() - (a.createdAt as Date).getTime(),
-                    ),
-                  );
-                });
-            }
+            setError(err.message || 'Failed to sync work entries');
           },
         );
 
@@ -217,24 +197,33 @@ export const DataProvider: React.FC<{children: React.ReactNode}> = ({children}) 
         }
 
         const newEntryRef = firestore().collection('workEntries').doc();
-        // Create new work entry
-        const newEntry: WorkEntry = {
+        
+        // Create new work entry with only defined values
+        const newEntry: any = {
           id: newEntryRef.id,
           orgId: currentOrg.id,
           employeeId: payload.employeeId,
           employeeName: employee.name,
-          serviceId: payload.serviceId,
           serviceName: service ? service.name : payload.serviceName,
           price: payload.price,
-          tip: payload.tip || 0,
           paymentMethod: payload.paymentMethod,
-          note: payload.note,
           createdBy: user.id,
           createdByName: user.name,
           edited: false,
           createdAt: new Date(),
           updatedAt: new Date(),
         };
+
+        // Only add optional fields if they have values
+        if (payload.serviceId) {
+          newEntry.serviceId = payload.serviceId;
+        }
+        if (payload.tip && payload.tip > 0) {
+          newEntry.tip = payload.tip;
+        }
+        if (payload.note && payload.note.trim()) {
+          newEntry.note = payload.note.trim();
+        }
 
         await newEntryRef.set(newEntry);
         // Listener updates state
@@ -244,7 +233,7 @@ export const DataProvider: React.FC<{children: React.ReactNode}> = ({children}) 
         // getDailySummary logic checks existingSummary. It might be stale.
         // For simplicity, we assume summaries are generated on demand or nightly. Realtime updates of summaries might be too heavy for client.
 
-        return newEntry;
+        return newEntry as WorkEntry;
       } catch (err: any) {
         const errorMessage = err.message || ERROR_MESSAGES.somethingWentWrong;
         setError(errorMessage);
