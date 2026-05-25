@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import {View, Text, StyleSheet, ScrollView} from 'react-native';
+import {View, Text, ScrollView, StyleSheet} from 'react-native';
 import {useLanguage} from '@/context/LanguageContext';
 import LanguageToggle, {
   CompactLanguageToggle,
@@ -17,7 +17,6 @@ import {
   formatDateWithMonth,
   formatTime,
   formatPercentage,
-  toBengaliNumerals,
 } from '@/utils/bengaliNumerals';
 import AnimatedButton from '@/components/UI/AnimatedButton';
 

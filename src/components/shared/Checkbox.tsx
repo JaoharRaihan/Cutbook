@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import {View, Text, TouchableOpacity, StyleSheet, ViewStyle} from 'react-native';
+import {View, Text, TouchableOpacity, ViewStyle, StyleSheet} from 'react-native';
 
 // ============================================================================
 // TYPES

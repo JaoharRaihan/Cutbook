@@ -29,7 +29,7 @@ import {formatDateISO} from '@/utils';
 
 export default function EditServiceScreen({route, navigation}: any): React.ReactElement {
   const {serviceId} = route.params;
-  const {currentOrg} = useOrg();
+  const {orgServices, updateService, deleteService} = useOrg();
   const [loading, setLoading] = useState(true);
   const [service, setService] = useState<Service | null>(null);
   const [serviceName, setServiceName] = useState('');
@@ -51,78 +51,24 @@ export default function EditServiceScreen({route, navigation}: any): React.React
     {value: ServiceCategory.OTHER, label: 'Other', icon: '✨'},
   ];
 
-  // Mock service data
-  const mockServices: Service[] = [
-    {
-      id: 'service_1',
-      orgId: 'org_1',
-      name: 'Regular Haircut',
-      defaultPrice: 300,
-      category: ServiceCategory.HAIRCUT,
-      description: 'Standard haircut with styling',
-      duration: 30,
-      isActive: true,
-      createdAt: new Date('2024-01-01'),
-      updatedAt: new Date('2024-06-15'),
-    },
-    {
-      id: 'service_2',
-      orgId: 'org_1',
-      name: 'Premium Haircut',
-      defaultPrice: 500,
-      category: ServiceCategory.HAIRCUT,
-      description: 'Premium haircut with wash and styling',
-      duration: 45,
-      isActive: true,
-      createdAt: new Date('2024-01-01'),
-      updatedAt: new Date('2024-06-10'),
-    },
-    {
-      id: 'service_3',
-      orgId: 'org_1',
-      name: 'Clean Shave',
-      defaultPrice: 100,
-      category: ServiceCategory.SHAVE,
-      description: 'Traditional razor shave',
-      duration: 20,
-      isActive: true,
-      createdAt: new Date('2024-01-01'),
-      updatedAt: new Date('2024-06-01'),
-    },
-  ];
-
   // ============================================================================
   // EFFECTS
   // ============================================================================
 
   useEffect(() => {
-    loadService();
-  }, [serviceId]);
-
-  // ============================================================================
-  // DATA LOADING
-  // ============================================================================
-
-  const loadService = async () => {
-    setLoading(true);
-
-    // Simulate API call
-    setTimeout(() => {
-      const foundService = mockServices.find(s => s.id === serviceId);
-
-      if (foundService) {
-        setService(foundService);
-        setServiceName(foundService.name);
-        setCategory(foundService.category);
-        setDefaultPrice(foundService.defaultPrice ? foundService.defaultPrice.toString() : '');
-        setDescription(foundService.description || '');
-        setDuration(foundService.duration ? foundService.duration.toString() : '');
-        setIsActive(foundService.isActive);
-      }
-
-      setLoading(false);
-    }, 500);
-  };
+    // Find service from orgServices
+    const foundService = orgServices.find(s => s.id === serviceId);
+    if (foundService) {
+      setService(foundService);
+      setServiceName(foundService.name);
+      setCategory(foundService.category);
+      setDefaultPrice(foundService.defaultPrice ? foundService.defaultPrice.toString() : '');
+      setDescription(foundService.description || '');
+      setDuration(foundService.duration ? foundService.duration.toString() : '');
+      setIsActive(foundService.isActive);
+    }
+    setLoading(false);
+  }, [serviceId, orgServices]);
 
   // ============================================================================
   // VALIDATION
@@ -155,22 +101,22 @@ export default function EditServiceScreen({route, navigation}: any): React.React
       return;
     }
 
+    if (!service) {
+      Alert.alert('Error', 'Service not found');
+      return;
+    }
+
     setLoading(true);
 
-    // Simulate API call
-    setTimeout(() => {
-      setLoading(false);
-
-      const updatedService: Partial<Service> = {
-        ...service,
+    try {
+      await updateService(serviceId, {
         name: serviceName.trim(),
         category,
-        defaultPrice: defaultPrice ? parseFloat(defaultPrice) : undefined,
+        defaultPrice: defaultPrice ? parseFloat(defaultPrice) : 0,
         description: description.trim() || undefined,
         duration: duration ? parseInt(duration) : undefined,
         isActive,
-        updatedAt: new Date(),
-      };
+      });
 
       Alert.alert('Success', `${serviceName} has been updated!`, [
         {
@@ -178,7 +124,12 @@ export default function EditServiceScreen({route, navigation}: any): React.React
           onPress: () => navigation.goBack(),
         },
       ]);
-    }, 500);
+    } catch (err: any) {
+      console.error('Error updating service:', err);
+      Alert.alert('Error', err.message || 'Failed to update service');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleDelete = () => {
@@ -214,9 +165,8 @@ export default function EditServiceScreen({route, navigation}: any): React.React
   const executeDelete = async () => {
     setLoading(true);
 
-    // Simulate API call
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      await deleteService(serviceId);
 
       Alert.alert('Deleted', `${serviceName} has been deleted.`, [
         {
@@ -224,7 +174,11 @@ export default function EditServiceScreen({route, navigation}: any): React.React
           onPress: () => navigation.goBack(),
         },
       ]);
-    }, 500);
+    } catch (err: any) {
+      console.error('Error deleting service:', err);
+      Alert.alert('Error', err.message || 'Failed to delete service');
+      setLoading(false);
+    }
   };
 
   const handleToggleActive = (value: boolean) => {

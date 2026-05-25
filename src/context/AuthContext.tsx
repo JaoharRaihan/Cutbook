@@ -5,11 +5,28 @@
 
 import React, {createContext, useContext, useState, useEffect, useCallback} from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import auth, {FirebaseAuthTypes} from '@react-native-firebase/auth';
+import {FirebaseAuthTypes} from '@react-native-firebase/auth';
+import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import type {User, AuthCredentials, RegistrationData} from '@/types';
 import {UserRole, UserStatus} from '@/types';
 import {STORAGE_KEYS, ERROR_MESSAGES, SUCCESS_MESSAGES} from '@/constants';
+
+// ============================================================================
+// HELPERS
+// ============================================================================
+
+/**
+ * Convert phone number to valid Firebase email format
+ * Firebase doesn't accept emails starting with '+'
+ * @param phone - Phone number (e.g., '+8801712345678' or '8801712345678')
+ * @returns Valid email for Firebase Auth (e.g., 'auth_8801712345678@cutbook.app')
+ */
+const phoneToFirebaseEmail = (phone: string): string => {
+  // Remove + and any non-digit characters except the country code
+  const digitsOnly = phone.replace(/\D/g, '');
+  return `auth_${digitsOnly}@cutbook.app`;
+};
 
 // ============================================================================
 // TYPES
@@ -57,34 +74,31 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) 
   // INITIALIZATION - Listen to Firebase Auth State
   // ============================================================================
 
-  const onAuthStateChanged = useCallback(
-    async (firebaseUser: FirebaseAuthTypes.User | null) => {
-      try {
-        if (firebaseUser) {
-          // User is signed in
-          const idToken = await firebaseUser.getIdToken();
-          setToken(idToken);
-          await fetchUserProfile(firebaseUser.uid);
-        } else {
-          // User is signed out
-          setUser(null);
-          setToken(null);
-          await AsyncStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
-          await AsyncStorage.removeItem(STORAGE_KEYS.USER_DATA);
-        }
-      } catch (err) {
-        console.error('❌ Error handling auth state change:', err);
-      } finally {
-        if (initializing) setInitializing(false);
+  const handleAuthStateChange = useCallback(async (firebaseUser: FirebaseAuthTypes.User | null) => {
+    try {
+      if (firebaseUser) {
+        // User is signed in
+        const idToken = await firebaseUser.getIdToken();
+        setToken(idToken);
+        await fetchUserProfile(firebaseUser.uid);
+      } else {
+        // User is signed out
+        setUser(null);
+        setToken(null);
+        await AsyncStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+        await AsyncStorage.removeItem(STORAGE_KEYS.USER_DATA);
       }
-    },
-    [initializing],
-  );
+    } catch (err) {
+      console.error('❌ Error handling auth state change:', err);
+    } finally {
+      setInitializing(false);
+    }
+  }, []);
 
   useEffect(() => {
-    const subscriber = auth().onAuthStateChanged(onAuthStateChanged);
-    return subscriber; // unsubscribe on unmount
-  }, [onAuthStateChanged]);
+    const unsubscribe = auth().onAuthStateChanged(handleAuthStateChange);
+    return () => unsubscribe();
+  }, [handleAuthStateChange]);
 
   // Fetch user profile from Firestore
   const fetchUserProfile = async (uid: string) => {
@@ -92,17 +106,17 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) 
       console.log('Fetching user profile for:', uid);
       const userDoc = await firestore().collection('users').doc(uid).get();
 
-      if (userDoc.exists()) {
+      if (userDoc.exists) {
         const userData = userDoc.data() as User;
         // Ensure ID matches
         userData.id = uid;
-        
+
         // Ensure role is properly set (should never be undefined)
         if (!userData.role || !Object.values(UserRole).includes(userData.role)) {
           console.warn('⚠️ Invalid or missing role for user:', uid, 'Setting to EMPLOYEE');
           userData.role = UserRole.EMPLOYEE;
         }
-        
+
         // Handle date conversions if necessary (Firestore timestamps)
         if (
           userData.createdAt &&
@@ -141,21 +155,33 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) 
     setSuccessMessage(null);
 
     try {
-      console.log('🔍 AuthContext - Login attempt for:', credentials.email || credentials.phone);
+      // Trim password
+      const trimmedPassword = credentials.password.trim();
 
-      // Convert phone to email format for Firebase Auth
-      // Users can register with phone, we store it as phone@cutbook.app
+      console.log('🔍 LOGIN - Credentials received:', {
+        phone: credentials.phone,
+        email: credentials.email,
+        passwordLength: trimmedPassword.length,
+      });
+
+      // Convert phone to valid Firebase email format
       let emailToUse = credentials.email;
 
       if (!emailToUse && credentials.phone) {
-        emailToUse = `${credentials.phone}@cutbook.app`;
+        emailToUse = phoneToFirebaseEmail(credentials.phone);
       }
 
       if (!emailToUse) {
         throw new Error('Email or Phone required');
       }
 
-      await auth().signInWithEmailAndPassword(emailToUse, credentials.password);
+      console.log(
+        '📧 LOGIN - Using Firebase email:',
+        emailToUse,
+        'with password length:',
+        trimmedPassword.length,
+      );
+      await auth().signInWithEmailAndPassword(emailToUse, trimmedPassword);
 
       // onAuthStateChanged will handle the rest
       setSuccessMessage(SUCCESS_MESSAGES.loginSuccess);
@@ -195,23 +221,37 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) 
     setSuccessMessage(null);
 
     try {
-      console.log('📝 Registering new user:', data.email || data.phone, 'Role:', data.role);
+      // Trim password
+      const trimmedPassword = data.password.trim();
 
-      // Convert phone to email format if email not provided
-      const email = data.email || `${data.phone}@cutbook.app`;
+      console.log('📝 REGISTER - User data received:', {
+        phone: data.phone,
+        email: data.email,
+        name: data.name,
+        role: data.role,
+        passwordLength: trimmedPassword.length,
+      });
+
+      // Convert phone to valid Firebase email format if email not provided
+      const email = data.email || phoneToFirebaseEmail(data.phone);
 
       // check if phone is already used in Firestore (since Auth doesn't check custom fields)
-      const phoneCheck = await firestore()
+      const phoneCheckSnap = await firestore()
         .collection('users')
         .where('phone', '==', data.phone)
-        .limit(1)
         .get();
-      if (!phoneCheck.empty) {
+      if (!phoneCheckSnap.empty) {
         throw new Error(ERROR_MESSAGES.phoneExists);
       }
 
       // Create Authentication User
-      const userCredential = await auth().createUserWithEmailAndPassword(email, data.password);
+      console.log(
+        '📧 REGISTER - Creating Firebase auth with email:',
+        email,
+        'password length:',
+        trimmedPassword.length,
+      );
+      const userCredential = await auth().createUserWithEmailAndPassword(email, trimmedPassword);
       const uid = userCredential.user.uid;
 
       // Prepare User Model with correct role assignment

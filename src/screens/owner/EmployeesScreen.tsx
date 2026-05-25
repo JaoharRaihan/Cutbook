@@ -25,7 +25,7 @@ import {User, UserRole} from '@/types';
 // ============================================================================
 
 export default function EmployeesScreen({navigation}: any): React.ReactElement {
-  const {currentOrg, orgUsers, loading, fetchOrgData} = useOrg();
+  const {orgUsers, loading, fetchOrgData} = useOrg();
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
 

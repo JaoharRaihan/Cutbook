@@ -26,7 +26,7 @@ import {CommissionMode} from '@/types';
 // ============================================================================
 
 const CreateOrgScreen: React.FC = () => {
-  const navigation = useNavigation();
+  useNavigation();
   const {createOrg, loading} = useOrg();
 
   const [formData, setFormData] = useState({
@@ -69,12 +69,21 @@ const CreateOrgScreen: React.FC = () => {
     }
 
     try {
-      await createOrg({
+      const orgData = {
         name: formData.name.trim(),
         timezone: formData.timezone,
         currency: formData.currency,
         defaultCommissionMode: formData.defaultCommissionMode,
+      };
+
+      // Remove undefined values to avoid Firestore errors
+      Object.keys(orgData).forEach(key => {
+        if (orgData[key as keyof typeof orgData] === undefined) {
+          delete orgData[key as keyof typeof orgData];
+        }
       });
+
+      await createOrg(orgData);
       Alert.alert('Success', 'Organization created successfully!');
       // Navigation will be handled automatically by RootNavigator
     } catch (error: any) {

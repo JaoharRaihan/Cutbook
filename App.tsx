@@ -7,7 +7,7 @@ import React, {useEffect, useState} from 'react';
 import {StatusBar, View, Text, ActivityIndicator} from 'react-native';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
 import firestore from '@react-native-firebase/firestore';
-import {AuthProvider, OrgProvider} from '@/context';
+import {AuthProvider, OrgProvider, DataProvider} from '@/context';
 import {RootNavigator} from '@/navigation';
 import {Colors} from '@/constants/theme';
 
@@ -26,7 +26,7 @@ function App(): React.JSX.Element {
         // Enable offline persistence (data cached locally)
         await firestore().settings({
           persistence: true, // Enable offline support
-          cacheSizeBytes: firestore.CACHE_SIZE_UNLIMITED,
+          cacheSizeBytes: 104857600, // 100 MB cache
         });
 
         console.log('✅ Firebase initialized successfully');
@@ -98,7 +98,9 @@ function App(): React.JSX.Element {
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
       <AuthProvider>
         <OrgProvider>
-          <RootNavigator />
+          <DataProvider>
+            <RootNavigator />
+          </DataProvider>
         </OrgProvider>
       </AuthProvider>
     </SafeAreaProvider>

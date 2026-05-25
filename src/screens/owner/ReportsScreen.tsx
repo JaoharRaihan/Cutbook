@@ -15,7 +15,7 @@ import {
   Alert,
 } from 'react-native';
 import {useOrg} from '@/context';
-import {WorkEntry, PaymentMethod, User} from '@/types';
+import {WorkEntry, PaymentMethod} from '@/types';
 import {formatBDT} from '@/utils';
 
 // ============================================================================
@@ -47,40 +47,6 @@ interface PaymentStats {
 export default function ReportsScreen({navigation}: any): React.ReactElement {
   const {currentOrg} = useOrg();
   const [dateRange, setDateRange] = useState<DateRange>('today');
-
-  // Mock data
-  const mockEmployees: User[] = [
-    {
-      id: 'user_2',
-      name: 'Karim Ahmed',
-      phone: '+8801712345678',
-      role: 'employee' as any,
-      orgId: 'org_1',
-      commissionPercentage: 60,
-      status: 'active' as any,
-      createdAt: new Date('2024-01-15'),
-    },
-    {
-      id: 'user_3',
-      name: 'Rahim Islam',
-      phone: '+8801812345678',
-      role: 'employee' as any,
-      orgId: 'org_1',
-      commissionPercentage: 55,
-      status: 'active' as any,
-      createdAt: new Date('2024-02-01'),
-    },
-    {
-      id: 'user_4',
-      name: 'Sabbir Khan',
-      phone: '+8801912345678',
-      role: 'employee' as any,
-      orgId: 'org_1',
-      commissionPercentage: 50,
-      status: 'active' as any,
-      createdAt: new Date('2024-03-10'),
-    },
-  ];
 
   const mockEntries: WorkEntry[] = [
     {

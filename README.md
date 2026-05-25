@@ -15,6 +15,7 @@ A modern, cross-platform salon management application built with React Native, F
 ## 🚀 Getting Started
 
 ### Prerequisites
+
 - Node.js 20 or higher
 - npm or yarn
 - iOS: Xcode 14+ (for iOS development)
@@ -33,6 +34,7 @@ yarn install
 ### Running the App
 
 #### iOS
+
 ```bash
 npm run ios
 # or
@@ -40,6 +42,7 @@ yarn ios
 ```
 
 #### Android
+
 ```bash
 npm run android
 # or
@@ -47,6 +50,7 @@ yarn android
 ```
 
 #### Web
+
 ```bash
 npm run web
 # or
@@ -54,6 +58,7 @@ yarn web
 ```
 
 #### Development Server
+
 ```bash
 npm start
 # or
@@ -98,6 +103,7 @@ src/
 ## 🔐 Firebase Setup
 
 The app uses Firebase for:
+
 - Authentication
 - Firestore Database
 - Real-time Data Sync
@@ -108,6 +114,7 @@ Firebase configuration is pre-configured in `firebase.json` and `firestore.rules
 ## 📱 User Roles
 
 ### Owner
+
 - Create and manage salon organization
 - Add/remove employees
 - Manage services and pricing
@@ -116,6 +123,7 @@ Firebase configuration is pre-configured in `firebase.json` and `firestore.rules
 - Generate reports
 
 ### Employee
+
 - View assigned work
 - Log work entries
 - Track commission
@@ -125,6 +133,7 @@ Firebase configuration is pre-configured in `firebase.json` and `firestore.rules
 ## 🎨 Styling & Theme
 
 The app uses a custom theme system with:
+
 - Consistent color palette
 - Typography guidelines
 - Spacing standards
@@ -143,11 +152,13 @@ npm run test:coverage
 ## 🛠️ Development
 
 ### Code Style
+
 - ESLint for code quality
 - Prettier for code formatting
 - TypeScript for type safety
 
 ### Best Practices
+
 - Component-based architecture
 - Context API for state management
 - Custom hooks for reusable logic
@@ -157,21 +168,25 @@ npm run test:coverage
 ## 📦 Dependencies
 
 ### Core
+
 - React Native 0.83.0
 - React 19.2.0
 - TypeScript 5.8.3
 
 ### Navigation & UI
+
 - React Navigation 7.x
 - React Native Safe Area Context
 - React Native Gesture Handler
 
 ### State & Data
+
 - Firebase Admin SDK 23.8.3
 - Async Storage 2.2.0
 - date-fns 4.1.0
 
 ### Development
+
 - Babel 7.25.x
 - Webpack 5.104.x
 - Jest 29.6.3

@@ -12,6 +12,7 @@ import {STORAGE_KEYS, ERROR_MESSAGES} from '@/constants';
 import {useAuth} from './AuthContext';
 import {useOrg} from './OrgContext';
 import {formatDateISO, parseDate} from '@/utils/date';
+import {calculateEmployeeCommission} from '@/utils/calculations';
 
 // ============================================================================
 // TYPES
@@ -97,79 +98,97 @@ export const DataProvider: React.FC<{children: React.ReactNode}> = ({children}) 
         .where('orgId', '==', currentOrg.id)
         .orderBy('createdAt', 'desc')
         .onSnapshot(
-          querySnapshot => {
+          (querySnapshot: any) => {
             const entries: WorkEntry[] = [];
-            querySnapshot.forEach(doc => {
-              const data = doc.data() as WorkEntry;
-              data.id = doc.id;
-              if (data.createdAt && 'toDate' in (data.createdAt as any)) data.createdAt = (data.createdAt as any).toDate();
-              if (data.updatedAt && 'toDate' in (data.updatedAt as any)) data.updatedAt = (data.updatedAt as any).toDate();
+            querySnapshot.forEach((docSnap: any) => {
+              const data = docSnap.data() as WorkEntry;
+              data.id = docSnap.id;
+              if (data.createdAt && 'toDate' in (data.createdAt as any)) {
+                data.createdAt = (data.createdAt as any).toDate();
+              }
+              if (data.updatedAt && 'toDate' in (data.updatedAt as any)) {
+                data.updatedAt = (data.updatedAt as any).toDate();
+              }
               if (data.editLogs) {
-                  data.editLogs = data.editLogs.map(log => ({
-                      ...log,
-                      timestamp: 'toDate' in (log.timestamp as any) ? (log.timestamp as any).toDate() : log.timestamp
-                  }));
+                data.editLogs = data.editLogs.map(log => ({
+                  ...log,
+                  timestamp:
+                    'toDate' in (log.timestamp as any)
+                      ? (log.timestamp as any).toDate()
+                      : log.timestamp,
+                }));
               }
               entries.push(data);
             });
             setWorkEntries(entries);
-            AsyncStorage.setItem(STORAGE_KEYS.WORK_ENTRIES, JSON.stringify(entries)); // Cache for offline init
+            AsyncStorage.setItem(STORAGE_KEYS.WORK_ENTRIES, JSON.stringify(entries));
           },
-          err => {
-              console.error("Error syncing work entries:", err);
-              // Handle composite index requirement error
-              // If orderBy is used with where, firestore needs index.
-              // If fails, we might need to remove orderBy and sort client side
-              if (err.message.includes('index')) {
-                  console.warn("Index missing, falling back to client-side sort");
-                  // Fallback without orderBy
-                  firestore().collection('workEntries').where('orgId', '==', currentOrg.id).get().then(qs => {
-                       const entries: WorkEntry[] = [];
-                        qs.forEach(doc => {
-                           // ... same parsing ...
-                            const data = doc.data() as WorkEntry;
-                            data.id = doc.id;
-                            if (data.createdAt && 'toDate' in (data.createdAt as any)) data.createdAt = (data.createdAt as any).toDate();
-                            if (data.updatedAt && 'toDate' in (data.updatedAt as any)) data.updatedAt = (data.updatedAt as any).toDate();
-                            entries.push(data);
-                        });
-                        setWorkEntries(entries.sort((a,b) => (b.createdAt as Date).getTime() - (a.createdAt as Date).getTime()));
+          (err: any) => {
+            console.error('Error syncing work entries:', err);
+            if (err.message.includes('index')) {
+              firestore()
+                .collection('workEntries')
+                .where('orgId', '==', currentOrg.id)
+                .get()
+                .then((qs: any) => {
+                  const entries: WorkEntry[] = [];
+                  qs.forEach((docSnap: any) => {
+                    const data = docSnap.data() as WorkEntry;
+                    data.id = docSnap.id;
+                    if (data.createdAt && 'toDate' in (data.createdAt as any)) {
+                      data.createdAt = (data.createdAt as any).toDate();
+                    }
+                    if (data.updatedAt && 'toDate' in (data.updatedAt as any)) {
+                      data.updatedAt = (data.updatedAt as any).toDate();
+                    }
+                    entries.push(data);
                   });
-              }
-          }
+                  setWorkEntries(
+                    entries.sort(
+                      (a, b) => (b.createdAt as Date).getTime() - (a.createdAt as Date).getTime(),
+                    ),
+                  );
+                });
+            }
+          },
         );
 
-      // 2. Listen to Daily Summaries
       summariesUnsubscribe = firestore()
         .collection('dailySummaries')
         .where('orgId', '==', currentOrg.id)
         .onSnapshot(
-            querySnapshot => {
-                const summaries: DailySummary[] = [];
-                querySnapshot.forEach(doc => {
-                    const data = doc.data() as DailySummary;
-                    data.id = doc.id;
-                      if (data.generatedAt && 'toDate' in (data.generatedAt as any)) data.generatedAt = (data.generatedAt as any).toDate();
-                      if (data.createdAt && 'toDate' in (data.createdAt as any)) data.createdAt = (data.createdAt as any).toDate();
-                      if (data.updatedAt && 'toDate' in (data.updatedAt as any)) data.updatedAt = (data.updatedAt as any).toDate();
-                    summaries.push(data);
-                });
-                setDailySummaries(summaries);
-                AsyncStorage.setItem(STORAGE_KEYS.DAILY_SUMMARIES, JSON.stringify(summaries));
-            },
-            err => console.error("Error syncing summaries:", err)
+          (querySnapshot: any) => {
+            const summaries: DailySummary[] = [];
+            querySnapshot.forEach((docSnap: any) => {
+              const data = docSnap.data() as DailySummary;
+              data.id = docSnap.id;
+              if (data.generatedAt && 'toDate' in (data.generatedAt as any)) {
+                data.generatedAt = (data.generatedAt as any).toDate();
+              }
+              if (data.createdAt && 'toDate' in (data.createdAt as any)) {
+                data.createdAt = (data.createdAt as any).toDate();
+              }
+              if (data.updatedAt && 'toDate' in (data.updatedAt as any)) {
+                data.updatedAt = (data.updatedAt as any).toDate();
+              }
+              summaries.push(data);
+            });
+            setDailySummaries(summaries);
+            AsyncStorage.setItem(STORAGE_KEYS.DAILY_SUMMARIES, JSON.stringify(summaries));
+          },
+          (err: any) => console.error('Error syncing summaries:', err),
         );
 
-        setLoading(false);
+      setLoading(false);
     } else {
-        setWorkEntries([]);
-        setDailySummaries([]);
+      setWorkEntries([]);
+      setDailySummaries([]);
     }
 
     return () => {
-        if (entriesUnsubscribe) entriesUnsubscribe();
-        if (summariesUnsubscribe) summariesUnsubscribe();
-    }
+      if (entriesUnsubscribe) entriesUnsubscribe();
+      if (summariesUnsubscribe) summariesUnsubscribe();
+    };
   }, [currentOrg]);
 
   // ============================================================================
@@ -220,8 +239,6 @@ export const DataProvider: React.FC<{children: React.ReactNode}> = ({children}) 
         await newEntryRef.set(newEntry);
         // Listener updates state
 
-        console.log('✅ Work entry added:', newEntry.id);
-
         // Invalidate or update relevant daily summary if exists?
         // Ideally cloud functions handle aggregation, but for now we can regenerate client side on next getDailySummary call or force update?
         // getDailySummary logic checks existingSummary. It might be stale.
@@ -253,11 +270,12 @@ export const DataProvider: React.FC<{children: React.ReactNode}> = ({children}) 
       setError(null);
 
       try {
-        const entryDoc = await firestore().collection('workEntries').doc(id).get();
-        if (!entryDoc.exists) {
-            throw new Error('Work entry not found');
+        const entryDocRef = firestore().collection('workEntries').doc(id);
+        const entryDocSnap = await entryDocRef.get();
+        if (!entryDocSnap.exists) {
+          throw new Error('Work entry not found');
         }
-        const existingEntry = entryDoc.data() as WorkEntry;
+        const existingEntry = entryDocSnap.data() as WorkEntry;
 
         // Find service if serviceId is provided
         let serviceName = payload.serviceName;
@@ -299,11 +317,11 @@ export const DataProvider: React.FC<{children: React.ReactNode}> = ({children}) 
           paymentMethod: payload.paymentMethod ?? existingEntry.paymentMethod,
           note: payload.note !== undefined ? payload.note : existingEntry.note,
           edited: true,
-          editLogs: firestore.FieldValue.arrayUnion(editLog),
+          editLogs: [...(existingEntry.editLogs || []), editLog],
           updatedAt: new Date(),
         };
 
-        await firestore().collection('workEntries').doc(id).update(updatedData);
+        await entryDocRef.update(updatedData);
 
         console.log('✅ Work entry updated:', id);
       } catch (err: any) {
@@ -347,12 +365,14 @@ export const DataProvider: React.FC<{children: React.ReactNode}> = ({children}) 
 
       if (filters) {
         if (filters.startDate) {
-          const startDate = typeof filters.startDate === 'string'
+          const startDate =
+            typeof filters.startDate === 'string'
               ? parseDate(filters.startDate)
               : filters.startDate;
           if (startDate) {
             filtered = filtered.filter(e => {
-              const entryDate = typeof e.createdAt === 'string' ? parseDate(e.createdAt) : e.createdAt;
+              const entryDate =
+                typeof e.createdAt === 'string' ? parseDate(e.createdAt) : e.createdAt;
               // Reset time part for comparison if needed, but let's assume exact or standard comparison
               return entryDate && entryDate >= startDate;
             });
@@ -360,11 +380,13 @@ export const DataProvider: React.FC<{children: React.ReactNode}> = ({children}) 
         }
 
         if (filters.endDate) {
-          const endDate = typeof filters.endDate === 'string' ? parseDate(filters.endDate) : filters.endDate;
+          const endDate =
+            typeof filters.endDate === 'string' ? parseDate(filters.endDate) : filters.endDate;
           if (endDate) {
             endDate.setHours(23, 59, 59, 999);
             filtered = filtered.filter(e => {
-              const entryDate = typeof e.createdAt === 'string' ? parseDate(e.createdAt) : e.createdAt;
+              const entryDate =
+                typeof e.createdAt === 'string' ? parseDate(e.createdAt) : e.createdAt;
               return entryDate && entryDate <= endDate;
             });
           }
@@ -417,21 +439,23 @@ export const DataProvider: React.FC<{children: React.ReactNode}> = ({children}) 
 
         // Or query logic if not syncing all summaries
         if (!existingSummary) {
-             const qs = await firestore().collection('dailySummaries')
-                .where('orgId', '==', currentOrg.id)
-                .where('date', '==', dateStr)
-                .limit(1)
-                .get();
-             if (!qs.empty) {
-                 const data = qs.docs[0].data() as DailySummary;
-                 data.id = qs.docs[0].id;
-                 // date conversions...
-                 existingSummary = data;
-             }
+          const qs = await firestore()
+            .collection('dailySummaries')
+            .where('orgId', '==', currentOrg.id)
+            .where('date', '==', dateStr)
+            .limit(1)
+            .get();
+          if (!qs.empty) {
+            const docSnap = qs.docs[0];
+            const data = docSnap.data() as DailySummary;
+            data.id = docSnap.id;
+            // date conversions...
+            existingSummary = data;
+          }
         }
 
         if (existingSummary) {
-            // TODO: check if it's stale? For now, return existing.
+          // TODO: check if it's stale? For now, return existing.
           return existingSummary;
         }
 
@@ -451,12 +475,23 @@ export const DataProvider: React.FC<{children: React.ReactNode}> = ({children}) 
         // Calculate totals
         const totalIncome = dayEntries.reduce((sum, e) => sum + e.price + (e.tip || 0), 0);
         const totalTips = dayEntries.reduce((sum, e) => sum + (e.tip || 0), 0);
-        const totalCash = dayEntries.filter(e => e.paymentMethod === PaymentMethod.CASH).reduce((sum, e) => sum + e.price + (e.tip || 0), 0);
-        const totalBkash = dayEntries.filter(e => e.paymentMethod === PaymentMethod.BKASH).reduce((sum, e) => sum + e.price + (e.tip || 0), 0);
-        const totalNagad = dayEntries.filter(e => e.paymentMethod === PaymentMethod.NAGAD).reduce((sum, e) => sum + e.price + (e.tip || 0), 0);
-        const totalCard = dayEntries.filter(e => e.paymentMethod === PaymentMethod.CARD).reduce((sum, e) => sum + e.price + (e.tip || 0), 0);
-        const totalOther = dayEntries.filter(e => e.paymentMethod === PaymentMethod.OTHER).reduce((sum, e) => sum + e.price + (e.tip || 0), 0);
+        const totalCash = dayEntries
+          .filter(e => e.paymentMethod === PaymentMethod.CASH)
+          .reduce((sum, e) => sum + e.price + (e.tip || 0), 0);
+        const totalBkash = dayEntries
+          .filter(e => e.paymentMethod === PaymentMethod.BKASH)
+          .reduce((sum, e) => sum + e.price + (e.tip || 0), 0);
+        const totalNagad = dayEntries
+          .filter(e => e.paymentMethod === PaymentMethod.NAGAD)
+          .reduce((sum, e) => sum + e.price + (e.tip || 0), 0);
+        const totalCard = dayEntries
+          .filter(e => e.paymentMethod === PaymentMethod.CARD)
+          .reduce((sum, e) => sum + e.price + (e.tip || 0), 0);
+        const totalOther = dayEntries
+          .filter(e => e.paymentMethod === PaymentMethod.OTHER)
+          .reduce((sum, e) => sum + e.price + (e.tip || 0), 0);
 
+        let totalCommissionTotal = 0;
         const employeeMap = new Map<string, EmployeeBreakdown>();
         dayEntries.forEach(entry => {
           if (!employeeMap.has(entry.employeeId)) {
@@ -466,12 +501,25 @@ export const DataProvider: React.FC<{children: React.ReactNode}> = ({children}) 
               totalCount: 0,
               totalIncome: 0,
               totalTips: 0,
+              commission: 0,
             });
           }
           const breakdown = employeeMap.get(entry.employeeId)!;
           breakdown.totalCount += 1;
           breakdown.totalIncome += entry.price;
           breakdown.totalTips += entry.tip || 0;
+
+          // Calculate commission for this entry if role and settings match
+          const employee = orgUsers.find(u => u.id === entry.employeeId);
+          if (employee && currentOrg) {
+            const entryCommission = calculateEmployeeCommission(
+              entry.price,
+              currentOrg,
+              employee.commissionPercentage,
+            );
+            breakdown.commission = (breakdown.commission || 0) + entryCommission;
+            totalCommissionTotal += entryCommission;
+          }
         });
 
         const newSummaryRef = firestore().collection('dailySummaries').doc();
@@ -487,6 +535,7 @@ export const DataProvider: React.FC<{children: React.ReactNode}> = ({children}) 
           totalNagad,
           totalCard,
           totalOther,
+          totalCommission: totalCommissionTotal,
           employeeBreakdown: Array.from(employeeMap.values()),
           generatedAt: new Date(),
           createdAt: new Date(),
@@ -495,7 +544,6 @@ export const DataProvider: React.FC<{children: React.ReactNode}> = ({children}) 
 
         await newSummaryRef.set(newSummary);
 
-        console.log('✅ Daily summary generated:', dateStr);
         return newSummary;
       } catch (err: any) {
         const errorMessage = err.message || ERROR_MESSAGES.somethingWentWrong;
@@ -505,12 +553,12 @@ export const DataProvider: React.FC<{children: React.ReactNode}> = ({children}) 
         setLoading(false);
       }
     },
-    [currentOrg, dailySummaries, getWorkEntries],
+    [currentOrg, dailySummaries, getWorkEntries, orgUsers],
   );
 
   const refreshData = useCallback(async () => {
     // No-op with realtime
-    console.log("Refreshed data");
+    console.log('Refreshed data');
   }, []);
 
   const clearError = useCallback(() => setError(null), []);

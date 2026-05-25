@@ -4,7 +4,7 @@
  */
 
 import React, {useEffect, useRef} from 'react';
-import {View, Text, StyleSheet, Animated, Dimensions, TouchableOpacity} from 'react-native';
+import {Text, StyleSheet, Animated, TouchableOpacity} from 'react-native';
 
 // ============================================================================
 // TYPES

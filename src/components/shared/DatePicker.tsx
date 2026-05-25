@@ -34,9 +34,9 @@ export default function DatePicker({
   endDate,
   onRangeChange,
   label = 'Select Date',
-  minDate,
-  maxDate,
-}: DatePickerProps): React.ReactElement {
+  _minDate,
+  _maxDate,
+}: DatePickerProps & {_minDate?: Date; _maxDate?: Date}): React.ReactElement {
   const [modalVisible, setModalVisible] = useState(false);
   const [tempStartDate, setTempStartDate] = useState(startDate || new Date());
   const [tempEndDate, setTempEndDate] = useState(endDate || new Date());
@@ -51,16 +51,6 @@ export default function DatePicker({
       day: 'numeric',
       year: 'numeric',
     });
-  };
-
-  const generateMonths = (): Date[] => {
-    const months: Date[] = [];
-    const now = new Date();
-    for (let i = 0; i < 12; i++) {
-      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      months.push(date);
-    }
-    return months;
   };
 
   const generateDays = (month: Date): Date[] => {

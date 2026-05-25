@@ -18,14 +18,14 @@ import {
 } from 'react-native';
 import {useOrg} from '@/context';
 import ServiceCard from '@/components/ServiceCard';
-import {Service, ServiceCategory} from '@/types';
+import {Service} from '@/types';
 
 // ============================================================================
 // COMPONENT
 // ============================================================================
 
 export default function ServicesScreen({navigation}: any): React.ReactElement {
-  const {currentOrg, orgServices, loading, fetchOrgData} = useOrg();
+  const {orgServices, loading, fetchOrgData} = useOrg();
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
 

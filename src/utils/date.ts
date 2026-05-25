@@ -42,7 +42,7 @@ export const formatDate = (
     }
 
     return format(dateObj, formatStr);
-  } catch (error) {
+  } catch {
     return 'Invalid Date';
   }
 };
@@ -114,7 +114,7 @@ export const parseDate = (dateStr: string, formatStr: string = 'yyyy-MM-dd'): Da
   try {
     const parsed = parse(dateStr, formatStr, new Date());
     return isValid(parsed) ? parsed : null;
-  } catch (error) {
+  } catch {
     return null;
   }
 };

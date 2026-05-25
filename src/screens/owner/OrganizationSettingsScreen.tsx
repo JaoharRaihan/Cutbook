@@ -78,15 +78,6 @@ export default function OrganizationSettingsScreen({navigation}: any): React.Rea
     setIsDirty(true);
   };
 
-  const handleCommissionModeToggle = () => {
-    const newMode =
-      commissionMode === CommissionMode.PERCENTAGE
-        ? CommissionMode.FIXED
-        : CommissionMode.PERCENTAGE;
-    setCommissionMode(newMode);
-    setIsDirty(true);
-  };
-
   const handleAutoBackupToggle = () => {
     setAutoBackup(!autoBackup);
     setIsDirty(true);

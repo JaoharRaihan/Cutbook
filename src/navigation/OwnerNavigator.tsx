@@ -6,7 +6,7 @@
 import React from 'react';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {createStackNavigator} from '@react-navigation/stack';
-import {Text, StyleSheet} from 'react-native';
+import {Text} from 'react-native';
 import Theme from '@/constants/theme';
 
 // Screens
@@ -282,31 +282,5 @@ const OwnerNavigator: React.FC = () => {
     </Tab.Navigator>
   );
 };
-
-// ============================================================================
-// STYLES
-// ============================================================================
-
-const styles = StyleSheet.create({
-  placeholder: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    padding: 24,
-  },
-  placeholderText: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: Theme.colors.text.primary,
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  placeholderSubtext: {
-    fontSize: 16,
-    color: Theme.colors.text.secondary,
-    textAlign: 'center',
-  },
-});
 
 export default OwnerNavigator;

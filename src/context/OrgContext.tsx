@@ -7,8 +7,8 @@ import React, {createContext, useContext, useState, useEffect, useCallback} from
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import firestore from '@react-native-firebase/firestore';
 import type {Organization, User, Service} from '@/types';
-import {UserRole, ServiceCategory, CommissionMode, UserStatus} from '@/types';
-import {STORAGE_KEYS, ERROR_MESSAGES, SUCCESS_MESSAGES} from '@/constants';
+import {UserRole, CommissionMode} from '@/types';
+import {STORAGE_KEYS, ERROR_MESSAGES} from '@/constants';
 import {useAuth} from './AuthContext';
 
 // ============================================================================
@@ -97,7 +97,7 @@ export const OrgProvider: React.FC<{children: React.ReactNode}> = ({children}) =
         .collection('organizations')
         .doc(orgId)
         .onSnapshot(
-          docSnapshot => {
+          (docSnapshot: any) => {
             if (docSnapshot.exists()) {
               const orgData = docSnapshot.data() as Organization;
               orgData.id = docSnapshot.id;
@@ -126,7 +126,7 @@ export const OrgProvider: React.FC<{children: React.ReactNode}> = ({children}) =
             }
             setLoading(false);
           },
-          err => {
+          (err: any) => {
             console.error('Error listening to org:', err);
             setError('Failed to sync organization data');
             setLoading(false);
@@ -138,11 +138,11 @@ export const OrgProvider: React.FC<{children: React.ReactNode}> = ({children}) =
         .collection('users')
         .where('orgId', '==', orgId)
         .onSnapshot(
-          querySnapshot => {
+          (querySnapshot: any) => {
             const users: User[] = [];
-            querySnapshot.forEach(doc => {
-              const userData = doc.data() as User;
-              userData.id = doc.id;
+            querySnapshot.forEach((docSnap: any) => {
+              const userData = docSnap.data() as User;
+              userData.id = docSnap.id;
               if (userData.createdAt && 'toDate' in (userData.createdAt as any))
                 userData.createdAt = (userData.createdAt as any).toDate();
               if (userData.updatedAt && 'toDate' in (userData.updatedAt as any))
@@ -151,7 +151,7 @@ export const OrgProvider: React.FC<{children: React.ReactNode}> = ({children}) =
             });
             setOrgUsers(users);
           },
-          err => console.error('Error listening to org users:', err),
+          (err: any) => console.error('Error listening to org users:', err),
         );
 
       // 3. Listen to Services
@@ -159,11 +159,11 @@ export const OrgProvider: React.FC<{children: React.ReactNode}> = ({children}) =
         .collection('services')
         .where('orgId', '==', orgId)
         .onSnapshot(
-          querySnapshot => {
+          (querySnapshot: any) => {
             const services: Service[] = [];
-            querySnapshot.forEach(doc => {
-              const sData = doc.data() as Service;
-              sData.id = doc.id;
+            querySnapshot.forEach((docSnap: any) => {
+              const sData = docSnap.data() as Service;
+              sData.id = docSnap.id;
               if (sData.createdAt && 'toDate' in (sData.createdAt as any))
                 sData.createdAt = (sData.createdAt as any).toDate();
               if (sData.updatedAt && 'toDate' in (sData.updatedAt as any))
@@ -172,7 +172,7 @@ export const OrgProvider: React.FC<{children: React.ReactNode}> = ({children}) =
             });
             setOrgServices(services);
           },
-          err => console.error('Error listening to services:', err),
+          (err: any) => console.error('Error listening to services:', err),
         );
     } else {
       setCurrentOrg(null);
@@ -205,6 +205,8 @@ export const OrgProvider: React.FC<{children: React.ReactNode}> = ({children}) =
         // Check uniqueness of invite code? (Skip for now, low collision probability for 6 chars small scale)
 
         const newOrgRef = firestore().collection('organizations').doc();
+
+        // Build org object with only defined values
         const newOrg: Organization = {
           id: newOrgRef.id,
           name: payload.name,
@@ -212,13 +214,28 @@ export const OrgProvider: React.FC<{children: React.ReactNode}> = ({children}) =
           timezone: payload.timezone,
           currency: payload.currency,
           defaultCommissionMode: payload.defaultCommissionMode,
-          defaultCommissionValue: payload.defaultCommissionValue,
-          phone: payload.phone,
-          address: payload.address,
           inviteCode: inviteCode,
           createdAt: new Date(), // Firestore converts Date to Timestamp
           updatedAt: new Date(),
         };
+
+        // Only add optional fields if they're defined
+        if (payload.defaultCommissionValue !== undefined) {
+          newOrg.defaultCommissionValue = payload.defaultCommissionValue;
+        }
+        if (payload.phone !== undefined) {
+          newOrg.phone = payload.phone;
+        }
+        if (payload.address !== undefined) {
+          newOrg.address = payload.address;
+        }
+
+        console.log('📝 Creating organization:', {
+          id: newOrgRef.id,
+          name: newOrg.name,
+          inviteCode: newOrg.inviteCode,
+          type: typeof newOrg.inviteCode,
+        });
 
         const batch = firestore().batch();
 
@@ -230,6 +247,13 @@ export const OrgProvider: React.FC<{children: React.ReactNode}> = ({children}) =
         batch.update(userRef, {orgId: newOrgRef.id, role: UserRole.OWNER});
 
         await batch.commit();
+
+        console.log(
+          '✅ Organization created and saved to Firestore:',
+          newOrg.name,
+          'InviteCode:',
+          newOrg.inviteCode,
+        );
 
         // Update local user state via AuthContext to trigger useEffect
         await updateUser({orgId: newOrgRef.id, role: UserRole.OWNER});
@@ -261,19 +285,39 @@ export const OrgProvider: React.FC<{children: React.ReactNode}> = ({children}) =
 
       try {
         // Find org by invite code
+        console.log('🔍 Searching for inviteCode:', inviteCode.toUpperCase());
+
         const querySnapshot = await firestore()
           .collection('organizations')
           .where('inviteCode', '==', inviteCode.toUpperCase())
           .limit(1)
           .get();
 
+        console.log(
+          '📊 Query result - empty:',
+          querySnapshot.empty,
+          'docs count:',
+          querySnapshot.docs.length,
+        );
+
         if (querySnapshot.empty) {
+          // Debug: fetch all organizations to see what exists
+          console.log('⚠️ No organization found with inviteCode:', inviteCode.toUpperCase());
+          const allOrgsSnapshot = await firestore().collection('organizations').limit(10).get();
+          console.log('📋 All organizations in database:');
+          allOrgsSnapshot.docs.forEach(doc => {
+            const data = doc.data();
+            console.log(
+              `  - ID: ${doc.id}, Name: ${data.name}, InviteCode: ${data.inviteCode}, Type: ${typeof data.inviteCode}`,
+            );
+          });
           throw new Error(ERROR_MESSAGES.invalidInviteCode);
         }
 
         const orgDoc = querySnapshot.docs[0];
         const orgId = orgDoc.id;
         const orgData = orgDoc.data() as Organization;
+        console.log('✅ Found organization:', orgData.name, 'with inviteCode:', orgData.inviteCode);
 
         // Check if already in org
         if (user.orgId) {
@@ -424,13 +468,13 @@ export const OrgProvider: React.FC<{children: React.ReactNode}> = ({children}) =
   // ============================================================================
 
   const addUser = useCallback(
-    async (userData: Omit<User, 'id' | 'createdAt' | 'updatedAt' | 'orgId'>): Promise<User> => {
+    async (_userData: Omit<User, 'id' | 'createdAt' | 'updatedAt' | 'orgId'>): Promise<User> => {
       // This functionality is weird with Auth. Usually invite based.
       // If adding a "shadow" user or pre-creating?
       // For now implementation assumes full Firebase Auth users.
       throw new Error('Direct user creation not supported with Firebase Auth. Use Invite.');
     },
-    [currentOrg],
+    [],
   );
 
   const updateUserInOrg = useCallback(async (id: string, data: Partial<User>) => {

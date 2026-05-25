@@ -20,12 +20,15 @@ import {
 import {useOrg} from '@/context';
 import {Service, ServiceCategory} from '@/types';
 
+// Stub type for omitted properties
+type ServiceInput = Omit<Service, 'id' | 'createdAt' | 'updatedAt'>;
+
 // ============================================================================
 // COMPONENT
 // ============================================================================
 
 export default function AddServiceScreen({navigation}: any): React.ReactElement {
-  const {currentOrg} = useOrg();
+  const {addService, currentOrg} = useOrg();
   const [serviceName, setServiceName] = useState('');
   const [category, setCategory] = useState<ServiceCategory>(ServiceCategory.HAIRCUT);
   const [defaultPrice, setDefaultPrice] = useState('');
@@ -76,37 +79,55 @@ export default function AddServiceScreen({navigation}: any): React.ReactElement 
       return;
     }
 
+    if (!currentOrg) {
+      Alert.alert('Error', 'Organization not found. Please try again.');
+      return;
+    }
+
     setLoading(true);
 
-    // Simulate API call
-    setTimeout(() => {
-      setLoading(false);
-
-      const newService: Partial<Service> = {
-        id: `service_${Date.now()}`,
-        orgId: currentOrg?.id,
+    try {
+      const serviceData: ServiceInput = {
+        orgId: currentOrg.id,
         name: serviceName.trim(),
         category,
-        defaultPrice: defaultPrice ? parseFloat(defaultPrice) : undefined,
+        defaultPrice: defaultPrice ? parseFloat(defaultPrice) : 0,
         description: description.trim() || undefined,
         duration: duration ? parseInt(duration) : undefined,
         isActive: true,
-        createdAt: new Date(),
-        updatedAt: new Date(),
       };
+
+      await addService(serviceData);
 
       Alert.alert('Success', `${serviceName} has been added!`, [
         {
-          text: 'OK',
+          text: 'Add Another',
+          onPress: () => resetForm(),
+        },
+        {
+          text: 'Done',
           onPress: () => navigation.goBack(),
         },
       ]);
-    }, 500);
+    } catch (err: any) {
+      console.error('Error adding service:', err);
+      Alert.alert('Error', err.message || 'Failed to add service. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const getCategoryIcon = (cat: ServiceCategory): string => {
     const found = categories.find(c => c.value === cat);
     return found ? found.icon : '💈';
+  };
+
+  const resetForm = () => {
+    setServiceName('');
+    setCategory(ServiceCategory.HAIRCUT);
+    setDefaultPrice('');
+    setDescription('');
+    setDuration('');
   };
 
   const getCategoryLabel = (cat: ServiceCategory): string => {

@@ -4,14 +4,8 @@
  */
 
 import React, {useEffect, useState} from 'react';
-import {View, Text, StyleSheet, ScrollView} from 'react-native';
-import {
-  saveToStorage,
-  loadFromStorage,
-  loadAllAppData,
-  getStorageSize,
-  STORAGE_KEYS,
-} from '@/utils/storage';
+import {View, Text, ScrollView, StyleSheet} from 'react-native';
+import {loadAllAppData, getStorageSize} from '@/utils/storage';
 import {usePersistedState, usePersistedArray} from '@/hooks/usePersistedData';
 import {useSync} from '@/context/SyncContext';
 import AnimatedButton from '@/components/UI/AnimatedButton';

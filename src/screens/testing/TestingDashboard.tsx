@@ -3,7 +3,7 @@
  * Testing & QA dashboard for manual testing
  */
 
-import React, {useState, useEffect} from 'react';
+import React, {useState} from 'react';
 import {View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert} from 'react-native';
 import {
   validateMockDataIntegrity,
@@ -12,15 +12,12 @@ import {
   validatePhoneFormat,
   validateEmailFormat,
   validatePrice,
-  validateCommission,
   testCommissionCalculation,
   testCurrencyFormatting,
   EdgeCaseData,
   measurePerformance,
   generateLargeDataset,
   delay,
-  logTestResults,
-  assert,
 } from '@/utils/testing';
 
 // ============================================================================

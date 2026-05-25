@@ -3,7 +3,7 @@
  * Detailed view of a work entry with edit/delete actions
  */
 
-import React, {useState, useEffect} from 'react';
+import React, {useState, useMemo} from 'react';
 import {
   View,
   Text,
@@ -14,8 +14,12 @@ import {
   StatusBar,
   Alert,
   ActivityIndicator,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
-import {WorkEntry, PaymentMethod} from '@/types';
+import {useData} from '@/context';
+import {PaymentMethod} from '@/types';
 import {formatBDT, formatDateISO} from '@/utils';
 
 // ============================================================================
@@ -24,47 +28,31 @@ import {formatBDT, formatDateISO} from '@/utils';
 
 export default function WorkEntryDetailScreen({route, navigation}: any): React.ReactElement {
   const {entryId} = route.params;
-  const [loading, setLoading] = useState(true);
-  const [entry, setEntry] = useState<WorkEntry | null>(null);
+  const {workEntries, updateWorkEntry, deleteWorkEntry, loading: dataLoading} = useData();
+  const [isEditing, setIsEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
 
-  // Mock entry data
-  const mockEntry: WorkEntry = {
-    id: 'entry_1',
-    orgId: 'org_1',
-    employeeId: 'user_2',
-    employeeName: 'Karim Ahmed',
-    serviceId: 'service_1',
-    serviceName: 'Regular Haircut',
-    price: 300,
-    tip: 50,
-    paymentMethod: PaymentMethod.CASH,
-    note: 'Customer requested extra styling',
-    createdBy: 'user_1',
-    createdByName: 'Owner Name',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    edited: false,
-  };
+  // Form state for editing
+  const [serviceName, setServiceName] = useState('');
+  const [price, setPrice] = useState('');
+  const [tip, setTip] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(PaymentMethod.CASH);
+  const [note, setNote] = useState('');
 
-  // ============================================================================
-  // EFFECTS
-  // ============================================================================
+  // Get entry from workEntries
+  const entry = useMemo(() => {
+    return workEntries.find(e => e.id === entryId);
+  }, [entryId, workEntries]);
 
-  useEffect(() => {
-    loadEntry();
-  }, [entryId]);
-
-  // ============================================================================
-  // DATA LOADING
-  // ============================================================================
-
-  const loadEntry = async () => {
-    setLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      setEntry(mockEntry);
-      setLoading(false);
-    }, 500);
+  // Initialize form when entering edit mode
+  const initializeForm = () => {
+    if (entry) {
+      setServiceName(entry.serviceName);
+      setPrice(entry.price.toString());
+      setTip((entry.tip || 0).toString());
+      setPaymentMethod(entry.paymentMethod);
+      setNote(entry.note || '');
+    }
   };
 
   // ============================================================================
@@ -72,99 +60,77 @@ export default function WorkEntryDetailScreen({route, navigation}: any): React.R
   // ============================================================================
 
   const handleEdit = () => {
-    Alert.alert('Edit Entry', 'Edit functionality will be implemented in a future update.', [
-      {text: 'OK'},
-    ]);
+    initializeForm();
+    setIsEditing(true);
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+  };
+
+  const handleSave = async () => {
+    if (!entry) return;
+
+    const error = validateForm();
+    if (error) {
+      Alert.alert('Validation Error', error);
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await updateWorkEntry(entryId, {
+        serviceName: serviceName.trim(),
+        price: parseFloat(price),
+        tip: tip ? parseFloat(tip) : 0,
+        paymentMethod,
+        note: note.trim() || undefined,
+      });
+      Alert.alert('Success', 'Entry updated');
+      setIsEditing(false);
+    } catch (err: any) {
+      Alert.alert('Error', err.message || 'Failed to update entry');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleDelete = () => {
-    Alert.alert(
-      'Delete Entry',
-      'Are you sure you want to delete this work entry? This action cannot be undone.',
-      [
-        {text: 'Cancel', style: 'cancel'},
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: confirmDelete,
-        },
-      ],
-    );
-  };
-
-  const confirmDelete = () => {
-    Alert.alert('Deleted', 'Work entry has been deleted.', [
+    Alert.alert('Delete Entry', 'Are you sure you want to delete this work entry?', [
+      {text: 'Cancel', style: 'cancel'},
       {
-        text: 'OK',
-        onPress: () => navigation.goBack(),
+        text: 'Delete',
+        style: 'destructive',
+        onPress: confirmDelete,
       },
     ]);
   };
 
-  // ============================================================================
-  // UTILITY FUNCTIONS
-  // ============================================================================
-
-  const getPaymentMethodColor = (method: PaymentMethod): string => {
-    switch (method) {
-      case PaymentMethod.CASH:
-        return '#4CAF50';
-      case PaymentMethod.BKASH:
-        return '#E91E63';
-      case PaymentMethod.CARD:
-        return '#2196F3';
-      case PaymentMethod.NAGAD:
-        return '#FF9800';
-      default:
-        return '#757575';
+  const confirmDelete = async () => {
+    setSaving(true);
+    try {
+      await deleteWorkEntry(entryId);
+      Alert.alert('Deleted', 'Entry has been deleted', [
+        {text: 'OK', onPress: () => navigation.goBack()},
+      ]);
+    } catch (err: any) {
+      Alert.alert('Error', err.message || 'Failed to delete entry');
+      setSaving(false);
     }
   };
 
-  const getPaymentMethodLabel = (method: PaymentMethod): string => {
-    switch (method) {
-      case PaymentMethod.CASH:
-        return 'Cash';
-      case PaymentMethod.BKASH:
-        return 'bKash';
-      case PaymentMethod.CARD:
-        return 'Card';
-      case PaymentMethod.NAGAD:
-        return 'Nagad';
-      default:
-        return method;
-    }
-  };
-
-  const formatDateTime = (date: Date | string): string => {
-    const d = typeof date === 'string' ? new Date(date) : date;
-    const dateStr = formatDateISO(d);
-    const hours = d.getHours();
-    const minutes = d.getMinutes();
-    const ampm = hours >= 12 ? 'PM' : 'AM';
-    const displayHours = hours % 12 || 12;
-    const displayMinutes = minutes < 10 ? `0${minutes}` : minutes;
-    const timeStr = `${displayHours}:${displayMinutes} ${ampm}`;
-    return `${dateStr} at ${timeStr}`;
-  };
-
-  // ============================================================================
-  // RENDER METHODS
-  // ============================================================================
-
-  const renderInfoRow = (label: string, value: string, highlight?: boolean) => {
-    return (
-      <View style={styles.infoRow}>
-        <Text style={styles.infoLabel}>{label}</Text>
-        <Text style={[styles.infoValue, highlight && styles.infoValueHighlight]}>{value}</Text>
-      </View>
-    );
+  const validateForm = (): string | null => {
+    if (!serviceName.trim()) return 'Service name is required';
+    if (!price || isNaN(parseFloat(price))) return 'Valid price is required';
+    if (parseFloat(price) < 0) return 'Price must be positive';
+    return null;
   };
 
   // ============================================================================
   // RENDER
   // ============================================================================
 
-  if (loading || !entry) {
+  if (dataLoading || !entry) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
@@ -175,7 +141,95 @@ export default function WorkEntryDetailScreen({route, navigation}: any): React.R
     );
   }
 
-  const totalAmount = entry.price + (entry.tip || 0);
+  if (isEditing) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.keyboardView}>
+          <ScrollView
+            style={styles.scrollView}
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled">
+            {/* Edit Form */}
+            <Text style={styles.editTitle}>Edit Work Entry</Text>
+
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Service Name</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Service name"
+                value={serviceName}
+                onChangeText={setServiceName}
+                editable={!saving}
+              />
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Price</Text>
+              <View style={styles.currencyInput}>
+                <Text style={styles.currencySymbol}>৳</Text>
+                <TextInput
+                  style={styles.priceInput}
+                  placeholder="0"
+                  value={price}
+                  onChangeText={setPrice}
+                  keyboardType="numeric"
+                  editable={!saving}
+                />
+              </View>
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Tip (Optional)</Text>
+              <View style={styles.currencyInput}>
+                <Text style={styles.currencySymbol}>৳</Text>
+                <TextInput
+                  style={styles.priceInput}
+                  placeholder="0"
+                  value={tip}
+                  onChangeText={setTip}
+                  keyboardType="numeric"
+                  editable={!saving}
+                />
+              </View>
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Notes (Optional)</Text>
+              <TextInput
+                style={[styles.input, styles.textarea]}
+                placeholder="Any notes about this entry..."
+                value={note}
+                onChangeText={setNote}
+                multiline
+                editable={!saving}
+              />
+            </View>
+
+            <TouchableOpacity
+              style={[styles.saveButton, saving && styles.buttonDisabled]}
+              onPress={handleSave}
+              disabled={saving}>
+              {saving ? (
+                <ActivityIndicator color="white" />
+              ) : (
+                <Text style={styles.saveButtonText}>💾 Save Changes</Text>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={handleCancelEdit}
+              disabled={saving}>
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -195,7 +249,7 @@ export default function WorkEntryDetailScreen({route, navigation}: any): React.R
 
           <View style={styles.amountContainer}>
             <Text style={styles.amountLabel}>Total Amount</Text>
-            <Text style={styles.amountValue}>{formatBDT(totalAmount)}</Text>
+            <Text style={styles.amountValue}>{formatBDT(entry.price + (entry.tip || 0))}</Text>
             {entry.tip && entry.tip > 0 && (
               <Text style={styles.tipText}>
                 (Service: {formatBDT(entry.price)} + Tip: {formatBDT(entry.tip)})
@@ -216,10 +270,8 @@ export default function WorkEntryDetailScreen({route, navigation}: any): React.R
           </View>
         </View>
 
-        {/* Details Section */}
+        {/* Payment Method */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Payment Details</Text>
-
           <View
             style={[
               styles.paymentMethodCard,
@@ -235,85 +287,91 @@ export default function WorkEntryDetailScreen({route, navigation}: any): React.R
               </Text>
             </View>
           </View>
-
-          {renderInfoRow('Service Price', formatBDT(entry.price))}
-          {entry.tip && entry.tip > 0 && renderInfoRow('Tip', formatBDT(entry.tip))}
-          {renderInfoRow('Total', formatBDT(totalAmount), true)}
         </View>
 
-        {/* Transaction Info */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Transaction Information</Text>
-
-          {renderInfoRow('Created By', entry.createdByName)}
-          {renderInfoRow('Created At', formatDateTime(entry.createdAt))}
-          {entry.edited && entry.updatedAt && (
-            <>
-              {renderInfoRow('Last Updated', formatDateTime(entry.updatedAt))}
-              <View style={styles.editWarning}>
-                <Text style={styles.editWarningText}>⚠️ This entry has been modified</Text>
-              </View>
-            </>
-          )}
-        </View>
-
-        {/* Service Details */}
-        {(entry.serviceId || entry.note) && (
+        {/* Details */}
+        {entry.note && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Additional Details</Text>
-
-            {entry.serviceId && renderInfoRow('Service ID', entry.serviceId)}
-            {entry.note && (
-              <View style={styles.noteContainer}>
-                <Text style={styles.noteLabel}>Notes:</Text>
-                <Text style={styles.noteText}>{entry.note}</Text>
-              </View>
-            )}
+            <Text style={styles.sectionTitle}>Notes</Text>
+            <Text style={styles.noteText}>{entry.note}</Text>
           </View>
         )}
 
-        {/* Edit History */}
         {entry.edited && entry.editLogs && entry.editLogs.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Edit History</Text>
-
-            {entry.editLogs.map((log, index) => (
-              <View key={index} style={styles.editLogItem}>
-                <Text style={styles.editLogText}>Edited by {log.editedByName || 'Unknown'}</Text>
-                <Text style={styles.editLogDate}>{formatDateTime(new Date(log.timestamp))}</Text>
-                {log.reason && <Text style={styles.editLogChanges}>Reason: {log.reason}</Text>}
-              </View>
-            ))}
+          <View style={styles.editWarning}>
+            <Text style={styles.editWarningText}>
+              ⚠️ This entry was last edited {formatDateTime(entry.updatedAt)}
+            </Text>
           </View>
         )}
 
         {/* Action Buttons */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Actions</Text>
-
-          <TouchableOpacity style={styles.editButton} onPress={handleEdit}>
+          <TouchableOpacity style={styles.editButton} onPress={handleEdit} disabled={saving}>
             <Text style={styles.editButtonText}>✏️ Edit Entry</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
+          <TouchableOpacity style={styles.deleteButton} onPress={handleDelete} disabled={saving}>
             <Text style={styles.deleteButtonText}>🗑️ Delete Entry</Text>
           </TouchableOpacity>
 
-          <Text style={styles.actionWarning}>
-            ⚠️ Changes to work entries affect commission calculations
-          </Text>
+          <Text style={styles.actionWarning}>⚠️ Changes affect commission calculations</Text>
         </View>
 
-        {/* Receipt Info */}
-        <View style={styles.receiptInfo}>
-          <Text style={styles.receiptText}>Entry ID: {entry.id}</Text>
-          {entry.receiptNumber && (
-            <Text style={styles.receiptText}>Receipt: #{entry.receiptNumber}</Text>
-          )}
+        {/* Transaction Info */}
+        <View style={styles.transactionInfo}>
+          <Text style={styles.transactionText}>Entry ID: {entry.id}</Text>
+          <Text style={styles.transactionText}>Created: {formatDateTime(entry.createdAt)}</Text>
         </View>
       </ScrollView>
     </SafeAreaView>
   );
+}
+
+// ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
+
+function getPaymentMethodColor(method: PaymentMethod): string {
+  switch (method) {
+    case PaymentMethod.CASH:
+      return '#4CAF50';
+    case PaymentMethod.BKASH:
+      return '#E91E63';
+    case PaymentMethod.CARD:
+      return '#2196F3';
+    case PaymentMethod.NAGAD:
+      return '#FF9800';
+    default:
+      return '#757575';
+  }
+}
+
+function getPaymentMethodLabel(method: PaymentMethod): string {
+  switch (method) {
+    case PaymentMethod.CASH:
+      return 'Cash';
+    case PaymentMethod.BKASH:
+      return 'bKash';
+    case PaymentMethod.CARD:
+      return 'Card';
+    case PaymentMethod.NAGAD:
+      return 'Nagad';
+    default:
+      return method;
+  }
+}
+
+function formatDateTime(date: Date | string): string {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  const dateStr = formatDateISO(d);
+  const hours = d.getHours();
+  const minutes = d.getMinutes();
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  const displayHours = hours % 12 || 12;
+  const displayMinutes = minutes < 10 ? `0${minutes}` : minutes;
+  const timeStr = `${displayHours}:${displayMinutes} ${ampm}`;
+  return `${dateStr} at ${timeStr}`;
 }
 
 // ============================================================================
@@ -566,9 +624,96 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 16,
   },
-  receiptText: {
+  transactionInfo: {
+    alignItems: 'center',
+    paddingVertical: 16,
+  },
+  transactionText: {
     fontSize: 12,
     color: '#9E9E9E',
     marginBottom: 4,
+  },
+  keyboardView: {
+    flex: 1,
+  },
+  editTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#212121',
+    marginBottom: 20,
+  },
+  formGroup: {
+    marginBottom: 20,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#212121',
+    marginBottom: 8,
+  },
+  input: {
+    backgroundColor: '#F5F5F5',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: '#212121',
+  },
+  textarea: {
+    minHeight: 80,
+    textAlignVertical: 'top',
+    paddingTop: 12,
+  },
+  currencyInput: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F5F5F5',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    paddingHorizontal: 12,
+  },
+  currencySymbol: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#757575',
+    marginRight: 8,
+  },
+  priceInput: {
+    flex: 1,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: '#212121',
+  },
+  saveButton: {
+    backgroundColor: '#4CAF50',
+    borderRadius: 8,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  saveButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  cancelButton: {
+    backgroundColor: '#F5F5F5',
+    borderRadius: 8,
+    paddingVertical: 14,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    marginBottom: 20,
+  },
+  cancelButtonText: {
+    color: '#212121',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  buttonDisabled: {
+    opacity: 0.6,
   },
 });

@@ -247,6 +247,7 @@ export const DEMO_WORK_ENTRIES: WorkEntry[] = [
     createdByName: 'Karim Ahmed',
     createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
     edited: false,
+    updatedAt: new Date(),
   },
   {
     id: 'demo-entry-2',
@@ -261,6 +262,7 @@ export const DEMO_WORK_ENTRIES: WorkEntry[] = [
     createdByName: 'Karim Ahmed',
     createdAt: new Date(Date.now() - 3 * 60 * 60 * 1000),
     edited: false,
+    updatedAt: new Date(),
   },
   {
     id: 'demo-entry-3',
@@ -276,6 +278,7 @@ export const DEMO_WORK_ENTRIES: WorkEntry[] = [
     createdByName: 'Karim Ahmed',
     createdAt: new Date(Date.now() - 4 * 60 * 60 * 1000),
     edited: false,
+    updatedAt: new Date(),
   },
   {
     id: 'demo-entry-4',
@@ -290,6 +293,7 @@ export const DEMO_WORK_ENTRIES: WorkEntry[] = [
     createdByName: 'Karim Ahmed',
     createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000),
     edited: false,
+    updatedAt: new Date(),
   },
   {
     id: 'demo-entry-5',
@@ -304,6 +308,7 @@ export const DEMO_WORK_ENTRIES: WorkEntry[] = [
     createdByName: 'Karim Ahmed',
     createdAt: new Date(Date.now() - 6 * 60 * 60 * 1000),
     edited: false,
+    updatedAt: new Date(),
   },
   {
     id: 'demo-entry-6',
@@ -319,6 +324,7 @@ export const DEMO_WORK_ENTRIES: WorkEntry[] = [
     createdByName: 'Karim Ahmed',
     createdAt: new Date(Date.now() - 7 * 60 * 60 * 1000),
     edited: false,
+    updatedAt: new Date(),
   },
   {
     id: 'demo-entry-7',
@@ -334,6 +340,7 @@ export const DEMO_WORK_ENTRIES: WorkEntry[] = [
     createdByName: 'Karim Ahmed',
     createdAt: new Date(Date.now() - 8 * 60 * 60 * 1000),
     edited: false,
+    updatedAt: new Date(),
   },
   {
     id: 'demo-entry-8',
@@ -348,6 +355,7 @@ export const DEMO_WORK_ENTRIES: WorkEntry[] = [
     createdByName: 'Karim Ahmed',
     createdAt: new Date(Date.now() - 9 * 60 * 60 * 1000),
     edited: false,
+    updatedAt: new Date(),
   },
   {
     id: 'demo-entry-9',
@@ -363,6 +371,7 @@ export const DEMO_WORK_ENTRIES: WorkEntry[] = [
     createdByName: 'Karim Ahmed',
     createdAt: new Date(Date.now() - 1 * 60 * 60 * 1000),
     edited: false,
+    updatedAt: new Date(),
   },
   {
     id: 'demo-entry-10',
@@ -378,6 +387,7 @@ export const DEMO_WORK_ENTRIES: WorkEntry[] = [
     createdByName: 'Karim Ahmed',
     createdAt: new Date(Date.now() - 30 * 60 * 1000),
     edited: false,
+    updatedAt: new Date(),
   },
 
   // Yesterday (Day -1) - 10 entries
@@ -395,6 +405,7 @@ export const DEMO_WORK_ENTRIES: WorkEntry[] = [
     createdByName: 'Karim Ahmed',
     createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
     edited: false,
+    updatedAt: new Date(),
   },
   {
     id: 'demo-entry-12',
@@ -410,6 +421,7 @@ export const DEMO_WORK_ENTRIES: WorkEntry[] = [
     createdByName: 'Karim Ahmed',
     createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000 - 2 * 60 * 60 * 1000),
     edited: false,
+    updatedAt: new Date(),
   },
   {
     id: 'demo-entry-13',
@@ -425,6 +437,7 @@ export const DEMO_WORK_ENTRIES: WorkEntry[] = [
     createdByName: 'Karim Ahmed',
     createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000 - 3 * 60 * 60 * 1000),
     edited: false,
+    updatedAt: new Date(),
   },
   {
     id: 'demo-entry-14',
@@ -439,6 +452,7 @@ export const DEMO_WORK_ENTRIES: WorkEntry[] = [
     createdByName: 'Karim Ahmed',
     createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000 - 4 * 60 * 60 * 1000),
     edited: false,
+    updatedAt: new Date(),
   },
   {
     id: 'demo-entry-15',
@@ -453,6 +467,7 @@ export const DEMO_WORK_ENTRIES: WorkEntry[] = [
     createdByName: 'Karim Ahmed',
     createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000 - 5 * 60 * 60 * 1000),
     edited: false,
+    updatedAt: new Date(),
   },
   {
     id: 'demo-entry-16',
@@ -468,6 +483,7 @@ export const DEMO_WORK_ENTRIES: WorkEntry[] = [
     createdByName: 'Karim Ahmed',
     createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000 - 6 * 60 * 60 * 1000),
     edited: false,
+    updatedAt: new Date(),
   },
   {
     id: 'demo-entry-17',
@@ -483,6 +499,7 @@ export const DEMO_WORK_ENTRIES: WorkEntry[] = [
     createdByName: 'Karim Ahmed',
     createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000 - 7 * 60 * 60 * 1000),
     edited: false,
+    updatedAt: new Date(),
   },
   {
     id: 'demo-entry-18',
@@ -498,6 +515,7 @@ export const DEMO_WORK_ENTRIES: WorkEntry[] = [
     createdByName: 'Karim Ahmed',
     createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000 - 8 * 60 * 60 * 1000),
     edited: false,
+    updatedAt: new Date(),
   },
   {
     id: 'demo-entry-19',
@@ -512,6 +530,7 @@ export const DEMO_WORK_ENTRIES: WorkEntry[] = [
     createdByName: 'Karim Ahmed',
     createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000 - 9 * 60 * 60 * 1000),
     edited: false,
+    updatedAt: new Date(),
   },
   {
     id: 'demo-entry-20',
@@ -526,6 +545,7 @@ export const DEMO_WORK_ENTRIES: WorkEntry[] = [
     createdByName: 'Karim Ahmed',
     createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000 - 10 * 60 * 60 * 1000),
     edited: false,
+    updatedAt: new Date(),
   },
 
   // Continue with Day -2 through Day -6 (8-10 entries each)

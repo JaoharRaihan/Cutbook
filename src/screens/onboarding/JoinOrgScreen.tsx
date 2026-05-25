@@ -66,9 +66,9 @@ const JoinOrgScreen: React.FC = () => {
       await joinOrg(inviteCode);
       Alert.alert('Success', 'You have joined the organization!');
       // Navigation will be handled automatically by RootNavigator
-    } catch (error: any) {
-      setError(error.message || 'Invalid invite code');
-      Alert.alert('Error', error.message || 'Failed to join organization');
+    } catch (err: any) {
+      setError(err.message || 'Invalid invite code');
+      Alert.alert('Error', err.message || 'Failed to join organization');
     }
   };
 
@@ -117,26 +117,6 @@ const JoinOrgScreen: React.FC = () => {
               <Text style={styles.joinButtonText}>Join Organization</Text>
             )}
           </TouchableOpacity>
-
-          {/* Demo Codes Box */}
-          <View style={styles.demoBox}>
-            <Text style={styles.demoTitle}>Demo Invite Codes:</Text>
-            <View style={styles.demoCodeRow}>
-              <TouchableOpacity
-                style={styles.demoCodeButton}
-                onPress={() => handleCodeChange('ELITE1')}
-                disabled={loading}>
-                <Text style={styles.demoCodeText}>ELITE1</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.demoCodeButton}
-                onPress={() => handleCodeChange('ROYAL2')}
-                disabled={loading}>
-                <Text style={styles.demoCodeText}>ROYAL2</Text>
-              </TouchableOpacity>
-            </View>
-            <Text style={styles.demoHint}>Tap to auto-fill</Text>
-          </View>
 
           {/* Info Box */}
           <View style={styles.infoBox}>
@@ -254,47 +234,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#FFFFFF',
-  },
-  demoBox: {
-    marginTop: 24,
-    padding: 16,
-    backgroundColor: Theme.colors.success.light,
-    borderRadius: Theme.borderRadius.md,
-    borderWidth: 1,
-    borderColor: Theme.colors.success.main,
-  },
-  demoTitle: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: Theme.colors.success.dark,
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  demoCodeRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 12,
-    marginBottom: 8,
-  },
-  demoCodeButton: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
-    borderRadius: Theme.borderRadius.md,
-    borderWidth: 1,
-    borderColor: Theme.colors.success.dark,
-  },
-  demoCodeText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: Theme.colors.success.dark,
-    fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
-    letterSpacing: 2,
-  },
-  demoHint: {
-    fontSize: 11,
-    color: Theme.colors.success.dark,
-    textAlign: 'center',
   },
   infoBox: {
     flexDirection: 'row',

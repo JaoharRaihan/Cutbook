@@ -112,7 +112,7 @@ export function getOppositeLanguage(lang: Language): Language {
 /**
  * Check if language is RTL (for future support)
  */
-export function isRTL(lang: Language): boolean {
+export function isRTL(_lang: Language): boolean {
   // Bengali is LTR, but function ready for future RTL languages
   return false;
 }

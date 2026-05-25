@@ -89,23 +89,21 @@ const LoginScreen: React.FC = () => {
     }
 
     try {
-      // Remove the leading 0 and add country code
-      // 01712345678
-      const phoneDigits = phone.replace(/\D/g, '');
-      const phoneWithoutLeadingZero = phoneDigits.startsWith('0')
-        ? phoneDigits.slice(1)
-        : phoneDigits;
-      const cleanPhone = '+88' + phoneWithoutLeadingZero;
+      // Trim password to remove accidental whitespace
+      const trimmedPassword = password.trim();
+      if (!trimmedPassword) {
+        throw new Error('Password cannot be empty');
+      }
 
-      console.log('🔍 Login Debug:', {
-        rawPhone: phone,
-        phoneDigits: phoneDigits,
-        phoneWithoutLeadingZero: phoneWithoutLeadingZero,
-        cleanPhone: cleanPhone,
-        password: password,
+      // Use phone as entered (frontend only shows entered phone)
+      const cleanPhone = phone;
+
+      console.log('🔍 LOGIN ATTEMPT:', {
+        phoneInput: phone,
+        passwordLength: trimmedPassword.length,
       });
 
-      await login({phone: cleanPhone, password});
+      await login({phone: cleanPhone, password: trimmedPassword});
       // Navigation handled automatically by RootNavigator based on auth state
     } catch (error: any) {
       console.log('❌ Login Error:', error.message);
@@ -190,13 +188,6 @@ const LoginScreen: React.FC = () => {
               <Text style={styles.loginButtonText}>Login</Text>
             )}
           </TouchableOpacity>
-
-          {/* Demo Credentials */}
-          <View style={styles.demoBox}>
-            <Text style={styles.demoTitle}>Demo Credentials:</Text>
-            <Text style={styles.demoText}>Owner: 01712345678 / 123456</Text>
-            <Text style={styles.demoText}>Employee: 01812345678 / 123456</Text>
-          </View>
 
           {/* Register Link */}
           <View style={styles.footer}>
@@ -343,25 +334,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#FFFFFF',
-  },
-  demoBox: {
-    marginTop: 24,
-    padding: 16,
-    backgroundColor: Theme.colors.info.light,
-    borderRadius: Theme.borderRadius.md,
-    borderWidth: 1,
-    borderColor: Theme.colors.info.main,
-  },
-  demoTitle: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: Theme.colors.info.dark,
-    marginBottom: 8,
-  },
-  demoText: {
-    fontSize: 12,
-    color: Theme.colors.info.dark,
-    marginBottom: 4,
   },
   footer: {
     flexDirection: 'row',

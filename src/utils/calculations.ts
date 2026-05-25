@@ -226,6 +226,9 @@ export const generateDailySummary = (
   const paymentBreakdown = calculatePaymentBreakdown(entries);
   const employeeBreakdown = calculateAllEmployeeBreakdowns(entries, employeeCommissions);
 
+  // Calculate total commission from employee breakdown
+  const totalCommission = employeeBreakdown.reduce((sum, emp) => sum + (emp.commission || 0), 0);
+
   return {
     date,
     orgId,
@@ -237,6 +240,7 @@ export const generateDailySummary = (
     totalNagad: paymentBreakdown[PaymentMethod.NAGAD],
     totalCard: paymentBreakdown[PaymentMethod.CARD],
     totalOther: paymentBreakdown[PaymentMethod.OTHER],
+    totalCommission,
     employeeBreakdown,
     generatedAt: Date.now(),
   };

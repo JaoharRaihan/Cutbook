@@ -85,7 +85,7 @@ export type Timestamp = Date | string | number;
  */
 export interface User extends BaseEntity {
   orgId: string;
-  role: UserRole;
+  role?: UserRole | null;
   name: string;
   phone: string;
   email?: string;
@@ -142,7 +142,7 @@ export interface Organization extends BaseEntity {
   phone?: string;
   address?: string;
   logo?: string;
-  inviteCode?: string;
+  inviteCode: string; // Required for joining organizations
 }
 
 /**
@@ -219,6 +219,7 @@ export interface WorkEntry extends BaseEntity {
   receiptNumber?: string;
   edited: boolean;
   editLogs?: EditLog[];
+  updatedAt: Date | string;
 }
 
 /**
@@ -239,6 +240,8 @@ export interface CreateWorkEntryPayload {
  * Work entry update payload
  */
 export interface UpdateWorkEntryPayload {
+  serviceId?: string;
+  serviceName?: string;
   price?: number;
   tip?: number;
   paymentMethod?: PaymentMethod;
@@ -287,6 +290,7 @@ export interface DailySummary extends BaseEntity {
   totalNagad: number;
   totalCard: number;
   totalOther: number;
+  totalCommission: number;
   employeeBreakdown: EmployeeBreakdown[];
   generatedAt: Timestamp;
 }

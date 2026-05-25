@@ -7,6 +7,7 @@ import {useState, useEffect, useCallback} from 'react';
 import {useOrg, useData} from '@/context';
 import {formatDateISO} from '@/utils/date';
 import {WorkEntry, PaymentMethod} from '@/types';
+import {calculateEmployeeCommission} from '@/utils/calculations';
 
 // ============================================================================
 // TYPES
@@ -16,12 +17,16 @@ interface EmployeeStats {
   employeeId: string;
   employeeName: string;
   totalIncome: number;
+  totalTips: number;
   serviceCount: number;
+  commission: number;
 }
 
 interface DailySummaryData {
   date: string;
   totalIncome: number;
+  totalTips: number;
+  totalCommission: number;
   totalCash: number;
   totalBkash: number;
   totalNagad: number;
@@ -62,6 +67,8 @@ const useDailySummary = (selectedDate?: Date): UseDailySummaryResult => {
 
       // Calculate totals
       let totalIncome = 0;
+      let totalTips = 0;
+      let totalCommission = 0;
       let totalCash = 0;
       let totalBkash = 0;
       let totalNagad = 0;
@@ -72,25 +79,40 @@ const useDailySummary = (selectedDate?: Date): UseDailySummaryResult => {
       const employeeStatsMap = new Map<string, EmployeeStats>();
 
       entries.forEach((entry: WorkEntry) => {
-        const amount = entry.price + (entry.tip || 0);
+        const amount = entry.price;
+        const tip = entry.tip || 0;
         totalIncome += amount;
+        totalTips += tip;
 
-        // Sum by payment method
+        // Calculate commission
+        const employee = orgUsers.find(u => u.id === entry.employeeId);
+        let entryCommission = 0;
+        if (employee && currentOrg) {
+          entryCommission = calculateEmployeeCommission(
+            amount,
+            currentOrg,
+            employee.commissionPercentage,
+          );
+          totalCommission += entryCommission;
+        }
+
+        // Sum by payment method (including tips)
+        const totalAmount = amount + tip;
         switch (entry.paymentMethod) {
           case PaymentMethod.CASH:
-            totalCash += amount;
+            totalCash += totalAmount;
             break;
           case PaymentMethod.BKASH:
-            totalBkash += amount;
+            totalBkash += totalAmount;
             break;
           case PaymentMethod.NAGAD:
-            totalNagad += amount;
+            totalNagad += totalAmount;
             break;
           case PaymentMethod.CARD:
-            totalCard += amount;
+            totalCard += totalAmount;
             break;
           case PaymentMethod.OTHER:
-            totalOther += amount;
+            totalOther += totalAmount;
             break;
         }
 
@@ -98,13 +120,17 @@ const useDailySummary = (selectedDate?: Date): UseDailySummaryResult => {
         const existing = employeeStatsMap.get(entry.employeeId);
         if (existing) {
           existing.totalIncome += amount;
+          existing.totalTips += tip;
           existing.serviceCount += 1;
+          existing.commission += entryCommission;
         } else {
           employeeStatsMap.set(entry.employeeId, {
             employeeId: entry.employeeId,
             employeeName: entry.employeeName,
             totalIncome: amount,
+            totalTips: tip,
             serviceCount: 1,
+            commission: entryCommission,
           });
         }
       });
@@ -117,6 +143,8 @@ const useDailySummary = (selectedDate?: Date): UseDailySummaryResult => {
       return {
         date: dateStr,
         totalIncome,
+        totalTips,
+        totalCommission,
         totalCash,
         totalBkash,
         totalNagad,
@@ -126,7 +154,7 @@ const useDailySummary = (selectedDate?: Date): UseDailySummaryResult => {
         topEmployees,
       };
     },
-    [currentOrg, workEntries],
+    [currentOrg, workEntries, orgUsers],
   );
 
   // Fetch summary data

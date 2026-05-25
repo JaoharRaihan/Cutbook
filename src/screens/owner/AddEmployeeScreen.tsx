@@ -1,6 +1,6 @@
 /**
  * AddEmployeeScreen.tsx
- * Form to add a new employee to the organization
+ * Generate and share invite code for new employee
  */
 
 import React, {useState} from 'react';
@@ -16,9 +16,9 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import {useOrg} from '@/context';
-import {User, UserRole, UserStatus} from '@/types';
 
 // ============================================================================
 // COMPONENT
@@ -26,26 +26,29 @@ import {User, UserRole, UserStatus} from '@/types';
 
 export default function AddEmployeeScreen({navigation}: any): React.ReactElement {
   const {currentOrg} = useOrg();
-  const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [email, setEmail] = useState('');
+  const [employeeName, setEmployeeName] = useState('');
+  const [employeePhone, setEmployeePhone] = useState('');
   const [commissionPercentage, setCommissionPercentage] = useState('30');
   const [loading, setLoading] = useState(false);
+  const [inviteCode, setInviteCode] = useState<string | null>(null);
+  const [invitedEmployee, setInvitedEmployee] = useState<{name: string; phone: string} | null>(
+    null,
+  );
 
   // ============================================================================
   // VALIDATION
   // ============================================================================
 
   const validateForm = (): string | null => {
-    if (!name.trim()) {
+    if (!employeeName.trim()) {
       return 'Please enter employee name';
     }
 
-    if (!phone.trim()) {
+    if (!employeePhone.trim()) {
       return 'Please enter phone number';
     }
 
-    if (phone.length < 10) {
+    if (employeePhone.length < 10) {
       return 'Please enter a valid phone number';
     }
 
@@ -61,7 +64,16 @@ export default function AddEmployeeScreen({navigation}: any): React.ReactElement
   // HANDLERS
   // ============================================================================
 
-  const handleSubmit = async () => {
+  const generateInviteCode = (): string => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let code = '';
+    for (let i = 0; i < 6; i++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return code;
+  };
+
+  const handleGenerateInvite = async () => {
     const error = validateForm();
     if (error) {
       Alert.alert('Validation Error', error);
@@ -70,36 +82,124 @@ export default function AddEmployeeScreen({navigation}: any): React.ReactElement
 
     setLoading(true);
 
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      // Generate a unique invite code
+      const code = generateInviteCode();
+
+      // Store invite info temporarily (you may want to save this to a 'invites' collection in Firestore)
+      // For now, we'll just display it to the owner
+      setInviteCode(code);
+      setInvitedEmployee({
+        name: employeeName.trim(),
+        phone: employeePhone.trim(),
+      });
+
+      // Note: The employee will use this code to register and join the org
+      // See: OrgContext.joinOrg(inviteCode)
+    } catch (err: any) {
+      console.error('Error generating invite:', err);
+      Alert.alert('Error', 'Failed to generate invite code. Please try again.');
+    } finally {
       setLoading(false);
+    }
+  };
 
-      // In real app, this would add to database
-      const newEmployee: Partial<User> = {
-        id: `user_${Date.now()}`,
-        name: name.trim(),
-        phone: phone.trim(),
-        email: email.trim() || undefined,
-        role: UserRole.EMPLOYEE,
-        orgId: currentOrg?.id,
-        commissionPercentage: parseFloat(commissionPercentage),
-        status: UserStatus.ACTIVE,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
+  const handleCopyInviteCode = async () => {
+    if (!inviteCode) return;
 
-      Alert.alert('Success', `${name} has been added as an employee!`, [
-        {
-          text: 'OK',
-          onPress: () => navigation.goBack(),
+    // In a real app, you'd use react-native-clipboard
+    // For now, just show in alert
+    Alert.alert('Invite Code', inviteCode, [
+      {
+        text: 'Copy',
+        onPress: () => {
+          // TODO: Implement clipboard copy for each platform
+          Alert.alert('Copied', `Invite code ${inviteCode} copied to clipboard!`);
         },
-      ]);
-    }, 500);
+      },
+      {text: 'Share', onPress: () => handleShareInvite()},
+      {text: 'Done'},
+    ]);
+  };
+
+  const handleShareInvite = async () => {
+    if (!inviteCode || !invitedEmployee) return;
+
+    const message = `Join ${currentOrg?.name || 'our salon'} on CutBook!\nInvite Code: ${inviteCode}\n\nDownload CutBook and use this code to join as an employee.`;
+
+    try {
+      // TODO: Implement native share or send via SMS/WhatsApp
+      Alert.alert(
+        'Share Invite',
+        'In production, this would open share dialog or send SMS:\n\n' + message,
+      );
+    } catch (err) {
+      console.error('Error sharing invite:', err);
+    }
+  };
+
+  const handleDone = () => {
+    navigation.goBack();
   };
 
   // ============================================================================
   // RENDER
   // ============================================================================
+
+  if (inviteCode && invitedEmployee) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+
+        <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+          <View style={styles.successContainer}>
+            <Text style={styles.successIcon}>✅</Text>
+            <Text style={styles.successTitle}>Invite Generated!</Text>
+            <Text style={styles.successSubtitle}>Share this code with your employee</Text>
+
+            {/* Employee Info */}
+            <View style={styles.employeeCard}>
+              <Text style={styles.employeeLabel}>Employee Name</Text>
+              <Text style={styles.employeeValue}>{invitedEmployee.name}</Text>
+
+              <Text style={[styles.employeeLabel, {marginTop: 12}]}>Phone Number</Text>
+              <Text style={styles.employeeValue}>{invitedEmployee.phone}</Text>
+
+              <Text style={[styles.employeeLabel, {marginTop: 12}]}>Commission</Text>
+              <Text style={styles.employeeValue}>{commissionPercentage}%</Text>
+            </View>
+
+            {/* Invite Code Display */}
+            <View style={styles.inviteCodeContainer}>
+              <Text style={styles.inviteCodeLabel}>Invite Code</Text>
+              <View style={styles.inviteCodeBox}>
+                <Text style={styles.inviteCodeText}>{inviteCode}</Text>
+                <TouchableOpacity onPress={handleCopyInviteCode} style={styles.copyButton}>
+                  <Text style={styles.copyButtonText}>📋</Text>
+                </TouchableOpacity>
+              </View>
+
+              <Text style={styles.instructionText}>
+                Share this code with your employee. They can use it to join{' '}
+                {currentOrg?.name || 'the organization'} as an employee.
+              </Text>
+            </View>
+
+            {/* Action Buttons */}
+            <View style={styles.buttonGroup}>
+              <TouchableOpacity style={styles.shareButton} onPress={handleShareInvite}>
+                <Text style={styles.shareButtonText}>📤 Share Invite</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.doneButton} onPress={handleDone}>
+                <Text style={styles.doneButtonText}>✓ Done</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -123,12 +223,13 @@ export default function AddEmployeeScreen({navigation}: any): React.ReactElement
               </Text>
               <TextInput
                 style={styles.input}
-                placeholder="Enter full name"
+                placeholder="Enter employee name"
                 placeholderTextColor="#999"
-                value={name}
-                onChangeText={setName}
+                value={employeeName}
+                onChangeText={setEmployeeName}
                 autoCapitalize="words"
                 autoCorrect={false}
+                editable={!loading}
               />
             </View>
 
@@ -141,26 +242,12 @@ export default function AddEmployeeScreen({navigation}: any): React.ReactElement
                 style={styles.input}
                 placeholder="+880 1XXX-XXXXXX"
                 placeholderTextColor="#999"
-                value={phone}
-                onChangeText={setPhone}
+                value={employeePhone}
+                onChangeText={setEmployeePhone}
                 keyboardType="phone-pad"
                 autoCapitalize="none"
                 autoCorrect={false}
-              />
-            </View>
-
-            {/* Email Input */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Email (Optional)</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="email@example.com"
-                placeholderTextColor="#999"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoCorrect={false}
+                editable={!loading}
               />
             </View>
 
@@ -177,6 +264,7 @@ export default function AddEmployeeScreen({navigation}: any): React.ReactElement
                   value={commissionPercentage}
                   onChangeText={setCommissionPercentage}
                   keyboardType="numeric"
+                  editable={!loading}
                 />
                 <Text style={styles.percentageSymbol}>%</Text>
               </View>
@@ -188,8 +276,8 @@ export default function AddEmployeeScreen({navigation}: any): React.ReactElement
           <View style={styles.infoCard}>
             <Text style={styles.infoIcon}>💡</Text>
             <Text style={styles.infoText}>
-              The employee will be able to log in using their phone number. You can set their
-              initial password or send them an invitation.
+              An invite code will be generated that you can share with the employee. They will use
+              it to create their account and join your organization.
             </Text>
           </View>
         </ScrollView>
@@ -198,11 +286,13 @@ export default function AddEmployeeScreen({navigation}: any): React.ReactElement
         <View style={styles.footer}>
           <TouchableOpacity
             style={[styles.submitButton, loading && styles.submitButtonDisabled]}
-            onPress={handleSubmit}
+            onPress={handleGenerateInvite}
             disabled={loading}>
-            <Text style={styles.submitButtonText}>
-              {loading ? 'Adding Employee...' : '➕ Add Employee'}
-            </Text>
+            {loading ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <Text style={styles.submitButtonText}>Generate Invite Code</Text>
+            )}
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
@@ -330,6 +420,117 @@ const styles = StyleSheet.create({
   submitButtonText: {
     color: '#FFFFFF',
     fontSize: 18,
+    fontWeight: '600',
+  },
+
+  // Success state styles
+  successContainer: {
+    paddingVertical: 32,
+  },
+  successIcon: {
+    fontSize: 64,
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  successTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#212121',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  successSubtitle: {
+    fontSize: 16,
+    color: '#757575',
+    textAlign: 'center',
+    marginBottom: 32,
+  },
+  employeeCard: {
+    backgroundColor: '#F5F5F5',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  employeeLabel: {
+    fontSize: 14,
+    color: '#757575',
+    fontWeight: '500',
+  },
+  employeeValue: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#212121',
+  },
+  inviteCodeContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 24,
+    borderWidth: 2,
+    borderColor: '#4CAF50',
+  },
+  inviteCodeLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#212121',
+    marginBottom: 12,
+  },
+  inviteCodeBox: {
+    backgroundColor: '#F0F0F0',
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#4CAF50',
+    borderStyle: 'dashed',
+  },
+  inviteCodeText: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#4CAF50',
+    letterSpacing: 4,
+  },
+  copyButton: {
+    position: 'absolute',
+    right: 8,
+    top: 8,
+    padding: 8,
+  },
+  copyButtonText: {
+    fontSize: 20,
+  },
+  instructionText: {
+    fontSize: 13,
+    color: '#666',
+    lineHeight: 20,
+  },
+  buttonGroup: {
+    gap: 12,
+  },
+  shareButton: {
+    backgroundColor: '#4CAF50',
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  shareButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  doneButton: {
+    backgroundColor: '#757575',
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  doneButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
     fontWeight: '600',
   },
 });

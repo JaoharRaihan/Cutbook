@@ -13,7 +13,6 @@ import {
   SafeAreaView,
   StatusBar,
   RefreshControl,
-  ActivityIndicator,
 } from 'react-native';
 import {useAuth, useOrg, useData} from '@/context';
 import {WorkEntry, PaymentMethod} from '@/types';
@@ -26,7 +25,7 @@ import {formatBDT} from '@/utils';
 export default function EmployeeHomeScreen({navigation}: any): React.ReactElement {
   const {user: currentUser} = useAuth();
   const {currentOrg} = useOrg();
-  const {workEntries, loading, refreshData} = useData();
+  const {workEntries, refreshData} = useData();
   const [refreshing, setRefreshing] = useState(false);
 
   const today = new Date();

@@ -16,10 +16,9 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
-  ActivityIndicator,
 } from 'react-native';
 import {useOrg, useData, useAuth} from '@/context';
-import {WorkEntry, PaymentMethod, User, Service, ServiceCategory} from '@/types';
+import {WorkEntry, PaymentMethod, Service, User} from '@/types';
 
 // ============================================================================
 // COMPONENT
@@ -27,7 +26,7 @@ import {WorkEntry, PaymentMethod, User, Service, ServiceCategory} from '@/types'
 
 export default function AddWorkEntryScreen({navigation}: any): React.ReactElement {
   // Contexts
-  const {currentOrg, orgUsers, orgServices, loading: orgLoading} = useOrg();
+  const {orgUsers, orgServices, currentOrg, loading: orgLoading} = useOrg();
   const {addWorkEntry, loading: dataLoading} = useData();
   const {user} = useAuth();
 

@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import {ScrollView, RefreshControl, StyleSheet, ScrollViewProps} from 'react-native';
+import {ScrollView, RefreshControl, ScrollViewProps} from 'react-native';
 
 // ============================================================================
 // TYPES
@@ -54,7 +54,3 @@ export default function PullToRefresh({
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  // Add any additional styles if needed
-});

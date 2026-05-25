@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import {Text, TextProps, TextStyle} from 'react-native';
+import {Text, TextProps} from 'react-native';
 import {useLanguage} from '@/context/LanguageContext';
 import {toBengaliNumerals} from '@/utils/bengaliNumerals';
 

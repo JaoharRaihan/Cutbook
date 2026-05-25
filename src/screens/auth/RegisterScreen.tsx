@@ -141,19 +141,20 @@ const RegisterScreen: React.FC = () => {
     }
 
     try {
-      // Remove the leading 0 and add country code
-      // 01712345678 -> 1712345678 -> +8801712345678
-      const phoneDigits = formData.phone.replace(/\D/g, '');
-      const phoneWithoutLeadingZero = phoneDigits.startsWith('0')
-        ? phoneDigits.slice(1)
-        : phoneDigits;
-      const cleanPhone = '+880' + phoneWithoutLeadingZero;
+      // Trim password to remove accidental whitespace
+      const trimmedPassword = formData.password.trim();
+      if (!trimmedPassword) {
+        throw new Error('Password cannot be empty');
+      }
+
+      // Use phone as entered (frontend only shows entered phone)
+      const cleanPhone = formData.phone;
 
       await register({
         name: formData.name.trim(),
         phone: cleanPhone,
         email: formData.email.trim() || undefined,
-        password: formData.password,
+        password: formData.password.trim(),
         role: formData.role,
       });
       Alert.alert('Success', 'Registration successful! Please login.');
