@@ -143,7 +143,9 @@ export default function DashboardScreen({navigation}: any): React.ReactElement {
                   <Text style={styles.actionButtonIcon}>�</Text>
                   <Text style={styles.actionButtonText}>Reports</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={[styles.actionButton, styles.actionButtonSecondary]}>
+                <TouchableOpacity
+                  style={[styles.actionButton, styles.actionButtonSecondary]}
+                  onPress={() => navigation.navigate('Employees')}>
                   <Text style={styles.actionButtonIcon}>👥</Text>
                   <Text style={styles.actionButtonText}>Employees</Text>
                 </TouchableOpacity>

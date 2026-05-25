@@ -182,14 +182,6 @@ export default function AddEmployeeScreen({navigation}: any): React.ReactElement
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled">
-          {/* Header */}
-          <View style={styles.header}>
-            <TouchableOpacity onPress={() => navigation.goBack()}>
-              <Text style={styles.backButton}>← Back</Text>
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>Add Employee</Text>
-          </View>
-
           {/* Form Section */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Employee Information</Text>
@@ -312,37 +304,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: 0,
-  },
-  header: {
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  backButton: {
-    fontSize: 16,
-    color: '#2196F3',
-    fontWeight: '600',
-    paddingRight: 12,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#212121',
-    flex: 1,
+    padding: 16,
   },
   section: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 0,
-    padding: 16,
-    marginBottom: 0,
-    marginTop: 16,
-    marginHorizontal: 16,
     borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
   },
   sectionTitle: {
     fontSize: 18,
@@ -404,8 +372,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
-    marginHorizontal: 16,
-    marginTop: 16,
     borderWidth: 1,
     borderColor: '#2196F3',
   },
