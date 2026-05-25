@@ -29,12 +29,14 @@ export default function EmployeeHomeScreen({navigation}: any): React.ReactElemen
   const {workEntries, refreshData} = useData();
   const [refreshing, setRefreshing] = useState(false);
 
-  const today = new Date();
-  const todayStr = today.toLocaleDateString('en-US', {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-  });
+  const todayStr = useMemo(() => {
+    const today = new Date();
+    return today.toLocaleDateString('en-US', {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric',
+    });
+  }, []);
 
   // Filter for current employee's entries
   const myEntries = useMemo(() => {
@@ -43,6 +45,7 @@ export default function EmployeeHomeScreen({navigation}: any): React.ReactElemen
 
   // Filter for today's entries
   const todayEntries = useMemo(() => {
+    const today = new Date();
     const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
     const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
 
@@ -50,7 +53,7 @@ export default function EmployeeHomeScreen({navigation}: any): React.ReactElemen
       const entryDate = new Date(entry.createdAt);
       return entryDate >= todayStart && entryDate < todayEnd;
     });
-  }, [myEntries, today]);
+  }, [myEntries]);
 
   // Calculate today's stats
   const todayStats = useMemo(() => {

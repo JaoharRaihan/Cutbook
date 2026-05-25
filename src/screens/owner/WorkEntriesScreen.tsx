@@ -15,7 +15,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import {useOrg, useData} from '@/context';
-import {WorkEntry} from '@/types';
+import {WorkEntry, TransactionStatus} from '@/types';
 import {formatBDT} from '@/utils';
 import WorkEntryCard from '@/components/WorkEntryCard';
 
@@ -30,7 +30,7 @@ type DateFilter = 'today' | 'yesterday' | 'week' | 'month';
 // ============================================================================
 
 export default function WorkEntriesScreen({navigation}: any): React.ReactElement {
-  const {currentOrg, orgUsers} = useOrg();
+  const {currentOrg, orgUsers, employeeTransactions} = useOrg();
   const {workEntries, refreshData} = useData();
   const [refreshing, setRefreshing] = useState(false);
   const [dateFilter, setDateFilter] = useState<DateFilter>('today');
@@ -95,6 +95,31 @@ export default function WorkEntriesScreen({navigation}: any): React.ReactElement
   const totalTips = useMemo(() => {
     return filteredEntries.reduce((sum, entry) => sum + (entry.tip || 0), 0);
   }, [filteredEntries]);
+
+  // Calculate employee earnings breakdown
+  const employeeEarnings = useMemo(() => {
+    if (!selectedEmployee) return null;
+
+    const employee = orgUsers.find(e => e.id === selectedEmployee);
+    if (!employee) return null;
+
+    // Commission from work entries
+    const commissionPercentage = employee.commissionPercentage || 0;
+    const commission = Math.round((totalIncome * commissionPercentage) / 100);
+
+    // Get payouts for this employee (only accepted transactions)
+    const acceptedPayouts = (employeeTransactions || [])
+      .filter(t => t.employeeId === selectedEmployee && t.status === TransactionStatus.ACCEPTED)
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    return {
+      commissionPercentage,
+      commission,
+      acceptedPayouts,
+      netAmount: commission - acceptedPayouts,
+      employeeName: employee.name,
+    };
+  }, [selectedEmployee, totalIncome, orgUsers, employeeTransactions]);
 
   // ============================================================================
   // HANDLERS
@@ -215,6 +240,49 @@ export default function WorkEntriesScreen({navigation}: any): React.ReactElement
     );
   };
 
+  const renderEmployeeEarnings = () => {
+    if (!employeeEarnings) return null;
+
+    return (
+      <View style={styles.earningsContainer}>
+        <View style={styles.earningsSection}>
+          <Text style={styles.earningsTitle}>
+            {employeeEarnings.employeeName}'s Earnings from Shop
+          </Text>
+
+          {/* Commission Earned */}
+          <View style={styles.earningsRow}>
+            <Text style={styles.earningsLabel}>
+              Commission ({employeeEarnings.commissionPercentage}%)
+            </Text>
+            <Text style={styles.earningsValue}>{formatBDT(employeeEarnings.commission)}</Text>
+          </View>
+
+          {/* Payouts Given */}
+          <View style={styles.earningsRow}>
+            <Text style={styles.earningsLabel}>Minus: Payouts Given</Text>
+            <Text style={[styles.earningsValue, styles.payoutValue]}>
+              -{formatBDT(employeeEarnings.acceptedPayouts)}
+            </Text>
+          </View>
+
+          {/* Net Amount */}
+          <View style={[styles.earningsRow, styles.netAmountRow]}>
+            <Text style={[styles.earningsLabel, styles.netAmountLabel]}>Net Amount</Text>
+            <Text
+              style={[
+                styles.earningsValue,
+                styles.netAmountValue,
+                employeeEarnings.netAmount < 0 && styles.negativeAmount,
+              ]}>
+              {formatBDT(employeeEarnings.netAmount)}
+            </Text>
+          </View>
+        </View>
+      </View>
+    );
+  };
+
   const renderEmptyState = () => {
     return (
       <View style={styles.emptyState}>
@@ -252,6 +320,9 @@ export default function WorkEntriesScreen({navigation}: any): React.ReactElement
 
       {/* Summary */}
       {renderSummary()}
+
+      {/* Employee Earnings */}
+      {renderEmployeeEarnings()}
 
       {/* List */}
       <FlatList
@@ -404,6 +475,64 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     color: '#212121',
+  },
+  earningsContainer: {
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+  },
+  earningsSection: {
+    backgroundColor: '#FFF9C4',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#FBC02D',
+  },
+  earningsTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#F57F17',
+    marginBottom: 12,
+  },
+  earningsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#FFE082',
+  },
+  earningsLabel: {
+    fontSize: 13,
+    color: '#333333',
+    fontWeight: '500',
+  },
+  earningsValue: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#4CAF50',
+  },
+  payoutValue: {
+    color: '#FF6F00',
+  },
+  netAmountRow: {
+    borderBottomWidth: 0,
+    paddingVertical: 12,
+    backgroundColor: '#FFF59D',
+    marginTop: 4,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+  },
+  netAmountLabel: {
+    color: '#F57F17',
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  netAmountValue: {
+    fontSize: 18,
+    color: '#2E7D32',
+  },
+  negativeAmount: {
+    color: '#D32F2F',
   },
   listContent: {
     padding: 16,

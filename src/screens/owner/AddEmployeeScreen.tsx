@@ -35,18 +35,6 @@ const phoneToFirebaseEmail = (phone: string): string => {
   return `auth_${digitsOnly}@cutbook.app`;
 };
 
-/**
- * Generate a unique invite code for the organization
- */
-const generateInviteCode = (): string => {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  let code = '';
-  for (let i = 0; i < 6; i++) {
-    code += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return code;
-};
-
 // ============================================================================
 // COMPONENT
 // ============================================================================
@@ -119,8 +107,6 @@ export default function AddEmployeeScreen({navigation}: any): React.ReactElement
       const userCredential = await auth().createUserWithEmailAndPassword(email, password);
       const uid = userCredential.user.uid;
 
-      console.log('✅ Firebase Auth account created for:', uid);
-
       // Step 2: Create user document in Firestore
       const userData = {
         id: uid,
@@ -136,8 +122,6 @@ export default function AddEmployeeScreen({navigation}: any): React.ReactElement
       };
 
       await firestore().collection('users').doc(uid).set(userData);
-
-      console.log('✅ User document created in Firestore');
 
       Alert.alert(
         'Employee Registered Successfully! ✅',

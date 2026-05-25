@@ -6,8 +6,8 @@
 import React, {createContext, useContext, useState, useEffect, useCallback} from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import firestore from '@react-native-firebase/firestore';
-import type {Organization, User, Service} from '@/types';
-import {UserRole, CommissionMode} from '@/types';
+import type {Organization, User, Service, EmployeeTransaction} from '@/types';
+import {UserRole, CommissionMode, TransactionStatus} from '@/types';
 import {STORAGE_KEYS, ERROR_MESSAGES} from '@/constants';
 import {useAuth} from './AuthContext';
 
@@ -30,6 +30,7 @@ interface OrgContextValue {
   currentOrg: Organization | null;
   orgUsers: User[];
   orgServices: Service[];
+  employeeTransactions: EmployeeTransaction[];
   loading: boolean;
   error: string | null;
 
@@ -44,6 +45,12 @@ interface OrgContextValue {
   addUser: (user: Omit<User, 'id' | 'createdAt' | 'updatedAt' | 'orgId'>) => Promise<User>;
   updateUserInOrg: (id: string, data: Partial<User>) => Promise<void>;
   deleteUser: (id: string) => Promise<void>;
+  createEmployeeTransaction: (
+    employeeId: string,
+    amount: number,
+    note?: string,
+  ) => Promise<EmployeeTransaction>;
+  respondToTransaction: (transactionId: string, status: TransactionStatus) => Promise<void>;
   clearError: () => void;
 }
 
@@ -76,6 +83,7 @@ export const OrgProvider: React.FC<{children: React.ReactNode}> = ({children}) =
   const [currentOrg, setCurrentOrg] = useState<Organization | null>(null);
   const [orgUsers, setOrgUsers] = useState<User[]>([]);
   const [orgServices, setOrgServices] = useState<Service[]>([]);
+  const [employeeTransactions, setEmployeeTransactions] = useState<EmployeeTransaction[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -87,6 +95,7 @@ export const OrgProvider: React.FC<{children: React.ReactNode}> = ({children}) =
     let orgUnsubscribe: () => void;
     let usersUnsubscribe: () => void;
     let servicesUnsubscribe: () => void;
+    let transactionsUnsubscribe: () => void;
 
     if (user?.orgId) {
       setLoading(true);
@@ -174,16 +183,42 @@ export const OrgProvider: React.FC<{children: React.ReactNode}> = ({children}) =
           },
           (err: any) => console.error('Error listening to services:', err),
         );
+
+      // 4. Listen to Employee Transactions for this Org
+      transactionsUnsubscribe = firestore()
+        .collection('employeeTransactions')
+        .where('orgId', '==', orgId)
+        .orderBy('createdAt', 'desc')
+        .onSnapshot(
+          (querySnapshot: any) => {
+            const transactions: EmployeeTransaction[] = [];
+            querySnapshot.forEach((docSnap: any) => {
+              const txnData = docSnap.data() as EmployeeTransaction;
+              txnData.id = docSnap.id;
+              if (txnData.createdAt && 'toDate' in (txnData.createdAt as any))
+                txnData.createdAt = (txnData.createdAt as any).toDate();
+              if (txnData.respondedAt && 'toDate' in (txnData.respondedAt as any))
+                txnData.respondedAt = (txnData.respondedAt as any).toDate();
+              if (txnData.updatedAt && 'toDate' in (txnData.updatedAt as any))
+                txnData.updatedAt = (txnData.updatedAt as any).toDate();
+              transactions.push(txnData);
+            });
+            setEmployeeTransactions(transactions);
+          },
+          (err: any) => console.error('Error listening to transactions:', err),
+        );
     } else {
       setCurrentOrg(null);
       setOrgUsers([]);
       setOrgServices([]);
+      setEmployeeTransactions([]);
     }
 
     return () => {
       if (orgUnsubscribe) orgUnsubscribe();
       if (usersUnsubscribe) usersUnsubscribe();
       if (servicesUnsubscribe) servicesUnsubscribe();
+      if (transactionsUnsubscribe) transactionsUnsubscribe();
     };
   }, [user?.orgId]);
 
@@ -215,6 +250,8 @@ export const OrgProvider: React.FC<{children: React.ReactNode}> = ({children}) =
           currency: payload.currency,
           defaultCommissionMode: payload.defaultCommissionMode,
           inviteCode: inviteCode,
+          mainCash: 0, // Start with 0 cash
+          totalPayoutsGiven: 0, // No payouts yet
           createdAt: new Date(), // Firestore converts Date to Timestamp
           updatedAt: new Date(),
         };
@@ -328,6 +365,8 @@ export const OrgProvider: React.FC<{children: React.ReactNode}> = ({children}) =
         await firestore().collection('users').doc(user.id).update({
           orgId: orgId,
           role: UserRole.EMPLOYEE, // Default role when joining
+          totalPayoutReceived: 0, // Initialize cash account
+          totalPayoutPending: 0, // Initialize pending amount
         });
 
         // Update local user state
@@ -525,6 +564,150 @@ export const OrgProvider: React.FC<{children: React.ReactNode}> = ({children}) =
   }, []);
 
   // ============================================================================
+  // EMPLOYEE TRANSACTIONS
+  // ============================================================================
+
+  /**
+   * Create a transaction (owner giving money to employee)
+   * Marks amount as PENDING for employee until they accept/reject
+   */
+  const createEmployeeTransaction = useCallback(
+    async (employeeId: string, amount: number, note?: string): Promise<EmployeeTransaction> => {
+      if (!currentOrg || !user) {
+        throw new Error('Organization or user not found');
+      }
+
+      if (amount <= 0) {
+        throw new Error('Amount must be greater than 0');
+      }
+
+      try {
+        const employee = orgUsers.find(u => u.id === employeeId);
+        if (!employee) {
+          throw new Error('Employee not found');
+        }
+
+        const transactionData: EmployeeTransaction = {
+          id: '', // Will be set by Firestore
+          orgId: currentOrg.id,
+          employeeId,
+          employeeName: employee.name,
+          ownerId: user.id,
+          ownerName: user.name,
+          amount,
+          note,
+          status: TransactionStatus.PENDING,
+          includeInDailyCount: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+
+        // Filter out undefined values for Firestore
+        const firestoreData = Object.fromEntries(
+          Object.entries(transactionData).filter(([, value]) => value !== undefined),
+        );
+
+        const now = new Date();
+        const batch = firestore().batch();
+
+        // 1. Create transaction document
+        const docRef = firestore().collection('employeeTransactions').doc();
+        batch.set(docRef, firestoreData);
+
+        // 2. Update employee's pending amount
+        batch.update(firestore().collection('users').doc(employeeId), {
+          totalPayoutPending: firestore.FieldValue.increment(amount),
+          updatedAt: now,
+        });
+
+        await batch.commit();
+
+        transactionData.id = docRef.id;
+        return transactionData;
+      } catch (err: any) {
+        throw new Error(err.message || 'Failed to create transaction');
+      }
+    },
+    [currentOrg, user, orgUsers],
+  );
+
+  /**
+   * Employee responds to transaction (accept/reject)
+   * When ACCEPTED: Transfer cash from Organization to Employee
+   * When REJECTED: Just update status, no cash transfer
+   */
+  const respondToTransaction = useCallback(
+    async (transactionId: string, status: TransactionStatus): Promise<void> => {
+      if (!currentOrg || !user) {
+        throw new Error('Organization or user not found');
+      }
+
+      if (status !== TransactionStatus.ACCEPTED && status !== TransactionStatus.REJECTED) {
+        throw new Error('Invalid status');
+      }
+
+      try {
+        // Fetch transaction to get amount and employee ID
+        const txnDoc = await firestore()
+          .collection('employeeTransactions')
+          .doc(transactionId)
+          .get();
+
+        if (!txnDoc.exists) {
+          throw new Error('Transaction not found');
+        }
+
+        const txnData = txnDoc.data() as EmployeeTransaction;
+
+        if (txnData.status !== TransactionStatus.PENDING) {
+          throw new Error('Transaction already responded to');
+        }
+
+        const now = new Date();
+        const batch = firestore().batch();
+
+        // 1. Update transaction
+        batch.update(firestore().collection('employeeTransactions').doc(transactionId), {
+          status, // ACCEPTED or REJECTED
+          respondedAt: now,
+          respondedBy: user.id,
+          updatedAt: now,
+        });
+
+        // 2. Update employee's balance
+        const employeeRef = firestore().collection('users').doc(txnData.employeeId);
+        if (status === TransactionStatus.ACCEPTED) {
+          // ACCEPTED: Move from pending to received
+          batch.update(employeeRef, {
+            totalPayoutPending: firestore.FieldValue.increment(-txnData.amount),
+            totalPayoutReceived: firestore.FieldValue.increment(txnData.amount),
+            updatedAt: now,
+          });
+
+          // 3. Update organization's cash
+          const orgRef = firestore().collection('organizations').doc(currentOrg.id);
+          batch.update(orgRef, {
+            mainCash: firestore.FieldValue.increment(-txnData.amount),
+            totalPayoutsGiven: firestore.FieldValue.increment(txnData.amount),
+            updatedAt: now,
+          });
+        } else {
+          // REJECTED: Just remove from pending
+          batch.update(employeeRef, {
+            totalPayoutPending: firestore.FieldValue.increment(-txnData.amount),
+            updatedAt: now,
+          });
+        }
+
+        await batch.commit();
+      } catch (err: any) {
+        throw new Error(err.message || 'Failed to respond to transaction');
+      }
+    },
+    [currentOrg, user],
+  );
+
+  // ============================================================================
   // CONTEXT VALUE
   // ============================================================================
 
@@ -534,6 +717,7 @@ export const OrgProvider: React.FC<{children: React.ReactNode}> = ({children}) =
     currentOrg,
     orgUsers,
     orgServices,
+    employeeTransactions,
     loading,
     error,
     createOrg,
@@ -546,6 +730,8 @@ export const OrgProvider: React.FC<{children: React.ReactNode}> = ({children}) =
     addUser,
     updateUserInOrg,
     deleteUser,
+    createEmployeeTransaction,
+    respondToTransaction,
     clearError,
   };
 

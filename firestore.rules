@@ -30,7 +30,11 @@ service cloud.firestore {
     match /organizations/{orgId} {
       allow create: if isAuthenticated();
       allow read: if isMember(orgId); // Only members see org details
-      allow update: if isOwner(orgId); // Only owner can update settings
+      allow update: if isOwner(orgId) ||
+        // Allow members to update cash fields (for accepting/rejecting payments)
+        (isMember(orgId) &&
+         request.resource.data.diff(resource.data).affectedKeys().hasAll(['mainCash', 'totalPayoutsGiven', 'updatedAt']) &&
+         request.resource.data.diff(resource.data).affectedKeys().size() <= 3);
 
       // Allow joining via invite code query (handled via collection query rules mostly)
       // Since we query by inviteCode, we need list permission
@@ -55,6 +59,27 @@ service cloud.firestore {
     match /dailySummaries/{summaryId} {
       allow read: if isMember(resource.data.orgId);
       allow write: if isMember(resource.data.orgId); // Usually server-side or triggered by clients
+    }
+
+    // Employee Transactions (Owner → Employee Payments)
+    match /employeeTransactions/{transactionId} {
+      // Employees can read their own transactions + all org transactions (to see who sent them)
+      allow read: if isMember(resource.data.orgId);
+      // Only the owner of the org can create transactions
+      allow create: if isOwner(request.resource.data.orgId);
+      // Employees can update their response (status, respondedAt, respondedBy)
+      // Owners can update any transaction in their org
+      allow update: if isMember(resource.data.orgId) &&
+        (
+          // Employee responding to transaction (only update status/respondedAt/respondedBy)
+          (resource.data.employeeId == request.auth.uid &&
+           request.resource.data.employeeId == resource.data.employeeId &&
+           request.resource.data.amount == resource.data.amount) ||
+          // Owner managing transaction
+          isOwner(resource.data.orgId)
+        );
+      // Only owner can delete
+      allow delete: if isOwner(resource.data.orgId);
     }
   }
 }

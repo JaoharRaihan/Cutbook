@@ -3,7 +3,7 @@
  * Owner Dashboard - Main view showing daily summary
  */
 
-import React, {useState} from 'react';
+import React, {useState, useMemo} from 'react';
 import {
   View,
   Text,
@@ -14,17 +14,46 @@ import {
   SafeAreaView,
   StatusBar,
 } from 'react-native';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import {useOrg} from '@/context';
 import useDailySummary from '@/hooks/useDailySummary';
 import SummaryCard from '@/components/SummaryCard';
 import EmployeeRankCard from '@/components/EmployeeRankCard';
+import DatePickerModal from '@/components/UI/DatePickerModal';
 import {formatBDT} from '@/utils/currency';
 import {formatDateISO, isToday} from '@/utils/date';
+import {TransactionStatus} from '@/types';
 
 export default function DashboardScreen({navigation}: any): React.ReactElement {
-  const {currentOrg} = useOrg();
-  const [selectedDate] = useState<Date>(new Date());
+  const {currentOrg, employeeTransactions} = useOrg();
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [datePickerVisible, setDatePickerVisible] = useState(false);
   const {summary, loading, error, refresh} = useDailySummary(selectedDate);
+
+  // Calculate cash account stats
+  const cashStats = useMemo(() => {
+    const acceptedTransactions =
+      employeeTransactions?.filter(t => t.status === TransactionStatus.ACCEPTED) || [];
+
+    const totalPaidOut = acceptedTransactions.reduce((sum, t) => sum + t.amount, 0);
+
+    // Group by employee for breakdown
+    const employeePayouts: {[key: string]: {name: string; amount: number; count: number}} = {};
+    acceptedTransactions.forEach(t => {
+      if (!employeePayouts[t.employeeId]) {
+        employeePayouts[t.employeeId] = {name: t.employeeName, amount: 0, count: 0};
+      }
+      employeePayouts[t.employeeId].amount += t.amount;
+      employeePayouts[t.employeeId].count += 1;
+    });
+
+    return {
+      totalPaidOut,
+      availableCash: currentOrg?.mainCash || 0,
+      totalPayoutsGiven: currentOrg?.totalPayoutsGiven || 0,
+      employeePayouts: Object.values(employeePayouts).sort((a, b) => b.amount - a.amount),
+    };
+  }, [employeeTransactions, currentOrg]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -36,8 +65,14 @@ export default function DashboardScreen({navigation}: any): React.ReactElement {
             {isToday(selectedDate) ? 'Today' : formatDateISO(selectedDate)}
           </Text>
         </View>
-        <TouchableOpacity style={styles.dateButton}>
-          <Text style={styles.dateButtonText}>📅</Text>
+        <TouchableOpacity
+          style={styles.dateButton}
+          onPress={() => setDatePickerVisible(true)}
+          activeOpacity={0.7}>
+          <MaterialCommunityIcons name="calendar" size={28} color="#1976D2" />
+          <Text style={styles.dateButtonLabel}>
+            {isToday(selectedDate) ? 'Today' : formatDateISO(selectedDate)}
+          </Text>
         </TouchableOpacity>
       </View>
       <ScrollView
@@ -106,22 +141,6 @@ export default function DashboardScreen({navigation}: any): React.ReactElement {
                 </View>
               </View>
             </View>
-            {summary.topEmployees.length > 0 && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>🏆 Top Performers</Text>
-                <View style={styles.rankCardsContainer}>
-                  {summary.topEmployees.map((employee: any, index: number) => (
-                    <EmployeeRankCard
-                      key={employee.employeeId}
-                      rank={index + 1}
-                      name={employee.employeeName}
-                      totalIncome={employee.totalIncome}
-                      serviceCount={employee.serviceCount}
-                    />
-                  ))}
-                </View>
-              </View>
-            )}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>⚡ Quick Actions</Text>
               <View style={styles.actionsGrid}>
@@ -140,7 +159,7 @@ export default function DashboardScreen({navigation}: any): React.ReactElement {
                 <TouchableOpacity
                   style={[styles.actionButton, styles.actionButtonSecondary]}
                   onPress={() => navigation.navigate('Reports')}>
-                  <Text style={styles.actionButtonIcon}>�</Text>
+                  <Text style={styles.actionButtonIcon}>📊</Text>
                   <Text style={styles.actionButtonText}>Reports</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -151,11 +170,53 @@ export default function DashboardScreen({navigation}: any): React.ReactElement {
                 </TouchableOpacity>
               </View>
             </View>
+
+            {/* Employee Payouts Section */}
+            {cashStats.employeePayouts.length > 0 && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>💳 Employee Payouts</Text>
+                <View style={styles.payoutsBreakdown}>
+                  {cashStats.employeePayouts.slice(0, 5).map((payout, index) => (
+                    <View key={`${payout.name}-${index}`} style={styles.payoutRow}>
+                      <View>
+                        <Text style={styles.payoutEmployeeName}>{payout.name}</Text>
+                        <Text style={styles.payoutCount}>
+                          {payout.count} transaction{payout.count > 1 ? 's' : ''}
+                        </Text>
+                      </View>
+                      <Text style={styles.payoutAmount}>{formatBDT(payout.amount)}</Text>
+                    </View>
+                  ))}
+                  {cashStats.employeePayouts.length > 5 && (
+                    <Text style={styles.morePayouts}>
+                      +{cashStats.employeePayouts.length - 5} more employees
+                    </Text>
+                  )}
+                </View>
+              </View>
+            )}
+
+            {summary.topEmployees.length > 0 && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>🏆 Top Performers</Text>
+                <View style={styles.rankCardsContainer}>
+                  {summary.topEmployees.map((employee: any, index: number) => (
+                    <EmployeeRankCard
+                      key={employee.employeeId}
+                      rank={index + 1}
+                      name={employee.employeeName}
+                      totalIncome={employee.totalIncome}
+                      serviceCount={employee.serviceCount}
+                    />
+                  ))}
+                </View>
+              </View>
+            )}
           </>
         )}
         {!error && summary && summary.entryCount === 0 && (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyStateIcon}>��</Text>
+            <Text style={styles.emptyStateIcon}>📭</Text>
             <Text style={styles.emptyStateTitle}>No entries yet</Text>
             <Text style={styles.emptyStateText}>
               Start adding work entries for {isToday(selectedDate) ? 'today' : 'this day'}
@@ -167,6 +228,14 @@ export default function DashboardScreen({navigation}: any): React.ReactElement {
         )}
         <View style={styles.bottomSpacing} />
       </ScrollView>
+
+      {/* Date Picker Modal */}
+      <DatePickerModal
+        visible={datePickerVisible}
+        selectedDate={selectedDate}
+        onDateChange={setSelectedDate}
+        onClose={() => setDatePickerVisible(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -191,16 +260,25 @@ const styles = StyleSheet.create({
   headerTitle: {fontSize: 22, fontWeight: '700', color: '#212121'},
   headerSubtitle: {fontSize: 14, color: '#757575', marginTop: 4},
   dateButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#FAFAFA',
+    flexDirection: 'column',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: '#E3F2FD',
+    borderWidth: 1,
+    borderColor: '#2196F3',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
+    gap: 4,
   },
-  dateButtonText: {fontSize: 24},
+  dateButtonIcon: {
+    fontSize: 24,
+  },
+  dateButtonLabel: {
+    fontSize: 11,
+    color: '#1976D2',
+    fontWeight: '600',
+  },
   scrollView: {flex: 1},
   scrollContent: {padding: 16},
   errorContainer: {
@@ -262,4 +340,88 @@ const styles = StyleSheet.create({
   },
   emptyStateButtonText: {color: '#FFFFFF', fontSize: 16, fontWeight: '600'},
   bottomSpacing: {height: 24},
+  // Cash Account Styles
+  cashSection: {marginBottom: 24},
+  cashSectionTitle: {fontSize: 18, fontWeight: '700', color: '#212121', marginBottom: 12},
+  cashContainer: {flexDirection: 'row', gap: 12, marginBottom: 16},
+  cashCard: {
+    flex: 1,
+    padding: 16,
+    borderRadius: 12,
+    borderLeftWidth: 4,
+  },
+  cashCardAvailable: {
+    backgroundColor: '#E8F5E9',
+    borderLeftColor: '#4CAF50',
+  },
+  cashCardPaidOut: {
+    backgroundColor: '#FFF3E0',
+    borderLeftColor: '#FF9800',
+  },
+  cashLabel: {
+    fontSize: 13,
+    color: '#666',
+    marginBottom: 8,
+    fontWeight: '600',
+  },
+  cashAmount: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#4CAF50',
+    marginBottom: 4,
+  },
+  cashAmountPaidOut: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#FF9800',
+    marginBottom: 4,
+  },
+  cashSubtext: {
+    fontSize: 12,
+    color: '#999',
+    fontStyle: 'italic',
+  },
+  payoutsBreakdown: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  payoutsTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#212121',
+    marginBottom: 12,
+  },
+  payoutRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F5F5F5',
+  },
+  payoutEmployeeName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#212121',
+    marginBottom: 4,
+  },
+  payoutCount: {
+    fontSize: 12,
+    color: '#999',
+  },
+  payoutAmount: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FF9800',
+  },
+  morePayouts: {
+    fontSize: 12,
+    color: '#2196F3',
+    marginTop: 12,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
 });

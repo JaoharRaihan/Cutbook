@@ -27,11 +27,13 @@ import {formatDateISO} from '@/utils/date';
 
 export default function EmployeeDetailScreen({route, navigation}: any): React.ReactElement {
   const {employeeId} = route.params;
-  const {orgUsers, updateUserInOrg} = useOrg();
+  const {orgUsers, updateUserInOrg, createEmployeeTransaction} = useOrg();
   const {workEntries} = useData();
   const [isEditingCommission, setIsEditingCommission] = useState(false);
   const [commissionInput, setCommissionInput] = useState('');
   const [saving, setSaving] = useState(false);
+  const [paymentAmount, setPaymentAmount] = useState('');
+  const [paymentNote, setPaymentNote] = useState('');
 
   // Get employee from orgUsers
   const employee = useMemo(() => {
@@ -172,6 +174,31 @@ export default function EmployeeDetailScreen({route, navigation}: any): React.Re
       Alert.alert('Success', `Permission to ${permissionLabel} has been ${action}`);
     } catch (err: any) {
       Alert.alert('Error', err.message || 'Failed to update permissions');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSendPayment = async () => {
+    if (!employee) return;
+
+    const amount = parseFloat(paymentAmount);
+    if (isNaN(amount) || amount <= 0) {
+      Alert.alert('Invalid Input', 'Please enter a valid amount');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await createEmployeeTransaction(employeeId, amount, paymentNote || undefined);
+      Alert.alert(
+        'Success',
+        `Payment of ${formatBDT(amount)} sent to ${employee.name}. Awaiting acceptance.`,
+      );
+      setPaymentAmount('');
+      setPaymentNote('');
+    } catch (err: any) {
+      Alert.alert('Error', err.message || 'Failed to send payment');
     } finally {
       setSaving(false);
     }
@@ -332,6 +359,54 @@ export default function EmployeeDetailScreen({route, navigation}: any): React.Re
                   {employee.permissions?.includes(EmployeePermission.CAN_ADD_ENTRIES) ? '✓' : '○'}
                 </Text>
               </View>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Payment Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>💰 Send Payment to {employee.name}</Text>
+          <Text style={styles.paymentDescription}>
+            Employee will receive notification and can accept or reject the payment
+          </Text>
+
+          <View style={styles.paymentForm}>
+            <View style={styles.formGroup}>
+              <Text style={styles.formLabel}>Amount (BDT) *</Text>
+              <TextInput
+                style={styles.formInput}
+                placeholder="How much do you want to give?"
+                keyboardType="decimal-pad"
+                value={paymentAmount}
+                onChangeText={setPaymentAmount}
+                editable={!saving}
+              />
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={styles.formLabel}>Note (Optional)</Text>
+              <TextInput
+                style={[styles.formInput, styles.noteInputForm]}
+                placeholder="e.g., Daily advance, Bonus, Loan..."
+                multiline
+                value={paymentNote}
+                onChangeText={setPaymentNote}
+                editable={!saving}
+              />
+            </View>
+
+            <TouchableOpacity
+              style={[styles.sendPaymentButton, saving && styles.buttonDisabled]}
+              onPress={handleSendPayment}
+              disabled={saving}>
+              {saving ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <>
+                  <Text style={styles.sendPaymentButtonIcon}>✓</Text>
+                  <Text style={styles.sendPaymentButtonText}>Send Payment</Text>
+                </>
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -642,5 +717,63 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#F44336',
+  },
+
+  // Payment Styles
+  paymentDescription: {
+    fontSize: 13,
+    color: '#757575',
+    marginBottom: 16,
+    lineHeight: 18,
+  },
+  paymentForm: {
+    backgroundColor: '#F9FDF7',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E8F5E9',
+  },
+  formGroup: {
+    marginBottom: 16,
+  },
+  formLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#212121',
+    marginBottom: 6,
+  },
+  formInput: {
+    borderWidth: 1,
+    borderColor: '#C8E6C9',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 11,
+    fontSize: 16,
+    color: '#212121',
+    backgroundColor: '#FFFFFF',
+  },
+  noteInputForm: {
+    height: 70,
+    textAlignVertical: 'top',
+  },
+  sendPaymentButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#4CAF50',
+    borderRadius: 10,
+    paddingVertical: 14,
+    gap: 8,
+    marginTop: 4,
+  },
+  sendPaymentButtonIcon: {
+    fontSize: 18,
+    color: '#FFFFFF',
+    fontWeight: '700',
+  },
+  sendPaymentButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
 });

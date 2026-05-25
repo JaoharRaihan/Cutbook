@@ -14,8 +14,8 @@ import {
   StatusBar,
   Alert,
 } from 'react-native';
-import {useAuth, useOrg} from '@/context';
-import {WorkEntry, PaymentMethod} from '@/types';
+import {useAuth, useOrg, useData} from '@/context';
+import {WorkEntry, PaymentMethod, TransactionStatus} from '@/types';
 import {formatBDT} from '@/utils';
 
 // ============================================================================
@@ -24,83 +24,107 @@ import {formatBDT} from '@/utils';
 
 export default function ProfileScreen(): React.ReactElement {
   const {user: currentUser, logout} = useAuth();
-  const {currentOrg} = useOrg();
+  const {currentOrg, employeeTransactions} = useOrg();
+  const {workEntries} = useData();
 
-  // Mock work entries for stats calculation
-  const mockEntries: WorkEntry[] = [
-    {
-      id: 'entry_1',
-      orgId: 'org_1',
-      employeeId: 'user_2',
-      employeeName: 'Karim Ahmed',
-      serviceName: 'Regular Haircut',
-      price: 300,
-      tip: 50,
-      paymentMethod: PaymentMethod.CASH,
-      createdBy: 'user_1',
-      createdByName: 'Owner',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      edited: false,
-    },
-    {
-      id: 'entry_2',
-      orgId: 'org_1',
-      employeeId: 'user_2',
-      employeeName: 'Karim Ahmed',
-      serviceName: 'Beard Trim',
-      price: 150,
-      tip: 0,
-      paymentMethod: PaymentMethod.BKASH,
-      createdBy: 'user_1',
-      createdByName: 'Owner',
-      createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
-      updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
-      edited: false,
-    },
-    {
-      id: 'entry_3',
-      orgId: 'org_1',
-      employeeId: 'user_2',
-      employeeName: 'Karim Ahmed',
-      serviceName: 'Hair Color',
-      price: 800,
-      tip: 100,
-      paymentMethod: PaymentMethod.CARD,
-      createdBy: 'user_1',
-      createdByName: 'Owner',
-      createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-      updatedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-      edited: false,
-    },
-    {
-      id: 'entry_4',
-      orgId: 'org_1',
-      employeeId: 'user_2',
-      employeeName: 'Karim Ahmed',
-      serviceName: 'Facial Treatment',
-      price: 600,
-      tip: 50,
-      paymentMethod: PaymentMethod.CASH,
-      createdBy: 'user_1',
-      createdByName: 'Owner',
-      createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
-      updatedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
-      edited: false,
-    },
-  ];
+  // Get real work entries for this employee
+  const employeeEntries = useMemo(() => {
+    if (!currentUser?.id || !workEntries) return [];
+    return workEntries.filter(e => e.employeeId === currentUser.id);
+  }, [currentUser?.id, workEntries]);
 
-  // Calculate overall stats
+  // Get accepted transactions total for cash account
+  const cashAccount = useMemo(() => {
+    if (!currentUser?.id || !employeeTransactions) return {received: 0, pending: 0};
+    const accepted = employeeTransactions
+      .filter(t => t.employeeId === currentUser.id && t.status === TransactionStatus.ACCEPTED)
+      .reduce((sum, t) => sum + t.amount, 0);
+    const pending = employeeTransactions
+      .filter(t => t.employeeId === currentUser.id && t.status === TransactionStatus.PENDING)
+      .reduce((sum, t) => sum + t.amount, 0);
+    return {received: accepted, pending};
+  }, [currentUser?.id, employeeTransactions]);
+
+  // Mock work entries and calculate overall stats from real work entries
   const overallStats = useMemo(() => {
-    const totalServices = mockEntries.length;
-    const totalIncome = mockEntries.reduce((sum, entry) => sum + entry.price + (entry.tip || 0), 0);
-    const totalTips = mockEntries.reduce((sum, entry) => sum + (entry.tip || 0), 0);
+    // Mock entries for demonstration
+    const mockEntries: WorkEntry[] = [
+      {
+        id: 'entry_1',
+        orgId: 'org_1',
+        employeeId: 'user_2',
+        employeeName: 'Karim Ahmed',
+        serviceName: 'Regular Haircut',
+        price: 300,
+        tip: 50,
+        paymentMethod: PaymentMethod.CASH,
+        createdBy: 'user_1',
+        createdByName: 'Owner',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        edited: false,
+      },
+      {
+        id: 'entry_2',
+        orgId: 'org_1',
+        employeeId: 'user_2',
+        employeeName: 'Karim Ahmed',
+        serviceName: 'Beard Trim',
+        price: 150,
+        tip: 0,
+        paymentMethod: PaymentMethod.BKASH,
+        createdBy: 'user_1',
+        createdByName: 'Owner',
+        createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
+        updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
+        edited: false,
+      },
+      {
+        id: 'entry_3',
+        orgId: 'org_1',
+        employeeId: 'user_2',
+        employeeName: 'Karim Ahmed',
+        serviceName: 'Hair Color',
+        price: 800,
+        tip: 100,
+        paymentMethod: PaymentMethod.CARD,
+        createdBy: 'user_1',
+        createdByName: 'Owner',
+        createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+        updatedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+        edited: false,
+      },
+      {
+        id: 'entry_4',
+        orgId: 'org_1',
+        employeeId: 'user_2',
+        employeeName: 'Karim Ahmed',
+        serviceName: 'Facial Treatment',
+        price: 600,
+        tip: 50,
+        paymentMethod: PaymentMethod.CASH,
+        createdBy: 'user_1',
+        createdByName: 'Owner',
+        createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
+        updatedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
+        edited: false,
+      },
+    ];
+
+    const entries = employeeEntries.length > 0 ? employeeEntries : mockEntries;
+    const totalServices = entries.length;
+    const totalIncome = entries.reduce((sum, entry) => sum + entry.price + (entry.tip || 0), 0);
+    const totalTips = entries.reduce((sum, entry) => sum + (entry.tip || 0), 0);
     const avgPerService = totalServices > 0 ? totalIncome / totalServices : 0;
 
     // Calculate this month stats
     const now = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const monthEntries = mockEntries.filter(entry => new Date(entry.createdAt) >= monthStart);
+    const monthEntries = entries.filter(entry => {
+      const entryDate =
+        typeof entry.createdAt === 'string' ? new Date(entry.createdAt) : entry.createdAt;
+      return entryDate >= monthStart;
+    });
     const monthIncome = monthEntries.reduce(
       (sum, entry) => sum + entry.price + (entry.tip || 0),
       0,
@@ -114,7 +138,7 @@ export default function ProfileScreen(): React.ReactElement {
       monthIncome,
       monthServices: monthEntries.length,
     };
-  }, [mockEntries]);
+  }, [employeeEntries]);
 
   // ============================================================================
   // HANDLERS
@@ -195,6 +219,27 @@ export default function ProfileScreen(): React.ReactElement {
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Member Since</Text>
               <Text style={styles.infoValue}>{formatDate(currentUser?.createdAt)}</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Cash Account */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>💳 Cash Account</Text>
+
+          <View style={[styles.card, styles.cashCard]}>
+            <View style={styles.cashRow}>
+              <View style={styles.cashItem}>
+                <Text style={styles.cashLabel}>Total Received</Text>
+                <Text style={styles.cashValue}>{formatBDT(cashAccount.received)}</Text>
+                <Text style={styles.cashSubtext}>From accepted payments</Text>
+              </View>
+              <View style={styles.cashDivider} />
+              <View style={styles.cashItem}>
+                <Text style={styles.cashLabel}>Pending</Text>
+                <Text style={styles.cashValuePending}>{formatBDT(cashAccount.pending)}</Text>
+                <Text style={styles.cashSubtext}>Awaiting approval</Text>
+              </View>
             </View>
           </View>
         </View>
@@ -533,6 +578,49 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: '700',
     color: '#4CAF50',
+  },
+  cashCard: {
+    backgroundColor: '#E3F2FD',
+    borderLeftWidth: 4,
+    borderLeftColor: '#2196F3',
+  },
+  cashRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  cashItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  cashLabel: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 4,
+    fontWeight: '600',
+  },
+  cashValue: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#4CAF50',
+    marginBottom: 4,
+  },
+  cashValuePending: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#FFC107',
+    marginBottom: 4,
+  },
+  cashSubtext: {
+    fontSize: 11,
+    color: '#999',
+    fontStyle: 'italic',
+  },
+  cashDivider: {
+    width: 1,
+    height: 60,
+    backgroundColor: '#BBDEFB',
+    marginHorizontal: 12,
   },
   logoutButton: {
     backgroundColor: '#F44336',

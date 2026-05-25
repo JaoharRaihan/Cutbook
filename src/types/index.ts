@@ -103,6 +103,9 @@ export interface User extends BaseEntity {
   avatar?: string;
   address?: string;
   permissions?: EmployeePermission[]; // Permissions for employees (delegated by owner)
+  // Cash account tracking
+  totalPayoutReceived: number; // Total cash employee has accepted/received from transactions
+  totalPayoutPending: number; // Total cash employee has pending (PENDING transactions)
 }
 
 /**
@@ -153,6 +156,9 @@ export interface Organization extends BaseEntity {
   address?: string;
   logo?: string;
   inviteCode: string; // Required for joining organizations
+  // Cash account tracking
+  mainCash: number; // Organization's main cash account balance
+  totalPayoutsGiven: number; // Total cash paid out to employees (from ACCEPTED transactions)
 }
 
 /**
@@ -303,6 +309,80 @@ export interface DailySummary extends BaseEntity {
   totalCommission: number;
   employeeBreakdown: EmployeeBreakdown[];
   generatedAt: Timestamp;
+}
+
+// ============================================
+// EMPLOYEE TRANSACTIONS
+// ============================================
+
+/**
+ * Employee Transaction Status enum
+ * pending: Awaiting employee response
+ * accepted: Employee accepted the payment
+ * rejected: Employee rejected the payment
+ */
+export enum TransactionStatus {
+  PENDING = 'pending',
+  ACCEPTED = 'accepted',
+  REJECTED = 'rejected',
+}
+
+/**
+ * Employee Transaction entity
+ * Tracks owner-to-employee cash/payment transfers
+ * Used for salary advances, daily payouts, etc.
+ *
+ * CASH FLOW:
+ * - ACCEPTED: Organization.mainCash -= amount, Employee.totalPayoutReceived += amount
+ * - REJECTED: No balance changes
+ * - PENDING: amount is "reserved" (Employee.totalPayoutPending tracks this)
+ *
+ * Firestore Schema:
+ * - id: Auto-generated document ID
+ * - orgId: Organization ID (for filtering/security)
+ * - employeeId: ID of employee receiving payment
+ * - employeeName: Name of employee (snapshot for history)
+ * - ownerId: ID of owner sending payment
+ * - ownerName: Name of owner (snapshot for history)
+ * - amount: Numeric amount in BDT or org currency
+ * - note: Optional note/description from owner
+ * - status: PENDING | ACCEPTED | REJECTED
+ * - respondedAt: Timestamp when employee responded (set when status changes from PENDING)
+ * - respondedBy: Employee ID who responded
+ * - includeInDailyCount: Whether to include in daily summary (only matters if ACCEPTED)
+ * - createdAt: Timestamp when transaction created (set by owner)
+ * - updatedAt: Timestamp when last modified
+ */
+export interface EmployeeTransaction extends BaseEntity {
+  orgId: string;
+  employeeId: string;
+  employeeName: string;
+  ownerId: string;
+  ownerName: string;
+  amount: number; // Amount in BDT or org currency
+  note?: string; // Optional note from owner (e.g., "Daily advance")
+  status: TransactionStatus; // pending, accepted, rejected
+  respondedAt?: Date | string; // When employee responded (ISO string or Date)
+  respondedBy?: string; // Employee ID who responded
+  includeInDailyCount: boolean; // Whether to include in daily summary when accepted
+}
+
+/**
+ * Transaction creation payload
+ */
+export interface CreateEmployeeTransactionPayload {
+  employeeId: string;
+  amount: number;
+  note?: string;
+  includeInDailyCount?: boolean;
+}
+
+/**
+ * Transaction update payload (for employee response)
+ */
+export interface UpdateEmployeeTransactionPayload {
+  status: TransactionStatus;
+  note?: string;
 }
 
 // ============================================

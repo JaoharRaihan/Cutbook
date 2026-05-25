@@ -14,6 +14,7 @@ import EmployeeHomeScreen from '@/screens/employee/EmployeeHomeScreen';
 import HistoryScreen from '@/screens/employee/HistoryScreen';
 import ProfileScreen from '@/screens/employee/ProfileScreen';
 import AddWorkEntryScreen from '@/screens/employee/AddWorkEntryScreen';
+import EmployeeTransactionsScreen from '@/screens/employee/EmployeeTransactionsScreen';
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -34,9 +35,14 @@ export type ProfileStackParamList = {
   ProfileMain: undefined;
 };
 
+export type TransactionsStackParamList = {
+  TransactionsList: undefined;
+};
+
 export type EmployeeTabParamList = {
   Home: undefined;
   History: undefined;
+  Transactions: undefined;
   Profile: undefined;
 };
 
@@ -118,6 +124,28 @@ const ProfileNavigator = () => {
   );
 };
 
+const TransactionsStack = createStackNavigator<TransactionsStackParamList>();
+const TransactionsNavigator = () => {
+  return (
+    <TransactionsStack.Navigator
+      screenOptions={{
+        headerStyle: {
+          backgroundColor: Theme.colors.primary[600],
+        },
+        headerTintColor: '#FFFFFF',
+        headerTitleStyle: {
+          fontWeight: '600',
+        },
+      }}>
+      <TransactionsStack.Screen
+        name="TransactionsList"
+        component={EmployeeTransactionsScreen}
+        options={{headerShown: false}}
+      />
+    </TransactionsStack.Navigator>
+  );
+};
+
 // ============================================================================
 // BOTTOM TAB NAVIGATOR
 // ============================================================================
@@ -158,6 +186,14 @@ const EmployeeNavigator: React.FC = () => {
         options={{
           tabBarLabel: 'History',
           tabBarIcon: ({color, size}) => <Text style={{fontSize: size, color}}>📋</Text>,
+        }}
+      />
+      <Tab.Screen
+        name="Transactions"
+        component={TransactionsNavigator}
+        options={{
+          tabBarLabel: 'Payments',
+          tabBarIcon: ({color, size}) => <Text style={{fontSize: size, color}}>💰</Text>,
         }}
       />
       <Tab.Screen
