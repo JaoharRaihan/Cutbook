@@ -13,9 +13,10 @@ import {
   SafeAreaView,
   StatusBar,
   RefreshControl,
+  Alert,
 } from 'react-native';
 import {useAuth, useOrg, useData} from '@/context';
-import {WorkEntry, PaymentMethod} from '@/types';
+import {WorkEntry, PaymentMethod, EmployeePermission} from '@/types';
 import {formatBDT} from '@/utils';
 
 // ============================================================================
@@ -80,6 +81,24 @@ export default function EmployeeHomeScreen({navigation}: any): React.ReactElemen
 
   const handleViewHistory = () => {
     navigation.navigate('History');
+  };
+
+  const handleAddEntry = () => {
+    // Check if employee has permission to add entries
+    const canAddEntries =
+      currentUser?.permissions?.includes(EmployeePermission.CAN_ADD_ENTRIES) || false;
+
+    if (!canAddEntries) {
+      Alert.alert(
+        'Permission Denied',
+        'Your manager has not granted you access to add work entries. Please contact your manager to enable this feature.',
+        [{text: 'OK'}],
+      );
+      return;
+    }
+
+    // Navigate to add entry screen
+    navigation.navigate('AddEntry');
   };
 
   const formatTime = (date: Date | string): string => {
@@ -292,10 +311,19 @@ export default function EmployeeHomeScreen({navigation}: any): React.ReactElemen
           </View>
         </View>
 
-        {/* Action Button */}
-        <TouchableOpacity style={styles.historyButton} onPress={handleViewHistory}>
-          <Text style={styles.historyButtonText}>📜 View Full History</Text>
-        </TouchableOpacity>
+        {/* Action Buttons */}
+        <View style={styles.actionButtonsContainer}>
+          {(currentUser?.permissions?.includes(EmployeePermission.CAN_ADD_ENTRIES) || false) && (
+            <TouchableOpacity style={styles.actionButton} onPress={handleAddEntry}>
+              <Text style={styles.actionButtonIcon}>➕</Text>
+              <Text style={styles.actionButtonText}>Add Entry</Text>
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity style={styles.actionButton} onPress={handleViewHistory}>
+            <Text style={styles.actionButtonIcon}>📜</Text>
+            <Text style={styles.actionButtonText}>View History</Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -547,21 +575,31 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: '#F5F5F5',
   },
-  historyButton: {
-    backgroundColor: '#2196F3',
-    borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: 'center',
+  actionButtonsContainer: {
+    flexDirection: 'row',
+    gap: 12,
     marginHorizontal: 16,
     marginTop: 8,
+    marginBottom: 16,
+  },
+  actionButton: {
+    flex: 1,
+    backgroundColor: '#2196F3',
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 4},
     shadowOpacity: 0.2,
     shadowRadius: 8,
     elevation: 5,
   },
-  historyButtonText: {
-    fontSize: 18,
+  actionButtonIcon: {
+    fontSize: 20,
+    marginBottom: 4,
+  },
+  actionButtonText: {
+    fontSize: 13,
     fontWeight: '600',
     color: '#FFFFFF',
   },

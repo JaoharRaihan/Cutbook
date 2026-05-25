@@ -58,6 +58,15 @@ export enum ServiceCategory {
   OTHER = 'other',
 }
 
+/**
+ * Employee permissions - allows owner to delegate specific tasks to employees
+ */
+export enum EmployeePermission {
+  CAN_ADD_ENTRIES = 'can_add_entries', // Can add work entries (when owner is away)
+  CAN_EDIT_ENTRIES = 'can_edit_entries', // Can edit work entries
+  CAN_DELETE_ENTRIES = 'can_delete_entries', // Can delete work entries
+}
+
 // ============================================
 // BASE TYPES
 // ============================================
@@ -93,6 +102,7 @@ export interface User extends BaseEntity {
   status: UserStatus;
   avatar?: string;
   address?: string;
+  permissions?: EmployeePermission[]; // Permissions for employees (delegated by owner)
 }
 
 /**

@@ -17,7 +17,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import {useOrg, useData} from '@/context';
-import {UserStatus} from '@/types';
+import {UserStatus, EmployeePermission} from '@/types';
 import {formatBDT} from '@/utils/currency';
 import {formatDateISO} from '@/utils/date';
 
@@ -152,6 +152,31 @@ export default function EmployeeDetailScreen({route, navigation}: any): React.Re
     }
   };
 
+  const handleTogglePermission = async (permission: EmployeePermission) => {
+    if (!employee) return;
+
+    const hasPermission = employee.permissions?.includes(permission) || false;
+    const newPermissions = hasPermission
+      ? employee.permissions?.filter(p => p !== permission) || []
+      : [...(employee.permissions || []), permission];
+
+    setSaving(true);
+    try {
+      await updateUserInOrg(employeeId, {
+        permissions: newPermissions,
+      });
+
+      const permissionLabel =
+        permission === EmployeePermission.CAN_ADD_ENTRIES ? 'Add Entries' : permission;
+      const action = hasPermission ? 'revoked' : 'granted';
+      Alert.alert('Success', `Permission to ${permissionLabel} has been ${action}`);
+    } catch (err: any) {
+      Alert.alert('Error', err.message || 'Failed to update permissions');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   // ============================================================================
   // RENDER
   // ============================================================================
@@ -278,6 +303,36 @@ export default function EmployeeDetailScreen({route, navigation}: any): React.Re
           <View style={styles.averageCard}>
             <Text style={styles.averageLabel}>Average per Service</Text>
             <Text style={styles.averageValue}>{formatBDT(stats.averagePerService)}</Text>
+          </View>
+        </View>
+
+        {/* Permissions Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>🔐 Permissions</Text>
+          <Text style={styles.permissionDescription}>
+            Grant access to this employee to perform specific tasks when you're away
+          </Text>
+
+          <View style={styles.permissionsList}>
+            <TouchableOpacity
+              style={styles.permissionItem}
+              onPress={() => handleTogglePermission(EmployeePermission.CAN_ADD_ENTRIES)}
+              disabled={saving}>
+              <View style={styles.permissionInfo}>
+                <Text style={styles.permissionName}>➕ Add Work Entries</Text>
+                <Text style={styles.permissionDesc}>Allow employee to log work entries</Text>
+              </View>
+              <View
+                style={[
+                  styles.permissionToggle,
+                  employee.permissions?.includes(EmployeePermission.CAN_ADD_ENTRIES) &&
+                    styles.permissionToggleActive,
+                ]}>
+                <Text style={styles.permissionToggleText}>
+                  {employee.permissions?.includes(EmployeePermission.CAN_ADD_ENTRIES) ? '✓' : '○'}
+                </Text>
+              </View>
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -516,6 +571,55 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '700',
     color: '#2E7D32',
+  },
+  permissionDescription: {
+    fontSize: 13,
+    color: '#757575',
+    marginBottom: 16,
+  },
+  permissionsList: {
+    gap: 12,
+  },
+  permissionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#F5F5F5',
+    borderRadius: 12,
+    padding: 16,
+    gap: 12,
+  },
+  permissionInfo: {
+    flex: 1,
+  },
+  permissionName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#212121',
+    marginBottom: 4,
+  },
+  permissionDesc: {
+    fontSize: 13,
+    color: '#757575',
+  },
+  permissionToggle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#E0E0E0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#BDBDBD',
+  },
+  permissionToggleActive: {
+    backgroundColor: '#E8F5E9',
+    borderColor: '#4CAF50',
+  },
+  permissionToggleText: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#4CAF50',
   },
   deleteButton: {
     flexDirection: 'row',

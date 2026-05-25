@@ -13,6 +13,7 @@ import Theme from '@/constants/theme';
 import EmployeeHomeScreen from '@/screens/employee/EmployeeHomeScreen';
 import HistoryScreen from '@/screens/employee/HistoryScreen';
 import ProfileScreen from '@/screens/employee/ProfileScreen';
+import AddWorkEntryScreen from '@/screens/employee/AddWorkEntryScreen';
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -20,6 +21,7 @@ import ProfileScreen from '@/screens/employee/ProfileScreen';
 
 export type HomeStackParamList = {
   HomeMain: undefined;
+  AddEntry: undefined;
   EntryDetail: {entryId: string};
 };
 
@@ -59,6 +61,14 @@ const HomeNavigator = () => {
         name="HomeMain"
         component={EmployeeHomeScreen}
         options={{headerShown: false}}
+      />
+      <HomeStack.Screen
+        name="AddEntry"
+        component={AddWorkEntryScreen}
+        options={{
+          title: 'Add Work Entry',
+          headerShown: true,
+        }}
       />
     </HomeStack.Navigator>
   );
