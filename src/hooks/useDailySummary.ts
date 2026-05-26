@@ -1,12 +1,13 @@
 /**
  * useDailySummary Hook
  * Custom hook for fetching and managing daily summary data
+ * Supports time period filtering: today, weekly, monthly, yearly
  */
 
 import {useState, useEffect, useCallback} from 'react';
 import {useOrg, useData} from '@/context';
 import {formatDateISO} from '@/utils/date';
-import {WorkEntry, PaymentMethod} from '@/types';
+import {WorkEntry, PaymentMethod, TimePeriod} from '@/types';
 import {calculateEmployeeCommission} from '@/utils/calculations';
 
 // ============================================================================
@@ -41,28 +42,107 @@ interface UseDailySummaryResult {
   loading: boolean;
   error: string | null;
   refresh: () => Promise<void>;
+  timePeriod: TimePeriod;
+  setTimePeriod: (period: TimePeriod) => void;
 }
+
+// ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
+
+/**
+ * Get date range for a given time period
+ */
+const getDateRange = (
+  period: TimePeriod,
+  baseDate: Date = new Date(),
+): {start: Date; end: Date} => {
+  const start = new Date(baseDate);
+  const end = new Date(baseDate);
+
+  switch (period) {
+    case TimePeriod.TODAY:
+      start.setHours(0, 0, 0, 0);
+      end.setHours(23, 59, 59, 999);
+      break;
+
+    case TimePeriod.WEEKLY: {
+      // Week starts on Sunday, ends on Saturday
+      const day = start.getDay();
+      const diff = start.getDate() - day;
+      start.setDate(diff);
+      start.setHours(0, 0, 0, 0);
+      end.setDate(start.getDate() + 6);
+      end.setHours(23, 59, 59, 999);
+      break;
+    }
+
+    case TimePeriod.MONTHLY:
+      start.setDate(1);
+      start.setHours(0, 0, 0, 0);
+      end.setMonth(end.getMonth() + 1);
+      end.setDate(0);
+      end.setHours(23, 59, 59, 999);
+      break;
+
+    case TimePeriod.YEARLY:
+      start.setMonth(0);
+      start.setDate(1);
+      start.setHours(0, 0, 0, 0);
+      end.setMonth(11);
+      end.setDate(31);
+      end.setHours(23, 59, 59, 999);
+      break;
+  }
+
+  return {start, end};
+};
+
+/**
+ * Get display label for time period
+ */
+const getPeriodLabel = (period: TimePeriod, baseDate: Date = new Date()): string => {
+  switch (period) {
+    case TimePeriod.TODAY:
+      return 'Today';
+    case TimePeriod.WEEKLY: {
+      const {start, end} = getDateRange(TimePeriod.WEEKLY, baseDate);
+      return `${formatDateISO(start)} - ${formatDateISO(end)}`;
+    }
+    case TimePeriod.MONTHLY:
+      return baseDate.toLocaleDateString('en-US', {year: 'numeric', month: 'long'});
+    case TimePeriod.YEARLY:
+      return baseDate.getFullYear().toString();
+  }
+};
 
 // ============================================================================
 // HOOK
 // ============================================================================
 
-const useDailySummary = (selectedDate?: Date): UseDailySummaryResult => {
+const useDailySummary = (
+  selectedDate?: Date,
+  initialPeriod: TimePeriod = TimePeriod.TODAY,
+): UseDailySummaryResult => {
   const {currentOrg, orgUsers} = useOrg();
   const {workEntries} = useData();
   const [summary, setSummary] = useState<DailySummaryData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [timePeriod, setTimePeriod] = useState<TimePeriod>(initialPeriod);
 
   // Calculate summary from work entries
   const calculateSummary = useCallback(
-    async (date: Date = new Date()): Promise<DailySummaryData> => {
-      const dateStr = formatDateISO(date);
+    async (
+      date: Date = new Date(),
+      period: TimePeriod = TimePeriod.TODAY,
+    ): Promise<DailySummaryData> => {
+      const {start, end} = getDateRange(period, date);
 
-      // Filter entries for the organization and date from real Firebase data
+      // Filter entries for the organization and date range from real Firebase data
       const entries = workEntries.filter((entry: WorkEntry) => {
-        const entryDate = formatDateISO(new Date(entry.createdAt));
-        return entry.orgId === currentOrg?.id && entryDate === dateStr;
+        const entryDate = new Date(entry.createdAt);
+        return entry.orgId === currentOrg?.id && entryDate >= start && entryDate <= end;
       });
 
       // Calculate totals
@@ -141,7 +221,7 @@ const useDailySummary = (selectedDate?: Date): UseDailySummaryResult => {
         .slice(0, 3);
 
       return {
-        date: dateStr,
+        date: getPeriodLabel(period, date),
         totalIncome,
         totalTips,
         totalCommission,
@@ -168,14 +248,14 @@ const useDailySummary = (selectedDate?: Date): UseDailySummaryResult => {
     try {
       setLoading(true);
       setError(null);
-      const data = await calculateSummary(selectedDate);
+      const data = await calculateSummary(selectedDate || new Date(), timePeriod);
       setSummary(data);
     } catch (err: any) {
       setError(err.message || 'Failed to fetch summary');
     } finally {
       setLoading(false);
     }
-  }, [currentOrg, selectedDate, calculateSummary]);
+  }, [currentOrg, selectedDate, timePeriod, calculateSummary]);
 
   // Refresh function
   const refresh = useCallback(async () => {
@@ -192,6 +272,8 @@ const useDailySummary = (selectedDate?: Date): UseDailySummaryResult => {
     loading,
     error,
     refresh,
+    timePeriod,
+    setTimePeriod,
   };
 };
 

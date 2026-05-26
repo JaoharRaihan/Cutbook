@@ -1,10 +1,14 @@
 /**
  * SyncContext.tsx
- * Mock sync status management for offline support
+ * Real-time sync status management with network detection for offline support
  */
 
 import React, {createContext, useContext, useState, useEffect, useCallback, ReactNode} from 'react';
+import NetInfo from '@react-native-community/netinfo';
 import {saveLastSync, loadLastSync, saveSyncStatus, loadSyncStatus} from '@/utils/storage';
+import {createLogger} from '@/utils/logger';
+
+const logger = createLogger('SyncContext');
 
 // ============================================================================
 // TYPES
@@ -49,20 +53,22 @@ export function SyncProvider({children}: SyncProviderProps): React.ReactElement 
     loadSyncState();
   }, []);
 
-  // Mock network status check (in real app, use NetInfo)
+  // Real network status detection using NetInfo
   useEffect(() => {
-    // Simulate checking network status
-    const checkInterval = setInterval(() => {
-      // Mock: randomly determine online/offline (90% online)
-      const online = Math.random() > 0.1;
-      setIsOnline(online);
+    // Subscribe to network state updates
+    const unsubscribe = NetInfo.addEventListener(state => {
+      const isConnected = state.isConnected ?? true;
+      setIsOnline(isConnected);
 
-      if (!online && syncStatus !== 'syncing') {
+      // Mark as offline if no connection
+      if (!isConnected && syncStatus !== 'syncing') {
         setSyncStatus('offline');
       }
-    }, 10000); // Check every 10 seconds
+    });
 
-    return () => clearInterval(checkInterval);
+    return () => {
+      unsubscribe();
+    };
   }, [syncStatus]);
 
   const loadSyncState = async () => {
@@ -72,37 +78,9 @@ export function SyncProvider({children}: SyncProviderProps): React.ReactElement 
       setSyncStatus(status);
       setLastSyncTime(lastSync);
     } catch (error) {
-      console.error('Error loading sync state:', error);
+      logger.error('Error loading sync state:', error);
     }
   };
-
-  const startSync = useCallback(async () => {
-    if (!isOnline) {
-      markAsOffline();
-      return;
-    }
-
-    setSyncStatus('syncing');
-    await saveSyncStatus('syncing');
-
-    try {
-      // Mock sync operation (500-2000ms delay)
-      const delay = 500 + Math.random() * 1500;
-      await new Promise<void>(resolve => setTimeout(resolve, delay));
-
-      // Mock: 95% success rate
-      const success = Math.random() > 0.05;
-
-      if (success) {
-        await markAsSynced();
-      } else {
-        markAsError();
-      }
-    } catch (error) {
-      console.error('Sync error:', error);
-      markAsError();
-    }
-  }, [isOnline]);
 
   const markAsSynced = useCallback(async () => {
     const now = new Date();
@@ -121,6 +99,36 @@ export function SyncProvider({children}: SyncProviderProps): React.ReactElement 
     setSyncStatus('error');
     saveSyncStatus('offline'); // Store as offline for next load
   }, []);
+
+  const startSync = useCallback(async () => {
+    if (!isOnline) {
+      markAsOffline();
+      return;
+    }
+
+    setSyncStatus('syncing');
+    await saveSyncStatus('syncing');
+
+    try {
+      // Check real network status before syncing
+      const netState = await NetInfo.fetch();
+
+      if (!netState.isConnected) {
+        markAsOffline();
+        return;
+      }
+
+      // Sync operation (simulate backend sync delay)
+      const delay = 500 + Math.random() * 1500;
+      await new Promise<void>(resolve => setTimeout(resolve, delay));
+
+      // Mark as synced on success
+      await markAsSynced();
+    } catch (error) {
+      logger.error('Sync error:', error);
+      markAsError();
+    }
+  }, [isOnline, markAsOffline, markAsError, markAsSynced]);
 
   const value: SyncContextValue = {
     syncStatus,

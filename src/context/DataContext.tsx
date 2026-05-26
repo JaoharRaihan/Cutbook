@@ -13,6 +13,9 @@ import {useAuth} from './AuthContext';
 import {useOrg} from './OrgContext';
 import {formatDateISO, parseDate} from '@/utils/date';
 import {calculateEmployeeCommission} from '@/utils/calculations';
+import {createLogger} from '@/utils/logger';
+
+const logger = createLogger('DataContext');
 
 // ============================================================================
 // TYPES
@@ -128,7 +131,7 @@ export const DataProvider: React.FC<{children: React.ReactNode}> = ({children}) 
             AsyncStorage.setItem(STORAGE_KEYS.WORK_ENTRIES, JSON.stringify(entries));
           },
           (err: any) => {
-            console.error('Error syncing work entries:', err);
+            logger.error('Error syncing work entries', err);
             setError(err.message || 'Failed to sync work entries');
           },
         );
@@ -156,7 +159,10 @@ export const DataProvider: React.FC<{children: React.ReactNode}> = ({children}) 
             setDailySummaries(summaries);
             AsyncStorage.setItem(STORAGE_KEYS.DAILY_SUMMARIES, JSON.stringify(summaries));
           },
-          (err: any) => console.error('Error syncing summaries:', err),
+          (err: any) => {
+            logger.error('Error syncing summaries', err);
+            setError('Failed to sync daily summaries');
+          },
         );
 
       setLoading(false);
@@ -312,7 +318,7 @@ export const DataProvider: React.FC<{children: React.ReactNode}> = ({children}) 
 
         await entryDocRef.update(updatedData);
 
-        console.log('✅ Work entry updated:', id);
+        logger.debug('Work entry updated');
       } catch (err: any) {
         const errorMessage = err.message || ERROR_MESSAGES.somethingWentWrong;
         setError(errorMessage);
@@ -334,7 +340,7 @@ export const DataProvider: React.FC<{children: React.ReactNode}> = ({children}) 
 
     try {
       await firestore().collection('workEntries').doc(id).delete();
-      console.log('✅ Work entry deleted:', id);
+      logger.debug('Work entry deleted');
     } catch (err: any) {
       const errorMessage = err.message || ERROR_MESSAGES.somethingWentWrong;
       setError(errorMessage);
@@ -547,7 +553,7 @@ export const DataProvider: React.FC<{children: React.ReactNode}> = ({children}) 
 
   const refreshData = useCallback(async () => {
     // No-op with realtime
-    console.log('Refreshed data');
+    logger.debug('Data refresh triggered');
   }, []);
 
   const clearError = useCallback(() => setError(null), []);

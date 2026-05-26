@@ -134,7 +134,7 @@ const LoginScreen: React.FC = () => {
               <Text style={styles.countryCode}>+880</Text>
               <TextInput
                 style={[styles.input, styles.phoneInput, errors.phone ? styles.inputError : null]}
-                placeholder="1XXXXXXXXX"
+                placeholder="01XXXXXXXXX"
                 value={phone}
                 onChangeText={handlePhoneChange}
                 keyboardType="phone-pad"

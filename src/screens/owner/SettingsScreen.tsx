@@ -15,7 +15,7 @@ import {
   Switch,
   Alert,
 } from 'react-native';
-import {useAuth, useOrg} from '@/context';
+import {useAuth, useOrg, useTheme} from '@/context';
 
 // ============================================================================
 // COMPONENT
@@ -24,6 +24,7 @@ import {useAuth, useOrg} from '@/context';
 export default function SettingsScreen({navigation}: any): React.ReactElement {
   const {user, logout} = useAuth();
   const {currentOrg} = useOrg();
+  const {isDarkMode, toggleDarkMode} = useTheme();
   const [language, setLanguage] = useState<'en' | 'bn'>('en');
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
 
@@ -54,6 +55,13 @@ export default function SettingsScreen({navigation}: any): React.ReactElement {
         : 'You will now receive notifications',
       [{text: 'OK'}],
     );
+  };
+
+  const handleDarkModeToggle = async () => {
+    await toggleDarkMode();
+    Alert.alert('Theme Changed', `Dark mode ${!isDarkMode ? 'enabled' : 'disabled'}`, [
+      {text: 'OK'},
+    ]);
   };
 
   const handleAbout = () => {
@@ -211,6 +219,26 @@ export default function SettingsScreen({navigation}: any): React.ReactElement {
               onValueChange={handleNotificationsToggle}
               trackColor={{false: '#E0E0E0', true: '#81C784'}}
               thumbColor={notificationsEnabled ? '#4CAF50' : '#F5F5F5'}
+            />
+          </View>
+
+          <View style={styles.divider} />
+
+          <View style={styles.settingRow}>
+            <View style={styles.settingLeft}>
+              <Text style={styles.settingIcon}>🌙</Text>
+              <View style={styles.settingTextContainer}>
+                <Text style={styles.settingTitle}>Dark Mode</Text>
+                <Text style={styles.settingSubtitle}>
+                  {isDarkMode ? 'Dark mode enabled' : 'Light mode enabled'}
+                </Text>
+              </View>
+            </View>
+            <Switch
+              value={isDarkMode}
+              onValueChange={handleDarkModeToggle}
+              trackColor={{false: '#E0E0E0', true: '#5C6BC0'}}
+              thumbColor={isDarkMode ? '#7986CB' : '#F5F5F5'}
             />
           </View>
         </View>

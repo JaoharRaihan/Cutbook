@@ -11,8 +11,6 @@ import {
   TouchableOpacity,
   SafeAreaView,
   Modal,
-  Platform,
-  FlatList,
   ScrollView,
 } from 'react-native';
 

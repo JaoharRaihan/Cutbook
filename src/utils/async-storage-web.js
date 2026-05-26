@@ -1,8 +1,21 @@
-// AsyncStorage Web Implementation using localStorage
+/* eslint-disable no-undef */
+// AsyncStorage Web Implementation using localStorage with AES-GCM encryption
+// NOTE: This file is only used in web browser environments where localStorage is available
+// Sensitive data (tokens, auth data) is automatically encrypted using Web Crypto API
+import {encrypt, decrypt, shouldEncrypt} from './crypto-web.js';
+
 const AsyncStorage = {
   getItem: async key => {
     try {
-      return localStorage.getItem(key);
+      const value = localStorage.getItem(key);
+      if (!value) {
+        return null;
+      }
+      // Decrypt if this is a sensitive key
+      if (shouldEncrypt(key)) {
+        return await decrypt(value);
+      }
+      return value;
     } catch (error) {
       console.error('AsyncStorage getItem error:', error);
       return null;
@@ -11,7 +24,12 @@ const AsyncStorage = {
 
   setItem: async (key, value) => {
     try {
-      localStorage.setItem(key, value);
+      let storageValue = value;
+      // Encrypt if this is a sensitive key
+      if (shouldEncrypt(key)) {
+        storageValue = await encrypt(value);
+      }
+      localStorage.setItem(key, storageValue);
     } catch (error) {
       console.error('AsyncStorage setItem error:', error);
     }
@@ -44,7 +62,16 @@ const AsyncStorage = {
 
   multiGet: async keys => {
     try {
-      return keys.map(key => [key, localStorage.getItem(key)]);
+      const results = [];
+      for (const key of keys) {
+        const value = localStorage.getItem(key);
+        let decryptedValue = value;
+        if (value && shouldEncrypt(key)) {
+          decryptedValue = await decrypt(value);
+        }
+        results.push([key, decryptedValue]);
+      }
+      return results;
     } catch (error) {
       console.error('AsyncStorage multiGet error:', error);
       return [];
@@ -53,9 +80,13 @@ const AsyncStorage = {
 
   multiSet: async keyValuePairs => {
     try {
-      keyValuePairs.forEach(([key, value]) => {
-        localStorage.setItem(key, value);
-      });
+      for (const [key, value] of keyValuePairs) {
+        let storageValue = value;
+        if (shouldEncrypt(key)) {
+          storageValue = await encrypt(value);
+        }
+        localStorage.setItem(key, storageValue);
+      }
     } catch (error) {
       console.error('AsyncStorage multiSet error:', error);
     }

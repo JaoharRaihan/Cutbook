@@ -37,9 +37,13 @@ module.exports = {
     alias: {
       'react-native$': 'react-native-web',
       'react-native-vector-icons': 'react-native-vector-icons/dist',
-      '@react-native-firebase/app': path.resolve(__dirname, 'src/utils/firebase-web-stub.js'),
-      '@react-native-firebase/auth': path.resolve(__dirname, 'src/utils/firebase-web-stub.js'),
-      '@react-native-firebase/firestore': path.resolve(__dirname, 'src/utils/firebase-web-stub.js'),
+      '@react-native-firebase/app': path.resolve(__dirname, 'src/utils/firebase-web-sdk.js'),
+      '@react-native-firebase/auth': path.resolve(__dirname, 'src/utils/firebase-web-sdk.js'),
+      '@react-native-firebase/firestore': path.resolve(__dirname, 'src/utils/firebase-web-sdk.js'),
+      '@react-native-firebase/crashlytics': path.resolve(
+        __dirname,
+        'src/utils/firebase-crashlytics-web-stub.js',
+      ),
       '@react-native-async-storage/async-storage': path.resolve(
         __dirname,
         'src/utils/async-storage-web.js',

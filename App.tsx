@@ -7,9 +7,16 @@ import React, {useEffect, useState} from 'react';
 import {StatusBar, View, Text, ActivityIndicator} from 'react-native';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
 import firestore from '@react-native-firebase/firestore';
-import {AuthProvider, OrgProvider, DataProvider} from '@/context';
+import {AuthProvider, OrgProvider, DataProvider, ThemeProvider} from '@/context';
 import {RootNavigator} from '@/navigation';
 import {Colors} from '@/constants/theme';
+import {initializeErrorReporting} from '@/utils/error-reporting';
+import {createLogger} from '@/utils/logger';
+
+const logger = createLogger('App');
+
+// Initialize error reporting on app startup
+initializeErrorReporting();
 
 function App(): React.JSX.Element {
   const [initializing, setInitializing] = useState(true);
@@ -29,12 +36,12 @@ function App(): React.JSX.Element {
           cacheSizeBytes: 104857600, // 100 MB cache
         });
 
-        console.log('✅ Firebase initialized successfully');
-        console.log('✅ Offline persistence enabled');
+        logger.debug('Firebase initialized successfully');
+        logger.debug('Offline persistence enabled');
 
         setInitializing(false);
       } catch (err) {
-        console.error('❌ Firebase initialization error:', err);
+        logger.error('Firebase initialization error', err);
         setError('Failed to initialize Firebase. Please check your connection.');
         setInitializing(false);
       }
@@ -96,13 +103,15 @@ function App(): React.JSX.Element {
   return (
     <SafeAreaProvider>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
-      <AuthProvider>
-        <OrgProvider>
-          <DataProvider>
-            <RootNavigator />
-          </DataProvider>
-        </OrgProvider>
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <OrgProvider>
+            <DataProvider>
+              <RootNavigator />
+            </DataProvider>
+          </OrgProvider>
+        </AuthProvider>
+      </ThemeProvider>
     </SafeAreaProvider>
   );
 }

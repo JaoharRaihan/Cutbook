@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import {View, Text, StyleSheet, ViewStyle} from 'react-native';
+import {View, Text, StyleSheet, ViewStyle, Image, ImageSourcePropType} from 'react-native';
 import Theme from '@/constants/theme';
 
 // ============================================================================
@@ -15,6 +15,7 @@ interface SummaryCardProps {
   title: string;
   value: string;
   icon?: string;
+  iconImage?: ImageSourcePropType;
   subtitle?: string;
   color?: 'primary' | 'success' | 'warning' | 'info';
   style?: ViewStyle;
@@ -28,6 +29,7 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
   title,
   value,
   icon,
+  iconImage,
   subtitle,
   color = 'primary',
   style,
@@ -61,7 +63,11 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
 
   return (
     <View style={[styles.card, {backgroundColor: getBackgroundColor()}, style]}>
-      {icon ? <Text style={styles.icon}>{icon}</Text> : null}
+      {iconImage ? (
+        <Image source={iconImage} style={styles.iconImage} resizeMode="contain" />
+      ) : icon ? (
+        <Text style={styles.icon}>{icon}</Text>
+      ) : null}
       <Text style={styles.title}>{title}</Text>
       <Text style={[styles.value, {color: getColor()}]}>{value}</Text>
       {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
@@ -83,6 +89,11 @@ const styles = StyleSheet.create({
   },
   icon: {
     fontSize: 32,
+    marginBottom: 8,
+  },
+  iconImage: {
+    width: 40,
+    height: 40,
     marginBottom: 8,
   },
   title: {

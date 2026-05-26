@@ -11,6 +11,10 @@ import firestore from '@react-native-firebase/firestore';
 import type {User, AuthCredentials, RegistrationData} from '@/types';
 import {UserRole, UserStatus} from '@/types';
 import {STORAGE_KEYS, ERROR_MESSAGES, SUCCESS_MESSAGES} from '@/constants';
+import {createLogger} from '@/utils/logger';
+import {setErrorReportingUser, clearErrorReportingUser} from '@/utils/error-reporting';
+
+const logger = createLogger('AuthContext');
 
 // ============================================================================
 // HELPERS
@@ -85,11 +89,12 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) 
         // User is signed out
         setUser(null);
         setToken(null);
+        clearErrorReportingUser();
         await AsyncStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
         await AsyncStorage.removeItem(STORAGE_KEYS.USER_DATA);
       }
     } catch (err) {
-      console.error('❌ Error handling auth state change:', err);
+      logger.error('Error handling auth state change:', err);
     } finally {
       setInitializing(false);
     }
@@ -103,7 +108,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) 
   // Fetch user profile from Firestore
   const fetchUserProfile = async (uid: string) => {
     try {
-      console.log('Fetching user profile for:', uid);
+      logger.debug('Fetching user profile for:', uid);
       const userDoc = await firestore().collection('users').doc(uid).get();
 
       if (userDoc.exists) {
@@ -113,7 +118,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) 
 
         // Ensure role is properly set (should never be undefined)
         if (!userData.role || !Object.values(UserRole).includes(userData.role)) {
-          console.warn('⚠️ Invalid or missing role for user:', uid, 'Setting to EMPLOYEE');
+          logger.warn('Invalid or missing role for user:', uid, 'Setting to EMPLOYEE');
           userData.role = UserRole.EMPLOYEE;
         }
 
@@ -135,13 +140,15 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) 
 
         setUser(userData);
         await AsyncStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(userData));
-        console.log('✅ User profile loaded:', userData.name, 'Role:', userData.role);
+        // Set user context for error reporting
+        setErrorReportingUser(userData.id, userData.email);
+        logger.debug('User profile loaded:', userData.name);
       } else {
-        console.warn('⚠️ User document does not exist for uid:', uid);
+        logger.warn('User document does not exist for uid:', uid);
         // Fallback or handle incomplete registration?
       }
     } catch (err) {
-      console.error('❌ Error fetching user profile:', err);
+      logger.error('Error fetching user profile:', err);
     }
   };
 
@@ -158,11 +165,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) 
       // Trim password
       const trimmedPassword = credentials.password.trim();
 
-      console.log('🔍 LOGIN - Credentials received:', {
-        phone: credentials.phone,
-        email: credentials.email,
-        passwordLength: trimmedPassword.length,
-      });
+      logger.debug('Login attempt with credentials');
 
       // Convert phone to valid Firebase email format
       let emailToUse = credentials.email;
@@ -175,17 +178,12 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) 
         throw new Error('Email or Phone required');
       }
 
-      console.log(
-        '📧 LOGIN - Using Firebase email:',
-        emailToUse,
-        'with password length:',
-        trimmedPassword.length,
-      );
+      logger.debug('Attempting Firebase authentication');
       await auth().signInWithEmailAndPassword(emailToUse, trimmedPassword);
 
       // onAuthStateChanged will handle the rest
       setSuccessMessage(SUCCESS_MESSAGES.loginSuccess);
-      console.log('✅ Login successful via Firebase');
+      logger.debug('Login successful');
     } catch (err: any) {
       let errorMessage: string = ERROR_MESSAGES.somethingWentWrong;
 
@@ -204,7 +202,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) 
       }
 
       setError(errorMessage);
-      console.error('❌ Login error:', err.code, errorMessage);
+      logger.error('Login error:', err.code, errorMessage);
       throw new Error(errorMessage);
     } finally {
       setLoading(false);
@@ -224,13 +222,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) 
       // Trim password
       const trimmedPassword = data.password.trim();
 
-      console.log('📝 REGISTER - User data received:', {
-        phone: data.phone,
-        email: data.email,
-        name: data.name,
-        role: data.role,
-        passwordLength: trimmedPassword.length,
-      });
+      logger.debug('Register attempt with new user data');
 
       // Convert phone to valid Firebase email format if email not provided
       const email = data.email || phoneToFirebaseEmail(data.phone);
@@ -245,12 +237,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) 
       }
 
       // Create Authentication User
-      console.log(
-        '📧 REGISTER - Creating Firebase auth with email:',
-        email,
-        'password length:',
-        trimmedPassword.length,
-      );
+      logger.debug('Creating Firebase auth user');
       const userCredential = await auth().createUserWithEmailAndPassword(email, trimmedPassword);
       const uid = userCredential.user.uid;
 
@@ -272,7 +259,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) 
         newUser.commissionPercentage = 10;
       }
 
-      console.log('📋 Creating user document with role:', newUser.role);
+      logger.debug('Creating user Firestore document');
 
       // Create Firestore Document
       await firestore().collection('users').doc(uid).set(newUser);
@@ -283,7 +270,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) 
       });
 
       setSuccessMessage(SUCCESS_MESSAGES.registrationSuccess);
-      console.log('✅ Registration successful for:', uid, 'with role:', newUser.role);
+      logger.debug('Registration successful');
     } catch (err: any) {
       let errorMessage: string = ERROR_MESSAGES.somethingWentWrong;
 
@@ -298,7 +285,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) 
       }
 
       setError(errorMessage);
-      console.error('❌ Registration error:', err.code, errorMessage);
+      logger.error('Registration error:', errorMessage);
       throw new Error(errorMessage);
     } finally {
       setLoading(false);
@@ -314,9 +301,9 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) 
     try {
       await auth().signOut();
       // onAuthStateChanged handles state clearing
-      console.log('✅ Logout successful');
+      logger.debug('Logout successful');
     } catch (err) {
-      console.error('Error during logout:', err);
+      logger.error('Error during logout:', err);
     } finally {
       setLoading(false);
     }
@@ -347,7 +334,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) 
         setUser(updatedUser);
         await AsyncStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(updatedUser));
 
-        console.log('✅ User updated:', user.id);
+        logger.debug('User updated');
       } catch (err: any) {
         const errorMessage = err.message || ERROR_MESSAGES.somethingWentWrong;
         setError(errorMessage);
@@ -371,7 +358,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) 
     try {
       await auth().sendPasswordResetEmail(email);
       setSuccessMessage('Password reset email sent! Check your inbox.');
-      console.log('✅ Password reset email sent to:', email);
+      logger.debug('Password reset email sent');
     } catch (err: any) {
       let errorMessage: string = ERROR_MESSAGES.somethingWentWrong;
 
@@ -384,7 +371,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) 
       }
 
       setError(errorMessage);
-      console.error('❌ Password reset error:', err.code, errorMessage);
+      logger.error('Password reset error:', errorMessage);
       throw new Error(errorMessage);
     } finally {
       setLoading(false);

@@ -59,6 +59,16 @@ export enum ServiceCategory {
 }
 
 /**
+ * Time period for income/analytics filtering
+ */
+export enum TimePeriod {
+  TODAY = 'today',
+  WEEKLY = 'weekly',
+  MONTHLY = 'monthly',
+  YEARLY = 'yearly',
+}
+
+/**
  * Employee permissions - allows owner to delegate specific tasks to employees
  */
 export enum EmployeePermission {

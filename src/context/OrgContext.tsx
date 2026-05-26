@@ -10,6 +10,9 @@ import type {Organization, User, Service, EmployeeTransaction} from '@/types';
 import {UserRole, CommissionMode, TransactionStatus} from '@/types';
 import {STORAGE_KEYS, ERROR_MESSAGES} from '@/constants';
 import {useAuth} from './AuthContext';
+import {createLogger} from '@/utils/logger';
+
+const logger = createLogger('OrgContext');
 
 // ============================================================================
 // TYPES
@@ -45,6 +48,7 @@ interface OrgContextValue {
   addUser: (user: Omit<User, 'id' | 'createdAt' | 'updatedAt' | 'orgId'>) => Promise<User>;
   updateUserInOrg: (id: string, data: Partial<User>) => Promise<void>;
   deleteUser: (id: string) => Promise<void>;
+  deleteOrg: () => Promise<void>;
   createEmployeeTransaction: (
     employeeId: string,
     amount: number,
@@ -136,7 +140,7 @@ export const OrgProvider: React.FC<{children: React.ReactNode}> = ({children}) =
             setLoading(false);
           },
           (err: any) => {
-            console.error('Error listening to org:', err);
+            logger.error('Error listening to org', err);
             setError('Failed to sync organization data');
             setLoading(false);
           },
@@ -160,7 +164,10 @@ export const OrgProvider: React.FC<{children: React.ReactNode}> = ({children}) =
             });
             setOrgUsers(users);
           },
-          (err: any) => console.error('Error listening to org users:', err),
+          (err: any) => {
+            logger.error('Error listening to org users', err);
+            setError('Failed to sync team members');
+          },
         );
 
       // 3. Listen to Services
@@ -181,7 +188,10 @@ export const OrgProvider: React.FC<{children: React.ReactNode}> = ({children}) =
             });
             setOrgServices(services);
           },
-          (err: any) => console.error('Error listening to services:', err),
+          (err: any) => {
+            logger.error('Error listening to services', err);
+            setError('Failed to sync services');
+          },
         );
 
       // 4. Listen to Employee Transactions for this Org
@@ -205,7 +215,10 @@ export const OrgProvider: React.FC<{children: React.ReactNode}> = ({children}) =
             });
             setEmployeeTransactions(transactions);
           },
-          (err: any) => console.error('Error listening to transactions:', err),
+          (err: any) => {
+            logger.error('Error listening to transactions', err);
+            setError('Failed to sync transaction data');
+          },
         );
     } else {
       setCurrentOrg(null);
@@ -267,12 +280,7 @@ export const OrgProvider: React.FC<{children: React.ReactNode}> = ({children}) =
           newOrg.address = payload.address;
         }
 
-        console.log('📝 Creating organization:', {
-          id: newOrgRef.id,
-          name: newOrg.name,
-          inviteCode: newOrg.inviteCode,
-          type: typeof newOrg.inviteCode,
-        });
+        logger.debug('Creating new organization');
 
         const batch = firestore().batch();
 
@@ -285,17 +293,12 @@ export const OrgProvider: React.FC<{children: React.ReactNode}> = ({children}) =
 
         await batch.commit();
 
-        console.log(
-          '✅ Organization created and saved to Firestore:',
-          newOrg.name,
-          'InviteCode:',
-          newOrg.inviteCode,
-        );
+        logger.debug('Organization created and saved to Firestore');
 
         // Update local user state via AuthContext to trigger useEffect
         await updateUser({orgId: newOrgRef.id, role: UserRole.OWNER});
 
-        console.log('✅ Organization created:', newOrg.name);
+        logger.debug('Organization creation completed');
       } catch (err: any) {
         const errorMessage = err.message || ERROR_MESSAGES.somethingWentWrong;
         setError(errorMessage);
@@ -322,7 +325,7 @@ export const OrgProvider: React.FC<{children: React.ReactNode}> = ({children}) =
 
       try {
         // Find org by invite code
-        console.log('🔍 Searching for inviteCode:', inviteCode.toUpperCase());
+        logger.debug('Searching for organization by invite code');
 
         const querySnapshot = await firestore()
           .collection('organizations')
@@ -330,31 +333,13 @@ export const OrgProvider: React.FC<{children: React.ReactNode}> = ({children}) =
           .limit(1)
           .get();
 
-        console.log(
-          '📊 Query result - empty:',
-          querySnapshot.empty,
-          'docs count:',
-          querySnapshot.docs.length,
-        );
-
         if (querySnapshot.empty) {
-          // Debug: fetch all organizations to see what exists
-          console.log('⚠️ No organization found with inviteCode:', inviteCode.toUpperCase());
-          const allOrgsSnapshot = await firestore().collection('organizations').limit(10).get();
-          console.log('📋 All organizations in database:');
-          allOrgsSnapshot.docs.forEach(doc => {
-            const data = doc.data();
-            console.log(
-              `  - ID: ${doc.id}, Name: ${data.name}, InviteCode: ${data.inviteCode}, Type: ${typeof data.inviteCode}`,
-            );
-          });
           throw new Error(ERROR_MESSAGES.invalidInviteCode);
         }
 
         const orgDoc = querySnapshot.docs[0];
         const orgId = orgDoc.id;
-        const orgData = orgDoc.data() as Organization;
-        console.log('✅ Found organization:', orgData.name, 'with inviteCode:', orgData.inviteCode);
+        logger.debug('Found organization by invite code');
 
         // Check if already in org
         if (user.orgId) {
@@ -372,7 +357,7 @@ export const OrgProvider: React.FC<{children: React.ReactNode}> = ({children}) =
         // Update local user state
         await updateUser({orgId: orgId, role: UserRole.EMPLOYEE});
 
-        console.log('✅ Joined organization:', orgData.name);
+        logger.debug('User joined organization');
       } catch (err: any) {
         const errorMessage = err.message || ERROR_MESSAGES.somethingWentWrong;
         setError(errorMessage);
@@ -405,7 +390,7 @@ export const OrgProvider: React.FC<{children: React.ReactNode}> = ({children}) =
 
         await firestore().collection('organizations').doc(currentOrg.id).update(updatedData);
         // Listener updates state
-        console.log('✅ Organization updated:', currentOrg.id);
+        logger.debug('Organization updated');
       } catch (err: any) {
         const errorMessage = err.message || ERROR_MESSAGES.somethingWentWrong;
         setError(errorMessage);
@@ -423,7 +408,7 @@ export const OrgProvider: React.FC<{children: React.ReactNode}> = ({children}) =
 
   const fetchOrgData = useCallback(async () => {
     // With real-time listeners, manual fetch is less needed but can be used to re-trigger or check connectivity
-    console.log('Refreshing org data...');
+    logger.debug('Refreshing org data');
     // No-op effectively as listeners handle sync
   }, []);
 
@@ -459,7 +444,7 @@ export const OrgProvider: React.FC<{children: React.ReactNode}> = ({children}) =
         await newServiceRef.set(newService);
         // Listener upates state
 
-        console.log('✅ Service added:', newService.name);
+        logger.debug('Service added');
         return newService;
       } catch (err: any) {
         const errorMessage = err.message || ERROR_MESSAGES.somethingWentWrong;
@@ -482,7 +467,7 @@ export const OrgProvider: React.FC<{children: React.ReactNode}> = ({children}) =
         updatedAt: new Date(),
       };
       await firestore().collection('services').doc(id).update(updatedData);
-      console.log('✅ Service updated:', id);
+      logger.debug('Service updated');
     } catch (err: any) {
       const errorMessage = err.message || ERROR_MESSAGES.somethingWentWrong;
       setError(errorMessage);
@@ -498,7 +483,7 @@ export const OrgProvider: React.FC<{children: React.ReactNode}> = ({children}) =
 
     try {
       await firestore().collection('services').doc(id).delete();
-      console.log('✅ Service deleted:', id);
+      logger.debug('Service deleted');
     } catch (err: any) {
       const errorMessage = err.message || ERROR_MESSAGES.somethingWentWrong;
       setError(errorMessage);
@@ -532,7 +517,7 @@ export const OrgProvider: React.FC<{children: React.ReactNode}> = ({children}) =
         updatedAt: new Date(),
       };
       await firestore().collection('users').doc(id).update(updatedData);
-      console.log('✅ User updated in org:', id);
+      logger.debug('User updated');
     } catch (err: any) {
       const errorMessage = err.message || ERROR_MESSAGES.somethingWentWrong;
       setError(errorMessage);
@@ -553,7 +538,7 @@ export const OrgProvider: React.FC<{children: React.ReactNode}> = ({children}) =
         role: null, // or whatever default
       });
 
-      console.log('✅ User removed from org');
+      logger.debug('User removed from org');
     } catch (err: any) {
       const errorMessage = err.message || ERROR_MESSAGES.somethingWentWrong;
       setError(errorMessage);
@@ -562,6 +547,102 @@ export const OrgProvider: React.FC<{children: React.ReactNode}> = ({children}) =
       setLoading(false);
     }
   }, []);
+
+  // ============================================================================
+  // ORGANIZATION DELETION (CASCADE DELETE)
+  // ============================================================================
+
+  /**
+   * Delete organization with cascade delete of all related data
+   * - Deletes all work entries
+   * - Deletes all daily summaries
+   * - Deletes all services
+   * - Deletes all employee transactions
+   * - Updates all users to remove orgId
+   * - Deletes the organization document
+   * Uses batch operations for atomicity
+   */
+  const deleteOrg = useCallback(async () => {
+    if (!currentOrg) {
+      setError('No organization to delete');
+      throw new Error('No organization to delete');
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const batch = firestore().batch();
+      const orgId = currentOrg.id;
+
+      // Delete all work entries for this org
+      const workEntriesSnapshot = await firestore()
+        .collection('workEntries')
+        .where('orgId', '==', orgId)
+        .get();
+      workEntriesSnapshot.forEach(doc => {
+        batch.delete(doc.ref);
+      });
+
+      // Delete all daily summaries for this org
+      const summariesSnapshot = await firestore()
+        .collection('dailySummaries')
+        .where('orgId', '==', orgId)
+        .get();
+      summariesSnapshot.forEach(doc => {
+        batch.delete(doc.ref);
+      });
+
+      // Delete all services for this org
+      const servicesSnapshot = await firestore()
+        .collection('services')
+        .where('orgId', '==', orgId)
+        .get();
+      servicesSnapshot.forEach(doc => {
+        batch.delete(doc.ref);
+      });
+
+      // Delete all employee transactions for this org
+      const transactionsSnapshot = await firestore()
+        .collection('employeeTransactions')
+        .where('orgId', '==', orgId)
+        .get();
+      transactionsSnapshot.forEach(doc => {
+        batch.delete(doc.ref);
+      });
+
+      // Update all users to remove orgId and role
+      const usersSnapshot = await firestore().collection('users').where('orgId', '==', orgId).get();
+      usersSnapshot.forEach(doc => {
+        batch.update(doc.ref, {
+          orgId: '',
+          role: null,
+          updatedAt: new Date(),
+        });
+      });
+
+      // Delete the organization document itself
+      batch.delete(firestore().collection('organizations').doc(orgId));
+
+      // Commit all deletions
+      await batch.commit();
+
+      logger.debug('Organization and all related data deleted successfully');
+
+      // Clear local org state
+      setCurrentOrg(null);
+      setOrgUsers([]);
+      setOrgServices([]);
+      setEmployeeTransactions([]);
+    } catch (err: any) {
+      const errorMessage = err.message || ERROR_MESSAGES.somethingWentWrong;
+      setError(errorMessage);
+      logger.error('Failed to delete organization', err);
+      throw new Error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  }, [currentOrg]);
 
   // ============================================================================
   // EMPLOYEE TRANSACTIONS
@@ -730,6 +811,7 @@ export const OrgProvider: React.FC<{children: React.ReactNode}> = ({children}) =
     addUser,
     updateUserInOrg,
     deleteUser,
+    deleteOrg,
     createEmployeeTransaction,
     respondToTransaction,
     clearError,

@@ -6,6 +6,9 @@
 import React, {createContext, useContext, useState, useEffect, useCallback, ReactNode} from 'react';
 import {translations, Language, Translations} from '@/constants/translations';
 import {saveAppLanguage, loadAppLanguage} from '@/utils/storage';
+import {createLogger} from '@/utils/logger';
+
+const logger = createLogger('LanguageContext');
 
 // ============================================================================
 // TYPES
@@ -52,7 +55,7 @@ export function LanguageProvider({
         setLanguageState(savedLang);
       }
     } catch (error) {
-      console.error('Error loading language:', error);
+      logger.error('Error loading language:', error);
     } finally {
       setIsLoading(false);
     }
@@ -63,7 +66,7 @@ export function LanguageProvider({
       setLanguageState(lang);
       await saveAppLanguage(lang);
     } catch (error) {
-      console.error('Error saving language:', error);
+      logger.error('Error saving language:', error);
     }
   }, []);
 

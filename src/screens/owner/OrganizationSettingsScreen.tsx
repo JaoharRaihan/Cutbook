@@ -36,7 +36,7 @@ export default function OrganizationSettingsScreen({navigation}: any): React.Rea
   );
   const [autoBackup, setAutoBackup] = useState(true);
   const [isDirty, setIsDirty] = useState(false);
-  const [generatingCode, setGeneratingCode] = useState(false);
+  const [_generatingCode, setGeneratingCode] = useState(false);
 
   // Organization code from Firestore
   const orgCode = currentOrg?.inviteCode || 'LOADING...';

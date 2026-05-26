@@ -22,13 +22,14 @@ import EmployeeRankCard from '@/components/EmployeeRankCard';
 import DatePickerModal from '@/components/UI/DatePickerModal';
 import {formatBDT} from '@/utils/currency';
 import {formatDateISO, isToday} from '@/utils/date';
-import {TransactionStatus} from '@/types';
+import {TransactionStatus, TimePeriod} from '@/types';
 
 export default function DashboardScreen({navigation}: any): React.ReactElement {
   const {currentOrg, employeeTransactions} = useOrg();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [datePickerVisible, setDatePickerVisible] = useState(false);
-  const {summary, loading, error, refresh} = useDailySummary(selectedDate);
+  const {summary, loading, error, refresh, timePeriod, setTimePeriod} =
+    useDailySummary(selectedDate);
 
   // Calculate cash account stats
   const cashStats = useMemo(() => {
@@ -57,7 +58,7 @@ export default function DashboardScreen({navigation}: any): React.ReactElement {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FAFAFA" />
+      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
       <View style={styles.header}>
         <View>
           <Text style={styles.headerTitle}>{currentOrg?.name || 'Dashboard'}</Text>
@@ -69,7 +70,7 @@ export default function DashboardScreen({navigation}: any): React.ReactElement {
           style={styles.dateButton}
           onPress={() => setDatePickerVisible(true)}
           activeOpacity={0.7}>
-          <MaterialCommunityIcons name="calendar" size={28} color="#1976D2" />
+          <MaterialCommunityIcons name="calendar" size={16} color="#1976D2" />
           <Text style={styles.dateButtonLabel}>
             {isToday(selectedDate) ? 'Today' : formatDateISO(selectedDate)}
           </Text>
@@ -86,6 +87,69 @@ export default function DashboardScreen({navigation}: any): React.ReactElement {
             tintColor="#2196F3"
           />
         }>
+        {/* Period Filter */}
+        <View style={styles.filterContainer}>
+          <TouchableOpacity
+            style={[
+              styles.filterButton,
+              timePeriod === TimePeriod.TODAY && styles.filterButtonActive,
+            ]}
+            onPress={() => setTimePeriod(TimePeriod.TODAY)}>
+            <Text
+              style={[
+                styles.filterButtonText,
+                timePeriod === TimePeriod.TODAY && styles.filterButtonTextActive,
+              ]}>
+              Today
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.filterButton,
+              timePeriod === TimePeriod.WEEKLY && styles.filterButtonActive,
+            ]}
+            onPress={() => setTimePeriod(TimePeriod.WEEKLY)}>
+            <Text
+              style={[
+                styles.filterButtonText,
+                timePeriod === TimePeriod.WEEKLY && styles.filterButtonTextActive,
+              ]}>
+              Weekly
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.filterButton,
+              timePeriod === TimePeriod.MONTHLY && styles.filterButtonActive,
+            ]}
+            onPress={() => setTimePeriod(TimePeriod.MONTHLY)}>
+            <Text
+              style={[
+                styles.filterButtonText,
+                timePeriod === TimePeriod.MONTHLY && styles.filterButtonTextActive,
+              ]}>
+              Monthly
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.filterButton,
+              timePeriod === TimePeriod.YEARLY && styles.filterButtonActive,
+            ]}
+            onPress={() => setTimePeriod(TimePeriod.YEARLY)}>
+            <Text
+              style={[
+                styles.filterButtonText,
+                timePeriod === TimePeriod.YEARLY && styles.filterButtonTextActive,
+              ]}>
+              Yearly
+            </Text>
+          </TouchableOpacity>
+        </View>
+
         {error && (
           <View style={styles.errorContainer}>
             <Text style={styles.errorText}>❌ {error}</Text>
@@ -117,7 +181,7 @@ export default function DashboardScreen({navigation}: any): React.ReactElement {
                   <SummaryCard
                     title="bKash"
                     value={formatBDT(summary.totalBkash)}
-                    icon="📱"
+                    iconImage={require('@/assets/Logo/bkash_payment_logo.png')}
                     color="warning"
                   />
                 </View>
@@ -127,7 +191,7 @@ export default function DashboardScreen({navigation}: any): React.ReactElement {
                   <SummaryCard
                     title="Nagad"
                     value={formatBDT(summary.totalNagad)}
-                    icon="💳"
+                    iconImage={require('@/assets/Logo/Nagad-Logo.wine.png')}
                     color="info"
                   />
                 </View>
@@ -247,22 +311,23 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
+    paddingVertical: 35,
+    backgroundColor: '#ffffff',
     borderBottomWidth: 1,
     borderBottomColor: '#E0E0E0',
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 3,
+    elevation: 7,
+    paddingBottom: 16,
   },
   headerTitle: {fontSize: 22, fontWeight: '700', color: '#212121'},
   headerSubtitle: {fontSize: 14, color: '#757575', marginTop: 4},
   dateButton: {
     flexDirection: 'column',
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 16,
     borderRadius: 12,
     backgroundColor: '#E3F2FD',
     borderWidth: 1,
@@ -423,5 +488,37 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontWeight: '600',
     textAlign: 'center',
+  },
+  // Period Filter Styles
+  filterContainer: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 16,
+    paddingHorizontal: 4,
+  },
+  filterButton: {
+    flex: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    backgroundColor: '#F5F5F5',
+    borderWidth: 2,
+    borderColor: '#E0E0E0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  filterButtonActive: {
+    backgroundColor: '#E3F2FD',
+    borderColor: '#2196F3',
+  },
+  filterButtonText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#666',
+    textAlign: 'center',
+  },
+  filterButtonTextActive: {
+    color: '#2196F3',
+    fontWeight: '700',
   },
 });
