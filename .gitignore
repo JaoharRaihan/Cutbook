@@ -80,3 +80,5 @@ yarn-error.log
 # Web build output
 dist/
 .netlify/
+.vercel
+.env*.local
