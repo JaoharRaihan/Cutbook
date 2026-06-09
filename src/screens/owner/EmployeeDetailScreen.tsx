@@ -20,6 +20,7 @@ import {useOrg, useData} from '@/context';
 import {UserStatus, EmployeePermission} from '@/types';
 import {formatBDT} from '@/utils/currency';
 import {formatDateISO} from '@/utils/date';
+import MaterialIcons from '@react-native-vector-icons/material-icons';
 
 // ============================================================================
 // COMPONENT
@@ -27,8 +28,9 @@ import {formatDateISO} from '@/utils/date';
 
 export default function EmployeeDetailScreen({route, navigation}: any): React.ReactElement {
   const {employeeId} = route.params;
-  const {orgUsers, updateUserInOrg, createEmployeeTransaction} = useOrg();
+  const {orgUsers, updateUserInOrg, employeeTransactions, createEmployeeTransaction} = useOrg();
   const {workEntries} = useData();
+
   const [isEditingCommission, setIsEditingCommission] = useState(false);
   const [commissionInput, setCommissionInput] = useState('');
   const [saving, setSaving] = useState(false);
@@ -39,6 +41,10 @@ export default function EmployeeDetailScreen({route, navigation}: any): React.Re
   const employee = useMemo(() => {
     return orgUsers.find(u => u.id === employeeId);
   }, [employeeId, orgUsers]);
+
+  const employeePayouts = useMemo(() => {
+    return employeeTransactions.filter(t => t.employeeId === employeeId);
+  }, [employeeId, employeeTransactions]);
 
   // Calculate statistics from workEntries
   const stats = useMemo(() => {
@@ -58,10 +64,12 @@ export default function EmployeeDetailScreen({route, navigation}: any): React.Re
 
     const totalIncome = employeeEntries.reduce((sum, e) => sum + e.price + (e.tip || 0), 0);
     const thisMonthIncome = thisMonthEntries.reduce((sum, e) => sum + e.price + (e.tip || 0), 0);
+    const totalTips = employeeEntries.reduce((sum, entry) => sum + (entry.tip || 0), 0);
 
     return {
       totalServices: employeeEntries.length,
       totalIncome,
+      totalTips,
       thisMonthServices: thisMonthEntries.length,
       thisMonthIncome,
       averagePerService:
@@ -69,7 +77,7 @@ export default function EmployeeDetailScreen({route, navigation}: any): React.Re
           ? employeeEntries.reduce((sum, e) => sum + e.price, 0) / employeeEntries.length
           : 0,
     };
-  }, [employeeId, workEntries, employee]);
+  }, [employee, employeeId, workEntries]);
 
   // ============================================================================
   // HANDLERS
@@ -241,13 +249,13 @@ export default function EmployeeDetailScreen({route, navigation}: any): React.Re
           </View>
 
           <View style={styles.infoRow}>
-            <Text style={styles.infoIcon}>📱</Text>
+            <MaterialIcons name="phone" style={styles.infoIcon} />
             <Text style={styles.infoText}>{employee.phone}</Text>
           </View>
 
           {employee.email && (
             <View style={styles.infoRow}>
-              <Text style={styles.infoIcon}>✉️</Text>
+              <MaterialIcons name="mail-outline" style={styles.infoIcon} />
               <Text style={styles.infoText}>{employee.email}</Text>
             </View>
           )}
@@ -296,78 +304,18 @@ export default function EmployeeDetailScreen({route, navigation}: any): React.Re
           </View>
 
           <View style={styles.infoRow}>
-            <Text style={styles.infoIcon}>📅</Text>
+            <MaterialIcons name="calendar-month" style={styles.infoIcon} />
             <Text style={styles.infoText}>Joined {formatDateISO(employee.createdAt)}</Text>
-          </View>
-        </View>
-
-        {/* Stats Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>📊 Performance Statistics</Text>
-
-          <View style={styles.statsGrid}>
-            <View style={styles.statCard}>
-              <Text style={styles.statValue}>{stats.totalServices}</Text>
-              <Text style={styles.statLabel}>Total Services</Text>
-            </View>
-
-            <View style={styles.statCard}>
-              <Text style={styles.statValue}>{formatBDT(stats.totalIncome)}</Text>
-              <Text style={styles.statLabel}>Total Income</Text>
-            </View>
-
-            <View style={styles.statCard}>
-              <Text style={styles.statValue}>{stats.thisMonthServices}</Text>
-              <Text style={styles.statLabel}>This Month</Text>
-            </View>
-
-            <View style={styles.statCard}>
-              <Text style={styles.statValue}>{formatBDT(stats.thisMonthIncome)}</Text>
-              <Text style={styles.statLabel}>Month Income</Text>
-            </View>
-          </View>
-
-          <View style={styles.averageCard}>
-            <Text style={styles.averageLabel}>Average per Service</Text>
-            <Text style={styles.averageValue}>{formatBDT(stats.averagePerService)}</Text>
-          </View>
-        </View>
-
-        {/* Permissions Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>🔐 Permissions</Text>
-          <Text style={styles.permissionDescription}>
-            Grant access to this employee to perform specific tasks when you're away
-          </Text>
-
-          <View style={styles.permissionsList}>
-            <TouchableOpacity
-              style={styles.permissionItem}
-              onPress={() => handleTogglePermission(EmployeePermission.CAN_ADD_ENTRIES)}
-              disabled={saving}>
-              <View style={styles.permissionInfo}>
-                <Text style={styles.permissionName}>➕ Add Work Entries</Text>
-                <Text style={styles.permissionDesc}>Allow employee to log work entries</Text>
-              </View>
-              <View
-                style={[
-                  styles.permissionToggle,
-                  employee.permissions?.includes(EmployeePermission.CAN_ADD_ENTRIES) &&
-                    styles.permissionToggleActive,
-                ]}>
-                <Text style={styles.permissionToggleText}>
-                  {employee.permissions?.includes(EmployeePermission.CAN_ADD_ENTRIES) ? '✓' : '○'}
-                </Text>
-              </View>
-            </TouchableOpacity>
           </View>
         </View>
 
         {/* Payment Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>💰 Send Payment to {employee.name}</Text>
+          <Text style={styles.sectionTitle}>
+            💰 Give Money to <Text style={{color: 'red'}}>{employee.name}</Text>
+          </Text>
           <Text style={styles.paymentDescription}>
-            Employee will receive notification and can accept or reject the payment
+            Employee will get a message and can accept or reject it.
           </Text>
 
           <View style={styles.paymentForm}>
@@ -375,7 +323,7 @@ export default function EmployeeDetailScreen({route, navigation}: any): React.Re
               <Text style={styles.formLabel}>Amount (BDT) *</Text>
               <TextInput
                 style={styles.formInput}
-                placeholder="How much do you want to give?"
+                placeholder="Enter amount"
                 keyboardType="decimal-pad"
                 value={paymentAmount}
                 onChangeText={setPaymentAmount}
@@ -410,6 +358,100 @@ export default function EmployeeDetailScreen({route, navigation}: any): React.Re
             </TouchableOpacity>
           </View>
         </View>
+        {/* Stats Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}> Performance Statistics</Text>
+
+          <View style={styles.statsGrid}>
+            <View style={styles.statCard}>
+              <Text style={styles.statValue}>{stats.totalServices}</Text>
+              <Text style={styles.statLabel}>Total Services</Text>
+            </View>
+
+            <View style={styles.statCard}>
+              <Text style={styles.statValue}>{formatBDT(stats.totalIncome)}</Text>
+              <Text style={styles.statLabel}>Total Income</Text>
+            </View>
+
+            <View style={styles.statCard}>
+              <Text style={styles.statValue}>{stats.thisMonthServices}</Text>
+              <Text style={styles.statLabel}>This Month</Text>
+            </View>
+
+            <View style={styles.statCard}>
+              <Text style={styles.statValue}>{formatBDT(stats.thisMonthIncome)}</Text>
+              <Text style={styles.statLabel}>Month Income</Text>
+            </View>
+
+            <View style={styles.statCardtips}>
+              <Text style={styles.statValue}>{formatBDT(stats.totalTips)}</Text>
+              <Text style={styles.statLabel}>Total Tips</Text>
+            </View>
+            {employeePayouts.length > 0 && (
+              <View style={styles.averageCard}>
+                <Text style={styles.averageLabel}>Received Money</Text>
+                <Text style={styles.averageValue}>
+                  {formatBDT(employeePayouts.reduce((sum, item) => sum + item.amount, 0))}
+                </Text>
+              </View>
+            )}
+          </View>
+        </View>
+
+        {/* Permissions Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitleper}>PERMISSIONS</Text>
+
+          <Text style={styles.permissionDescription}>
+            Control what this employee can do when you're not available
+          </Text>
+
+          {/* Grant Access Card */}
+          <View style={styles.permissionCard}>
+            {/* Header */}
+            <View style={styles.permissionHeader}>
+              <View style={{flex: 1}}>
+                <Text style={styles.permissionTitle}>Manager Access</Text>
+
+                <Text style={styles.permissionSubtitle}>
+                  Can add entries and manage work logs for staff
+                </Text>
+              </View>
+
+              {/* Status Badge */}
+              <View
+                style={[
+                  styles.statusBadge,
+                  employee.permissions?.includes(EmployeePermission.CAN_ADD_ENTRIES)
+                    ? styles.statusActive
+                    : styles.statusInactive,
+                ]}>
+                <Text style={styles.statusText}>
+                  {employee.permissions?.includes(EmployeePermission.CAN_ADD_ENTRIES)
+                    ? 'GRANTED'
+                    : 'OFF'}
+                </Text>
+              </View>
+            </View>
+
+            {/* Action Row */}
+            <TouchableOpacity
+              style={[
+                styles.grantButton,
+                employee.permissions?.includes(EmployeePermission.CAN_ADD_ENTRIES)
+                  ? styles.revokeButton
+                  : styles.enableButton,
+              ]}
+              onPress={() => handleTogglePermission(EmployeePermission.CAN_ADD_ENTRIES)}
+              disabled={saving}>
+              <Text style={styles.grantButtonText}>
+                {employee.permissions?.includes(EmployeePermission.CAN_ADD_ENTRIES)
+                  ? 'Remove Access'
+                  : 'Give Access'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
 
         {/* Action Buttons */}
         <View style={styles.section}>
@@ -421,7 +463,7 @@ export default function EmployeeDetailScreen({route, navigation}: any): React.Re
               <ActivityIndicator color="#FFFFFF" />
             ) : (
               <>
-                <Text style={styles.deleteButtonIcon}>🗑️</Text>
+                <MaterialIcons name="delete-forever" style={styles.deleteButtonIcon} />
                 <Text style={styles.deleteButtonText}>Remove from Organization</Text>
               </>
             )}
@@ -481,7 +523,7 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: 36,
     fontWeight: '700',
-    color: '#1976D2',
+    color: '#000000',
   },
   name: {
     fontSize: 24,
@@ -528,23 +570,23 @@ const styles = StyleSheet.create({
   },
   commissionLabel: {
     fontSize: 14,
-    color: '#757575',
+    color: '#D4AF37',
     marginBottom: 8,
   },
   commissionDisplay: {
     flexDirection: 'row',
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     alignItems: 'center',
     gap: 8,
   },
   commissionValue: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#2196F3',
+    color: '#008000',
   },
   editHint: {
     fontSize: 12,
-    color: '#BDBDBD',
+    color: '#e91414',
     fontStyle: 'italic',
   },
   commissionEditContainer: {
@@ -560,7 +602,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 18,
     fontWeight: '600',
-    color: '#2196F3',
+    color: '#c3835c',
   },
   commissionUnit: {
     fontSize: 14,
@@ -602,7 +644,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#212121',
+    color: '#000000',
     marginBottom: 16,
   },
   statsGrid: {
@@ -618,10 +660,17 @@ const styles = StyleSheet.create({
     padding: 16,
     alignItems: 'center',
   },
+  statCardtips: {
+    width: '100%',
+    backgroundColor: '#F5F5F5',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+  },
   statValue: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#2196F3',
+    color: '#000000',
     marginBottom: 4,
   },
   statLabel: {
@@ -630,6 +679,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   averageCard: {
+    width: '100%',
     backgroundColor: '#E8F5E9',
     borderRadius: 12,
     padding: 16,
@@ -647,54 +697,71 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#2E7D32',
   },
-  permissionDescription: {
-    fontSize: 13,
-    color: '#757575',
+  sectionTitleper: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#ff0606',
     marginBottom: 16,
   },
-  permissionsList: {
-    gap: 12,
-  },
-  permissionItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#F5F5F5',
-    borderRadius: 12,
-    padding: 16,
-    gap: 12,
-  },
-  permissionInfo: {
-    flex: 1,
-  },
-  permissionName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#212121',
-    marginBottom: 4,
-  },
-  permissionDesc: {
+  permissionDescription: {
+    color: '#000000',
     fontSize: 13,
-    color: '#757575',
+    lineHeight: 18,
   },
-  permissionToggle: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#E0E0E0',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#BDBDBD',
+  permissionCard: {
+    backgroundColor: '#1e1e1e',
+    borderRadius: 14,
+    padding: 16,
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: '#2a2a2a',
   },
-  permissionToggleActive: {
-    backgroundColor: '#E8F5E9',
-    borderColor: '#4CAF50',
+
+  permissionHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 14,
   },
-  permissionToggleText: {
-    fontSize: 20,
+
+  permissionTitle: {
+    color: '#ffffff',
+    fontSize: 16,
     fontWeight: '700',
-    color: '#4CAF50',
+  },
+
+  permissionSubtitle: {
+    color: '#a0a0a0',
+    fontSize: 13,
+    marginTop: 4,
+    lineHeight: 18,
+  },
+
+  statusActive: {
+    backgroundColor: '#ff0000',
+  },
+
+  statusInactive: {
+    backgroundColor: '#008000',
+  },
+
+  grantButton: {
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+
+  enableButton: {
+    backgroundColor: '#ff0000',
+  },
+
+  revokeButton: {
+    backgroundColor: '#008000',
+  },
+
+  grantButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 14,
   },
   deleteButton: {
     flexDirection: 'row',
@@ -712,6 +779,7 @@ const styles = StyleSheet.create({
   },
   deleteButtonIcon: {
     fontSize: 24,
+    color: '#ff1100',
   },
   deleteButtonText: {
     fontSize: 16,

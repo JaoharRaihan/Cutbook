@@ -10,12 +10,13 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  SafeAreaView,
   StatusBar,
   Switch,
   Alert,
 } from 'react-native';
 import {useAuth, useOrg, useTheme} from '@/context';
+import {SafeAreaView} from 'react-native-safe-area-context';
+import MaterialIcons from '@react-native-vector-icons/material-icons';
 
 // ============================================================================
 // COMPONENT
@@ -119,7 +120,7 @@ export default function SettingsScreen({navigation}: any): React.ReactElement {
 
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Settings</Text>
+        <Text style={styles.headerTitle}>Profile and Settings</Text>
         <Text style={styles.headerSubtitle}>Manage your preferences and organization</Text>
       </View>
 
@@ -129,7 +130,10 @@ export default function SettingsScreen({navigation}: any): React.ReactElement {
         showsVerticalScrollIndicator={false}>
         {/* Profile Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>👤 Profile</Text>
+          <View style={styles.sectionTitleContainer}>
+            <MaterialIcons name="person" size={22} color="#333" />
+            <Text style={styles.sectionTitle}>Profile</Text>
+          </View>
 
           <View style={styles.profileCard}>
             <View style={styles.avatar}>
@@ -140,7 +144,7 @@ export default function SettingsScreen({navigation}: any): React.ReactElement {
             <View style={styles.profileInfo}>
               <Text style={styles.profileName}>{user?.name || 'Owner'}</Text>
               <Text style={styles.profilePhone}>{user?.phone}</Text>
-              {user?.email && <Text style={styles.profileEmail}>{user.email}</Text>}
+              {/* {user?.email && <Text style={styles.profileEmail}>{user.email}</Text>} */}
               <View style={styles.roleBadge}>
                 <Text style={styles.roleBadgeText}>Owner</Text>
               </View>
@@ -150,11 +154,14 @@ export default function SettingsScreen({navigation}: any): React.ReactElement {
 
         {/* Organization Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>🏢 Organization</Text>
+          <View style={styles.titleicon}>
+            <MaterialIcons name="domain" size={34} />
+            <Text style={styles.sectionTitle}> Organization</Text>
+          </View>
 
           <TouchableOpacity style={styles.settingRow} onPress={handleOrganizationSettings}>
             <View style={styles.settingLeft}>
-              <Text style={styles.settingIcon}>⚙️</Text>
+              <MaterialIcons name="build" style={styles.settingIcon} />
               <View style={styles.settingTextContainer}>
                 <Text style={styles.settingTitle}>Organization Settings</Text>
                 <Text style={styles.settingSubtitle}>{currentOrg?.name}</Text>
@@ -185,11 +192,14 @@ export default function SettingsScreen({navigation}: any): React.ReactElement {
 
         {/* App Preferences Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>🎨 Preferences</Text>
+          <View style={styles.titleicon}>
+            <MaterialIcons name="construction" size={25} />
+            <Text style={styles.sectionTitle}>Preferences</Text>
+          </View>
 
           <View style={styles.settingRow}>
             <View style={styles.settingLeft}>
-              <Text style={styles.settingIcon}>🌐</Text>
+              <MaterialIcons name="language" style={styles.settingIcon} />
               <View style={styles.settingTextContainer}>
                 <Text style={styles.settingTitle}>Language</Text>
                 <Text style={styles.settingSubtitle}>
@@ -206,7 +216,7 @@ export default function SettingsScreen({navigation}: any): React.ReactElement {
 
           <View style={styles.settingRow}>
             <View style={styles.settingLeft}>
-              <Text style={styles.settingIcon}>🔔</Text>
+              <MaterialIcons name="notifications-on" style={styles.settingIcon} />
               <View style={styles.settingTextContainer}>
                 <Text style={styles.settingTitle}>Notifications</Text>
                 <Text style={styles.settingSubtitle}>
@@ -226,7 +236,7 @@ export default function SettingsScreen({navigation}: any): React.ReactElement {
 
           <View style={styles.settingRow}>
             <View style={styles.settingLeft}>
-              <Text style={styles.settingIcon}>🌙</Text>
+              <MaterialIcons name="sunny-snowing" style={styles.settingIcon} />
               <View style={styles.settingTextContainer}>
                 <Text style={styles.settingTitle}>Dark Mode</Text>
                 <Text style={styles.settingSubtitle}>
@@ -245,11 +255,14 @@ export default function SettingsScreen({navigation}: any): React.ReactElement {
 
         {/* Help & Support Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>💡 Help & Support</Text>
+          <View style={styles.titleicon}>
+            <MaterialIcons name="report-problem" size={25} />
+            <Text style={styles.sectionTitle}> Help & Support</Text>
+          </View>
 
           <TouchableOpacity style={styles.settingRow} onPress={handleHelp}>
             <View style={styles.settingLeft}>
-              <Text style={styles.settingIcon}>❓</Text>
+              <MaterialIcons name="query-stats" style={styles.settingIcon} />
               <View style={styles.settingTextContainer}>
                 <Text style={styles.settingTitle}>Help Center</Text>
                 <Text style={styles.settingSubtitle}>Get help and contact support</Text>
@@ -262,7 +275,7 @@ export default function SettingsScreen({navigation}: any): React.ReactElement {
 
           <TouchableOpacity style={styles.settingRow} onPress={handleAbout}>
             <View style={styles.settingLeft}>
-              <Text style={styles.settingIcon}>ℹ️</Text>
+              <MaterialIcons name="app-shortcut" style={styles.settingIcon} size={25} />
               <View style={styles.settingTextContainer}>
                 <Text style={styles.settingTitle}>About CutBook</Text>
                 <Text style={styles.settingSubtitle}>Version 1.0.0</Text>
@@ -274,11 +287,14 @@ export default function SettingsScreen({navigation}: any): React.ReactElement {
 
         {/* Legal Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>📜 Legal</Text>
+          <View style={styles.titleicon}>
+            <MaterialIcons name="sticky-note-2" size={25} />
+            <Text style={styles.sectionTitle}>Legal</Text>
+          </View>
 
           <TouchableOpacity style={styles.settingRow} onPress={handlePrivacy}>
             <View style={styles.settingLeft}>
-              <Text style={styles.settingIcon}>🔒</Text>
+              <MaterialIcons name="lock" size={25} style={styles.settingIcon} />
               <View style={styles.settingTextContainer}>
                 <Text style={styles.settingTitle}>Privacy Policy</Text>
                 <Text style={styles.settingSubtitle}>How we handle your data</Text>
@@ -291,7 +307,7 @@ export default function SettingsScreen({navigation}: any): React.ReactElement {
 
           <TouchableOpacity style={styles.settingRow} onPress={handleTerms}>
             <View style={styles.settingLeft}>
-              <Text style={styles.settingIcon}>📋</Text>
+              <MaterialIcons name="note-alt" style={styles.settingIcon} />
               <View style={styles.settingTextContainer}>
                 <Text style={styles.settingTitle}>Terms of Service</Text>
                 <Text style={styles.settingSubtitle}>User agreement</Text>
@@ -304,7 +320,7 @@ export default function SettingsScreen({navigation}: any): React.ReactElement {
         {/* Logout Button */}
         <View style={styles.section}>
           <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-            <Text style={styles.logoutButtonIcon}>🚪</Text>
+            <MaterialIcons name="mobile-off" size={25} style={styles.logoutButtonIcon} />
             <Text style={styles.logoutButtonText}>Logout</Text>
           </TouchableOpacity>
         </View>
@@ -313,7 +329,7 @@ export default function SettingsScreen({navigation}: any): React.ReactElement {
         <View style={styles.footer}>
           <Text style={styles.footerText}>CutBook v1.0.0</Text>
           <Text style={styles.footerSubtext}>Professional Salon Management</Text>
-          <Text style={styles.footerCopyright}>© 2025 CutBook</Text>
+          <Text style={styles.footerCopyright}>© 2026 CutBook</Text>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -330,7 +346,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FAFAFA',
   },
   header: {
-    backgroundColor: '#2196F3',
+    backgroundColor: '#e8f3ef',
     paddingHorizontal: 20,
     paddingTop: 16,
     paddingBottom: 20,
@@ -338,12 +354,12 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: '#0a0909',
     marginBottom: 4,
   },
   headerSubtitle: {
     fontSize: 14,
-    color: '#E3F2FD',
+    color: '#010101',
   },
   scrollView: {
     flex: 1,
@@ -355,11 +371,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     marginTop: 24,
   },
+  sectionTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingBottom: 10,
+  },
+  titleicon: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingBottom: 10,
+  },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '700',
-    color: '#212121',
-    marginBottom: 12,
+    color: '#333',
   },
   profileCard: {
     backgroundColor: '#FFFFFF',
@@ -379,7 +406,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#2196F3',
+    backgroundColor: '#0a0a0a',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
@@ -409,18 +436,18 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   roleBadge: {
-    backgroundColor: '#E3F2FD',
+    backgroundColor: '#edd7d5',
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 12,
     alignSelf: 'flex-start',
     borderWidth: 1,
-    borderColor: '#2196F3',
+    borderColor: '#f32121',
   },
   roleBadgeText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#2196F3',
+    color: '#f3212f',
   },
   settingRow: {
     backgroundColor: '#FFFFFF',
@@ -495,12 +522,12 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#2196F3',
+    borderColor: '#000000',
   },
   languageButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#2196F3',
+    color: '#060606',
   },
   logoutButton: {
     backgroundColor: '#F44336',
@@ -522,7 +549,7 @@ const styles = StyleSheet.create({
   logoutButtonText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: '#090909',
   },
   footer: {
     alignItems: 'center',
@@ -530,16 +557,16 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 14,
-    color: '#9E9E9E',
+    color: '#000000',
     marginBottom: 4,
   },
   footerSubtext: {
     fontSize: 12,
-    color: '#BDBDBD',
+    color: '#080808',
     marginBottom: 4,
   },
   footerCopyright: {
     fontSize: 11,
-    color: '#E0E0E0',
+    color: '#050505',
   },
 });

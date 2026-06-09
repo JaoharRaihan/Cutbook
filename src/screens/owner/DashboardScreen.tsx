@@ -11,9 +11,10 @@ import {
   ScrollView,
   RefreshControl,
   TouchableOpacity,
-  SafeAreaView,
   StatusBar,
 } from 'react-native';
+import {SafeAreaView} from 'react-native-safe-area-context';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import {useOrg} from '@/context';
 import useDailySummary from '@/hooks/useDailySummary';
@@ -70,7 +71,7 @@ export default function DashboardScreen({navigation}: any): React.ReactElement {
           style={styles.dateButton}
           onPress={() => setDatePickerVisible(true)}
           activeOpacity={0.7}>
-          <MaterialCommunityIcons name="calendar" size={16} color="#1976D2" />
+          <MaterialCommunityIcons name="calendar" size={16} color="#7eadf8" />
           <Text style={styles.dateButtonLabel}>
             {isToday(selectedDate) ? 'Today' : formatDateISO(selectedDate)}
           </Text>
@@ -161,7 +162,7 @@ export default function DashboardScreen({navigation}: any): React.ReactElement {
         {!error && summary && (
           <>
             <SummaryCard
-              title="Total Income"
+              title="Total Income without Tips "
               value={formatBDT(summary.totalIncome)}
               icon="💰"
               subtitle={`${summary.entryCount} entries`}
@@ -205,40 +206,51 @@ export default function DashboardScreen({navigation}: any): React.ReactElement {
                 </View>
               </View>
             </View>
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>⚡ Quick Actions</Text>
-              <View style={styles.actionsGrid}>
+            {!error && summary && summary.entryCount === 0 && (
+              <View style={styles.emptyState}>
                 <TouchableOpacity
-                  style={[styles.actionButton, styles.actionButtonPrimary]}
+                  style={styles.emptyStateButton}
                   onPress={() => navigation.navigate('AddWorkEntry')}>
-                  <Text style={styles.actionButtonIcon}>➕</Text>
-                  <Text style={styles.actionButtonTextPrimary}>Add Entry</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.actionButton, styles.actionButtonSecondary]}
-                  onPress={() => navigation.navigate('WorkEntries')}>
-                  <Text style={styles.actionButtonIcon}>📋</Text>
-                  <Text style={styles.actionButtonText}>View All</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.actionButton, styles.actionButtonSecondary]}
-                  onPress={() => navigation.navigate('Reports')}>
-                  <Text style={styles.actionButtonIcon}>📊</Text>
-                  <Text style={styles.actionButtonText}>Reports</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.actionButton, styles.actionButtonSecondary]}
-                  onPress={() => navigation.navigate('Employees')}>
-                  <Text style={styles.actionButtonIcon}>👥</Text>
-                  <Text style={styles.actionButtonText}>Employees</Text>
+                  <View style={{alignItems: 'center', justifyContent: 'center'}}>
+                    <MaterialIcons name="note-add" size={50} color="#000000" />
+                    <Text style={styles.emptyStateButtonText}> Create first entry </Text>
+                  </View>
                 </TouchableOpacity>
               </View>
+            )}
+            <View style={styles.bottomSpacing} />
+            <Text style={styles.sectionTitle}>⚡ Quick Actions</Text>
+            <View style={styles.actionsGrid}>
+              <TouchableOpacity
+                style={[styles.actionButton, styles.actionButtonPrimary]}
+                onPress={() => navigation.navigate('AddWorkEntry')}>
+                <MaterialIcons name="note-add" size={50} color="#f3e7e7" />
+                <Text style={styles.actionButtonTextPrimary}>Add WORK Entry</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.actionButton, styles.actionButtonSecondary]}
+                onPress={() => navigation.navigate('WorkEntries')}>
+                <MaterialIcons name="table-view" size={50} color="#000000" />
+                <Text style={styles.actionButtonText}>Entry History</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.actionButton, styles.actionButtonSecondary]}
+                onPress={() => navigation.navigate('Reports')}>
+                <MaterialIcons name="bar-chart" size={50} color="#000000" />
+                <Text style={styles.actionButtonText}>Summary</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.actionButton, styles.actionButtonSecondary]}
+                onPress={() => navigation.navigate('Employees')}>
+                <MaterialIcons name="people" size={50} color="#000000" />
+                <Text style={styles.actionButtonText}>Employees</Text>
+              </TouchableOpacity>
             </View>
 
             {/* Employee Payouts Section */}
             {cashStats.employeePayouts.length > 0 && (
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>💳 Employee Payouts</Text>
+                <Text style={styles.sectionTitle}>Employees Received Money</Text>
                 <View style={styles.payoutsBreakdown}>
                   {cashStats.employeePayouts.slice(0, 5).map((payout, index) => (
                     <View key={`${payout.name}-${index}`} style={styles.payoutRow}>
@@ -278,19 +290,6 @@ export default function DashboardScreen({navigation}: any): React.ReactElement {
             )}
           </>
         )}
-        {!error && summary && summary.entryCount === 0 && (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyStateIcon}>📭</Text>
-            <Text style={styles.emptyStateTitle}>No entries yet</Text>
-            <Text style={styles.emptyStateText}>
-              Start adding work entries for {isToday(selectedDate) ? 'today' : 'this day'}
-            </Text>
-            <TouchableOpacity style={styles.emptyStateButton}>
-              <Text style={styles.emptyStateButtonText}>➕ Add First Entry</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-        <View style={styles.bottomSpacing} />
       </ScrollView>
 
       {/* Date Picker Modal */}
@@ -305,220 +304,368 @@ export default function DashboardScreen({navigation}: any): React.ReactElement {
 }
 
 const styles = StyleSheet.create({
-  container: {flex: 1, backgroundColor: '#FAFAFA'},
+  container: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+  },
+
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 35,
-    backgroundColor: '#ffffff',
+    paddingVertical: 8,
+    backgroundColor: '#e8f3ef',
     borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    borderBottomColor: '#EAEAEA',
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 7,
-    paddingBottom: 16,
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 4,
   },
-  headerTitle: {fontSize: 22, fontWeight: '700', color: '#212121'},
-  headerSubtitle: {fontSize: 14, color: '#757575', marginTop: 4},
+
+  headerTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#1C1C1C',
+  },
+
+  headerSubtitle: {
+    fontSize: 13,
+    color: '#6B7280',
+    marginTop: 2,
+  },
+
   dateButton: {
     flexDirection: 'column',
     paddingHorizontal: 12,
-    paddingVertical: 16,
-    borderRadius: 12,
-    backgroundColor: '#E3F2FD',
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: '#EAEAEA',
     borderWidth: 1,
-    borderColor: '#2196F3',
+    borderColor: '#7eadf8',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 4,
+    gap: 3,
   },
+
   dateButtonIcon: {
-    fontSize: 24,
+    fontSize: 22,
   },
+
   dateButtonLabel: {
-    fontSize: 11,
-    color: '#1976D2',
+    fontSize: 9,
+    color: '#7eadf8',
     fontWeight: '600',
   },
-  scrollView: {flex: 1},
-  scrollContent: {padding: 16},
-  errorContainer: {
-    backgroundColor: '#FFEBEE',
+
+  scrollView: {
+    flex: 1,
+  },
+
+  scrollContent: {
     padding: 16,
-    borderRadius: 8,
+  },
+
+  errorContainer: {
+    backgroundColor: '#FEE2E2',
+    padding: 14,
+    borderRadius: 10,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#F44336',
+    borderColor: '#FCA5A5',
   },
-  errorText: {fontSize: 16, color: '#F44336', textAlign: 'center', marginBottom: 12},
+
+  errorText: {
+    fontSize: 15,
+    color: '#DC2626',
+    textAlign: 'center',
+    marginBottom: 10,
+  },
+
   retryButton: {
-    backgroundColor: '#F44336',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 6,
+    backgroundColor: '#DC2626',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
     alignSelf: 'center',
   },
-  retryButtonText: {color: '#FFFFFF', fontSize: 16, fontWeight: '600'},
-  gridContainer: {marginTop: 8},
-  gridRow: {flexDirection: 'row', marginBottom: 8},
-  gridItem: {flex: 1, marginHorizontal: 4},
-  section: {marginTop: 24},
-  sectionTitle: {fontSize: 20, fontWeight: '700', color: '#212121', marginBottom: 16},
-  rankCardsContainer: {gap: 12},
-  actionsGrid: {flexDirection: 'row', flexWrap: 'wrap', gap: 12},
+
+  retryButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+
+  gridContainer: {
+    marginTop: 8,
+  },
+
+  gridRow: {
+    flexDirection: 'row',
+    marginBottom: 8,
+  },
+
+  gridItem: {
+    flex: 1,
+    marginHorizontal: 4,
+  },
+
+  section: {
+    marginTop: 16,
+  },
+
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 12,
+  },
+
+  rankCardsContainer: {
+    gap: 12,
+  },
+
+  actionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+
   actionButton: {
     width: '48%',
     padding: 16,
-    borderRadius: 8,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 100,
+    minHeight: 95,
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
     elevation: 3,
   },
-  actionButtonPrimary: {backgroundColor: '#2196F3'},
-  actionButtonSecondary: {backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E0E0E0'},
-  actionButtonIcon: {fontSize: 32, marginBottom: 8},
-  actionButtonText: {fontSize: 16, fontWeight: '600', color: '#212121'},
-  actionButtonTextPrimary: {fontSize: 16, fontWeight: '600', color: '#FFFFFF'},
-  emptyState: {alignItems: 'center', justifyContent: 'center', paddingVertical: 64},
-  emptyStateIcon: {fontSize: 64, marginBottom: 16},
-  emptyStateTitle: {fontSize: 22, fontWeight: '700', color: '#212121', marginBottom: 8},
-  emptyStateText: {fontSize: 16, color: '#757575', textAlign: 'center', marginBottom: 24},
-  emptyStateButton: {
-    backgroundColor: '#2196F3',
-    paddingVertical: 16,
-    paddingHorizontal: 32,
-    borderRadius: 8,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 4},
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 5,
+
+  actionButtonPrimary: {
+    backgroundColor: '#000000',
   },
-  emptyStateButtonText: {color: '#FFFFFF', fontSize: 16, fontWeight: '600'},
-  bottomSpacing: {height: 24},
-  // Cash Account Styles
-  cashSection: {marginBottom: 24},
-  cashSectionTitle: {fontSize: 18, fontWeight: '700', color: '#212121', marginBottom: 12},
-  cashContainer: {flexDirection: 'row', gap: 12, marginBottom: 16},
+
+  actionButtonSecondary: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+
+  actionButtonIcon: {
+    fontSize: 30,
+    marginBottom: 6,
+  },
+
+  actionButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#020202',
+  },
+
+  actionButtonTextPrimary: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#ffffff',
+  },
+
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 5,
+  },
+
+  emptyStateIcon: {
+    fontSize: 60,
+    marginBottom: 12,
+  },
+
+  emptyStateTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 6,
+  },
+
+  emptyStateText: {
+    fontSize: 14,
+    color: '#6B7280',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+
+  emptyStateButton: {
+    backgroundColor: '#f32121',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 10,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 3},
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+
+  emptyStateButtonText: {
+    color: '#000000',
+    fontSize: 15,
+    fontWeight: '600',
+    paddingHorizontal: 10,
+  },
+
+  bottomSpacing: {
+    height: 24,
+    marginTop: -20,
+  },
+
+  cashSection: {
+    marginBottom: 20,
+  },
+
+  cashSectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 10,
+  },
+
+  cashContainer: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 14,
+  },
+
   cashCard: {
     flex: 1,
-    padding: 16,
+    padding: 14,
     borderRadius: 12,
     borderLeftWidth: 4,
   },
+
   cashCardAvailable: {
-    backgroundColor: '#E8F5E9',
-    borderLeftColor: '#4CAF50',
+    backgroundColor: '#ECFDF5',
+    borderLeftColor: '#10B981',
   },
+
   cashCardPaidOut: {
-    backgroundColor: '#FFF3E0',
-    borderLeftColor: '#FF9800',
+    backgroundColor: '#FFF7ED',
+    borderLeftColor: '#F97316',
   },
+
   cashLabel: {
-    fontSize: 13,
-    color: '#666',
-    marginBottom: 8,
+    fontSize: 12,
+    color: '#6B7280',
+    marginBottom: 6,
     fontWeight: '600',
   },
+
   cashAmount: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: '700',
-    color: '#4CAF50',
+    color: '#10B981',
     marginBottom: 4,
   },
+
   cashAmountPaidOut: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: '700',
-    color: '#FF9800',
+    color: '#F97316',
     marginBottom: 4,
   },
+
   cashSubtext: {
-    fontSize: 12,
-    color: '#999',
-    fontStyle: 'italic',
+    fontSize: 11,
+    color: '#9CA3AF',
   },
+
   payoutsBreakdown: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
-    padding: 16,
+    padding: 14,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: '#E5E7EB',
   },
+
   payoutsTitle: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
-    color: '#212121',
-    marginBottom: 12,
+    color: '#111827',
+    marginBottom: 10,
   },
+
   payoutRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#F5F5F5',
+    borderBottomColor: '#F3F4F6',
   },
+
   payoutEmployeeName: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
-    color: '#212121',
-    marginBottom: 4,
+    color: '#111827',
+    marginBottom: 2,
   },
+
   payoutCount: {
-    fontSize: 12,
-    color: '#999',
+    fontSize: 11,
+    color: '#9CA3AF',
   },
+
   payoutAmount: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
-    color: '#FF9800',
+    color: '#F97316',
   },
+
   morePayouts: {
     fontSize: 12,
     color: '#2196F3',
-    marginTop: 12,
+    marginTop: 10,
     fontWeight: '600',
     textAlign: 'center',
   },
-  // Period Filter Styles
+
   filterContainer: {
     flexDirection: 'row',
     gap: 8,
-    marginBottom: 16,
+    marginBottom: 12,
     paddingHorizontal: 4,
   },
+
   filterButton: {
     flex: 1,
     paddingVertical: 8,
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     borderRadius: 10,
-    backgroundColor: '#F5F5F5',
-    borderWidth: 2,
-    borderColor: '#E0E0E0',
+    backgroundColor: '#F3F4F6',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
     alignItems: 'center',
     justifyContent: 'center',
   },
+
   filterButtonActive: {
-    backgroundColor: '#E3F2FD',
-    borderColor: '#2196F3',
+    backgroundColor: '#e8f3ef',
+    borderColor: '#10B981',
   },
+
   filterButtonText: {
     fontSize: 10,
     fontWeight: '600',
-    color: '#666',
+    color: '#10B981',
     textAlign: 'center',
   },
+
   filterButtonTextActive: {
-    color: '#2196F3',
+    color: '#10B981',
     fontWeight: '700',
   },
 });

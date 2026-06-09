@@ -10,15 +10,16 @@ import {
   StyleSheet,
   SectionList,
   TouchableOpacity,
-  SafeAreaView,
   StatusBar,
   TextInput,
   RefreshControl,
   ActivityIndicator,
 } from 'react-native';
+import {SafeAreaView} from 'react-native-safe-area-context';
 import {useOrg} from '@/context';
 import ServiceCard from '@/components/ServiceCard';
 import {Service} from '@/types';
+import MaterialIcons from '@react-native-vector-icons/material-icons';
 
 // ============================================================================
 // COMPONENT
@@ -138,7 +139,7 @@ export default function ServicesScreen({navigation}: any): React.ReactElement {
           {/* Search Bar */}
           <View style={styles.searchContainer}>
             <View style={styles.searchBar}>
-              <Text style={styles.searchIcon}>🔍</Text>
+              <MaterialIcons name="saved-search" style={styles.emptyIcon} />
               <TextInput
                 style={styles.searchInput}
                 placeholder="Search services..."
@@ -180,7 +181,7 @@ export default function ServicesScreen({navigation}: any): React.ReactElement {
           {/* Floating Action Button */}
           {orgServices.length > 0 && (
             <TouchableOpacity style={styles.fab} onPress={handleAddService}>
-              <Text style={styles.fabIcon}>➕</Text>
+              <MaterialIcons name="add" size={44} color="#fff" />
             </TouchableOpacity>
           )}
         </>
@@ -201,7 +202,7 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: 16,
     paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#e8f3ef',
     borderBottomWidth: 1,
     borderBottomColor: '#E0E0E0',
   },
@@ -265,7 +266,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1976D2',
+    color: '#9572dc',
     textTransform: 'capitalize',
   },
   sectionCount: {
@@ -284,8 +285,8 @@ const styles = StyleSheet.create({
     paddingVertical: 64,
   },
   emptyIcon: {
-    fontSize: 64,
-    marginBottom: 16,
+    fontSize: 44,
+    marginBottom: 10,
   },
   emptyTitle: {
     fontSize: 22,
@@ -323,7 +324,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#2196F3',
+    backgroundColor: '#000000',
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',

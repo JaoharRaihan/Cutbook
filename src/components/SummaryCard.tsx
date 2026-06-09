@@ -69,7 +69,7 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
         <Text style={styles.icon}>{icon}</Text>
       ) : null}
       <Text style={styles.title}>{title}</Text>
-      <Text style={[styles.value, {color: getColor()}]}>{value}</Text>
+      <Text style={[styles.value, {color: '#fbfbfb'}]}>{value}</Text>
       {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
     </View>
   );
@@ -99,7 +99,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 13,
     fontWeight: '500',
-    color: Theme.colors.text.secondary,
+    color: '#530b0b',
     marginBottom: 8,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -111,7 +111,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 12,
-    color: Theme.colors.text.hint,
+    color: '#f7efef',
   },
 });
 

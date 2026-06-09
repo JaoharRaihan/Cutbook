@@ -8,6 +8,7 @@ import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {createStackNavigator} from '@react-navigation/stack';
 import {Text} from 'react-native';
 import Theme from '@/constants/theme';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 
 // Screens
 import DashboardScreen from '@/screens/owner/DashboardScreen';
@@ -232,7 +233,7 @@ const OwnerNavigator: React.FC = () => {
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: Theme.colors.primary[600],
+        tabBarActiveTintColor: '#000000',
         tabBarInactiveTintColor: Theme.colors.text.secondary,
         tabBarStyle: {
           backgroundColor: '#FFFFFF',
@@ -252,7 +253,9 @@ const OwnerNavigator: React.FC = () => {
         component={DashboardNavigator}
         options={{
           tabBarLabel: 'Dashboard',
-          tabBarIcon: ({color, size}) => <Text style={{fontSize: size, color}}>📊</Text>,
+          tabBarIcon: ({color, size}) => (
+            <MaterialIcons name="dashboard-customize" size={size} color={color} />
+          ),
         }}
       />
       <Tab.Screen
@@ -260,7 +263,9 @@ const OwnerNavigator: React.FC = () => {
         component={EmployeesNavigator}
         options={{
           tabBarLabel: 'Employees',
-          tabBarIcon: ({color, size}) => <Text style={{fontSize: size, color}}>👥</Text>,
+          tabBarIcon: ({color, size}) => (
+            <MaterialIcons name="people-alt" size={size} color={color} />
+          ),
         }}
       />
       <Tab.Screen
@@ -268,15 +273,17 @@ const OwnerNavigator: React.FC = () => {
         component={ServicesNavigator}
         options={{
           tabBarLabel: 'Services',
-          tabBarIcon: ({color, size}) => <Text style={{fontSize: size, color}}>✂️</Text>,
+          tabBarIcon: ({color, size}) => (
+            <MaterialIcons name="content-cut" size={size} color={color} />
+          ),
         }}
       />
       <Tab.Screen
         name="Settings"
         component={SettingsNavigator}
         options={{
-          tabBarLabel: 'Settings',
-          tabBarIcon: ({color, size}) => <Text style={{fontSize: size, color}}>⚙️</Text>,
+          tabBarLabel: 'Profile',
+          tabBarIcon: ({color, size}) => <MaterialIcons name="person" size={size} color={color} />,
         }}
       />
     </Tab.Navigator>

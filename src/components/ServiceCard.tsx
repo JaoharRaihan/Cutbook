@@ -5,44 +5,37 @@
 
 import React from 'react';
 import {View, Text, StyleSheet, TouchableOpacity} from 'react-native';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import Theme from '@/constants/theme';
 import {Service, ServiceCategory} from '@/types';
 import {formatBDT} from '@/utils/currency';
-
-// ============================================================================
-// TYPES
-// ============================================================================
 
 interface ServiceCardProps {
   service: Service;
   onPress?: () => void;
 }
 
-// ============================================================================
-// COMPONENT
-// ============================================================================
-
 export default function ServiceCard({service, onPress}: ServiceCardProps): React.ReactElement {
   const getCategoryIcon = (category: ServiceCategory): string => {
     switch (category) {
       case ServiceCategory.HAIRCUT:
-        return '✂️';
+        return 'content-cut';
       case ServiceCategory.SHAVE:
-        return '🪒';
+        return 'cleaning-services';
       case ServiceCategory.BEARD:
-        return '🧔';
+        return 'face';
       case ServiceCategory.COLOR:
-        return '🎨';
+        return 'palette';
       case ServiceCategory.FACIAL:
-        return '💆';
+        return 'spa';
       case ServiceCategory.MASSAGE:
-        return '💆‍♂️';
+        return 'self-improvement';
       case ServiceCategory.SPA:
-        return '🛁';
+        return 'bathtub';
       case ServiceCategory.OTHER:
-        return '✨';
+        return 'auto-awesome';
       default:
-        return '💈';
+        return 'storefront';
     }
   };
 
@@ -70,23 +63,29 @@ export default function ServiceCard({service, onPress}: ServiceCardProps): React
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.7} disabled={!onPress}>
       <View style={styles.content}>
-        {/* Icon */}
+        {/* ICON */}
         <View
           style={[
             styles.iconContainer,
             {backgroundColor: getCategoryColor(service.category) + '20'},
           ]}>
-          <Text style={styles.icon}>{getCategoryIcon(service.category)}</Text>
+          <MaterialIcons
+            name={getCategoryIcon(service.category)}
+            size={24}
+            color={getCategoryColor(service.category)}
+          />
         </View>
 
-        {/* Info */}
+        {/* INFO */}
         <View style={styles.info}>
           <Text style={styles.name} numberOfLines={1}>
             {service.name}
           </Text>
+
           {service.defaultPrice !== undefined && (
             <Text style={styles.price}>{formatBDT(service.defaultPrice)}</Text>
           )}
+
           {service.description && (
             <Text style={styles.description} numberOfLines={2}>
               {service.description}
@@ -94,10 +93,10 @@ export default function ServiceCard({service, onPress}: ServiceCardProps): React
           )}
         </View>
 
-        {/* Arrow or Badge */}
+        {/* RIGHT SIDE */}
         {onPress ? (
           <View style={styles.arrow}>
-            <Text style={styles.arrowText}>›</Text>
+            <MaterialIcons name="chevron-right" size={24} color={Theme.colors.neutral[400]} />
           </View>
         ) : (
           service.isActive !== undefined &&
@@ -111,10 +110,6 @@ export default function ServiceCard({service, onPress}: ServiceCardProps): React
     </TouchableOpacity>
   );
 }
-
-// ============================================================================
-// STYLES
-// ============================================================================
 
 const styles = StyleSheet.create({
   card: {
@@ -130,10 +125,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Theme.colors.neutral[200],
   },
+
   content: {
     flexDirection: 'row',
     alignItems: 'center',
   },
+
   iconContainer: {
     width: 48,
     height: 48,
@@ -142,37 +139,35 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: 12,
   },
-  icon: {
-    fontSize: 24,
-  },
+
   info: {
     flex: 1,
   },
+
   name: {
     fontSize: 16,
     fontWeight: '600',
     color: Theme.colors.text.primary,
     marginBottom: 4,
   },
+
   price: {
     fontSize: 18,
     fontWeight: '700',
     color: Theme.colors.success.main,
     marginBottom: 4,
   },
+
   description: {
     fontSize: 13,
     color: Theme.colors.text.secondary,
     lineHeight: 18,
   },
+
   arrow: {
     marginLeft: 8,
   },
-  arrowText: {
-    fontSize: 28,
-    color: Theme.colors.neutral[400],
-    fontWeight: '300',
-  },
+
   inactiveBadge: {
     backgroundColor: Theme.colors.error.light + '30',
     paddingHorizontal: 10,
@@ -180,6 +175,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginLeft: 8,
   },
+
   inactiveBadgeText: {
     fontSize: 11,
     fontWeight: '600',

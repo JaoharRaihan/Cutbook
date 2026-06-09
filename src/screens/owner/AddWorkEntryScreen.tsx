@@ -19,6 +19,7 @@ import {
 } from 'react-native';
 import {useOrg, useData, useAuth} from '@/context';
 import {WorkEntry, PaymentMethod, Service, User} from '@/types';
+import MaterialIcons from '@react-native-vector-icons/material-icons';
 
 // ============================================================================
 // COMPONENT
@@ -210,8 +211,13 @@ export default function AddWorkEntryScreen({navigation}: any): React.ReactElemen
           keyboardShouldPersistTaps="handled">
           {/* Info Card */}
           <View style={styles.infoCard}>
-            <Text style={styles.infoIcon}>💈</Text>
-            <Text style={styles.infoText}>Record a completed service for commission tracking</Text>
+            <Text style={styles.infoText}>
+              Select employee, service, amount, and payment method, then tap{''}
+              <Text style={{fontWeight: '600', color: '#2E7D32', fontSize: 14}}>
+                {' '}
+                Add Work Entry Button
+              </Text>{' '}
+            </Text>
           </View>
 
           {/* Employee Selection */}
@@ -495,7 +501,7 @@ const styles = StyleSheet.create({
   infoCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#E3F2FD',
+    backgroundColor: '#d2f1d2',
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
@@ -503,11 +509,12 @@ const styles = StyleSheet.create({
   infoIcon: {
     fontSize: 24,
     marginRight: 12,
+    color: '#cb2323',
   },
   infoText: {
     flex: 1,
     fontSize: 14,
-    color: '#1565C0',
+    color: '#008000',
     lineHeight: 20,
   },
   section: {
@@ -549,7 +556,7 @@ const styles = StyleSheet.create({
     paddingTop: 14,
   },
   placeholderText: {
-    color: '#999',
+    color: '#008000',
   },
   pickerButton: {
     flexDirection: 'row',
@@ -564,11 +571,11 @@ const styles = StyleSheet.create({
   },
   pickerButtonText: {
     fontSize: 16,
-    color: '#212121',
+    color: '#000000',
   },
   pickerArrow: {
     fontSize: 12,
-    color: '#757575',
+    color: '#f50c20',
   },
   pickerOptions: {
     marginTop: 8,
@@ -593,17 +600,17 @@ const styles = StyleSheet.create({
   },
   pickerOptionText: {
     fontSize: 16,
-    color: '#212121',
+    color: '#060606',
     fontWeight: '500',
   },
   pickerOptionSubtext: {
     fontSize: 13,
-    color: '#757575',
+    color: '#008000',
     marginTop: 2,
   },
   checkmark: {
     fontSize: 18,
-    color: '#2196F3',
+    color: '#2510b2',
     fontWeight: '700',
   },
   toggleContainer: {
@@ -633,7 +640,7 @@ const styles = StyleSheet.create({
     color: '#757575',
   },
   toggleButtonTextActive: {
-    color: '#2196F3',
+    color: '#008000',
     fontWeight: '600',
   },
   priceInputContainer: {

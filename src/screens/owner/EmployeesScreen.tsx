@@ -10,7 +10,6 @@ import {
   StyleSheet,
   FlatList,
   TouchableOpacity,
-  SafeAreaView,
   StatusBar,
   TextInput,
   RefreshControl,
@@ -18,9 +17,11 @@ import {
   Clipboard,
   Alert,
 } from 'react-native';
+import {SafeAreaView} from 'react-native-safe-area-context';
 import {useOrg} from '@/context';
 import EmployeeCard from '@/components/EmployeeCard';
 import {User, UserRole} from '@/types';
+import MaterialIcons from '@react-native-vector-icons/material-icons';
 
 // ============================================================================
 // COMPONENT
@@ -112,7 +113,7 @@ export default function EmployeesScreen({navigation}: any): React.ReactElement {
 
   const renderNoResults = () => (
     <View style={styles.emptyState}>
-      <Text style={styles.emptyIcon}>🔍</Text>
+      <MaterialIcons name="saved-search" style={styles.emptyIcon} />
       <Text style={styles.emptyTitle}>No results found</Text>
       <Text style={styles.emptyText}>Try a different search term</Text>
     </View>
@@ -141,7 +142,7 @@ export default function EmployeesScreen({navigation}: any): React.ReactElement {
           {/* Search Bar */}
           <View style={styles.searchContainer}>
             <View style={styles.searchBar}>
-              <Text style={styles.searchIcon}>🔍</Text>
+              <MaterialIcons name="saved-search" style={styles.emptyIcon} />
               <TextInput
                 style={styles.searchInput}
                 placeholder="Search by name, phone, or email..."
@@ -184,7 +185,7 @@ export default function EmployeesScreen({navigation}: any): React.ReactElement {
           {/* Floating Action Button */}
           {employees.length > 0 && (
             <TouchableOpacity style={styles.fab} onPress={handleAddEmployee}>
-              <Text style={styles.fabIcon}>➕</Text>
+              <MaterialIcons name="add" size={44} color="#fff" />
             </TouchableOpacity>
           )}
         </>
@@ -205,7 +206,7 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: 16,
     paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#e8f3ef',
     borderBottomWidth: 1,
     borderBottomColor: '#E0E0E0',
   },
@@ -262,8 +263,8 @@ const styles = StyleSheet.create({
     paddingVertical: 64,
   },
   emptyIcon: {
-    fontSize: 64,
-    marginBottom: 16,
+    fontSize: 40,
+    marginBottom: 8,
   },
   emptyTitle: {
     fontSize: 22,
@@ -279,7 +280,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
   },
   emptyButton: {
-    backgroundColor: '#2196F3',
+    backgroundColor: '#f36021',
     paddingVertical: 16,
     paddingHorizontal: 32,
     borderRadius: 12,
@@ -301,7 +302,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#2196F3',
+    backgroundColor: '#f32121',
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',

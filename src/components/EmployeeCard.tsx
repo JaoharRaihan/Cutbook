@@ -7,6 +7,7 @@ import React from 'react';
 import {View, Text, StyleSheet, TouchableOpacity} from 'react-native';
 import Theme from '@/constants/theme';
 import {User, UserStatus} from '@/types';
+import MaterialIcons from '@react-native-vector-icons/material-icons';
 
 // ============================================================================
 // TYPES
@@ -77,14 +78,14 @@ export default function EmployeeCard({employee, onPress}: EmployeeCardProps): Re
           </View>
 
           <Text style={styles.phone} numberOfLines={1}>
-            📱 {employee.phone}
+            {employee.phone}
           </Text>
 
-          {employee.email && (
+          {/* {employee.email && (
             <Text style={styles.email} numberOfLines={1}>
-              ✉️ {employee.email}
+              {employee.email}
             </Text>
-          )}
+          )} */}
 
           {employee.commissionPercentage !== undefined && (
             <Text style={styles.commission}>💰 Commission: {employee.commissionPercentage}%</Text>
@@ -176,7 +177,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   email: {
-    fontSize: 14,
+    fontSize: 12,
     color: Theme.colors.text.secondary,
     marginBottom: 4,
   },
