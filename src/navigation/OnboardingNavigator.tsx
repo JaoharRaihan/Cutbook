@@ -10,6 +10,7 @@ import Theme from '@/constants/theme';
 import {useAuth} from '@/context';
 import {UserRole} from '@/types';
 import {View, Text, TouchableOpacity, StyleSheet} from 'react-native';
+import MaterialIcons from '@react-native-vector-icons/material-icons';
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -40,7 +41,7 @@ const OnboardingChoiceScreen: React.FC<{navigation: any}> = ({navigation}) => {
     return (
       <View style={styles.container}>
         <View style={styles.content}>
-          <Text style={styles.emoji}>🎉</Text>
+          <MaterialIcons name="celebration" style={styles.emoji} />
           <Text style={styles.title}>Welcome to CutBook!</Text>
           <Text style={styles.subtitle}>Let's set up your salon</Text>
 
@@ -48,7 +49,7 @@ const OnboardingChoiceScreen: React.FC<{navigation: any}> = ({navigation}) => {
             <TouchableOpacity
               style={styles.primaryButton}
               onPress={() => navigation.navigate('CreateOrg')}>
-              <Text style={styles.primaryButtonIcon}>🏪</Text>
+              <MaterialIcons name="domain-add" style={styles.primaryButtonIcon} />
               <Text style={styles.primaryButtonText}>Create New Salon</Text>
               <Text style={styles.primaryButtonSubtext}>Start your own organization</Text>
             </TouchableOpacity>
@@ -56,7 +57,7 @@ const OnboardingChoiceScreen: React.FC<{navigation: any}> = ({navigation}) => {
             <TouchableOpacity
               style={styles.secondaryButton}
               onPress={() => navigation.navigate('JoinOrg')}>
-              <Text style={styles.secondaryButtonIcon}>🤝</Text>
+              <MaterialIcons name="handshake" style={styles.secondaryButtonIcon} />
               <Text style={styles.secondaryButtonText}>Join Existing Salon</Text>
               <Text style={styles.secondaryButtonSubtext}>Use an invite code</Text>
             </TouchableOpacity>
@@ -70,7 +71,7 @@ const OnboardingChoiceScreen: React.FC<{navigation: any}> = ({navigation}) => {
   return (
     <View style={styles.container}>
       <View style={styles.content}>
-        <Text style={styles.emoji}>🎉</Text>
+        <MaterialIcons name="celebration" style={styles.emoji} />
         <Text style={styles.title}>Welcome to CutBook!</Text>
         <Text style={styles.subtitle}>Let's get started</Text>
       </View>
@@ -141,17 +142,18 @@ const styles = StyleSheet.create({
   emoji: {
     fontSize: 80,
     marginBottom: 24,
+    color: '#9269fc',
   },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: Theme.colors.text.primary,
+    color: '#9269fc',
     marginBottom: 8,
     textAlign: 'center',
   },
   subtitle: {
     fontSize: 16,
-    color: Theme.colors.text.secondary,
+    color: '#3a80c1',
     marginBottom: 48,
     textAlign: 'center',
   },
@@ -160,7 +162,7 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   primaryButton: {
-    backgroundColor: Theme.colors.primary[600],
+    backgroundColor: '#008000',
     paddingVertical: 20,
     paddingHorizontal: 24,
     borderRadius: Theme.borderRadius.lg,
@@ -170,6 +172,7 @@ const styles = StyleSheet.create({
   primaryButtonIcon: {
     fontSize: 32,
     marginBottom: 8,
+    color: '#ffffff',
   },
   primaryButtonText: {
     fontSize: 18,
@@ -183,27 +186,28 @@ const styles = StyleSheet.create({
     opacity: 0.9,
   },
   secondaryButton: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#c38fd2',
     paddingVertical: 20,
     paddingHorizontal: 24,
     borderRadius: Theme.borderRadius.lg,
     borderWidth: 2,
-    borderColor: Theme.colors.primary[600],
+    borderColor: '#fa070700',
     alignItems: 'center',
   },
   secondaryButtonIcon: {
     fontSize: 32,
     marginBottom: 8,
+    color: '#ffffff',
   },
   secondaryButtonText: {
     fontSize: 18,
     fontWeight: '600',
-    color: Theme.colors.primary[600],
+    color: '#ffffff',
     marginBottom: 4,
   },
   secondaryButtonSubtext: {
     fontSize: 14,
-    color: Theme.colors.text.secondary,
+    color: '#ffffff',
   },
 });
 

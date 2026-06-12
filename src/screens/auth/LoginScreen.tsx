@@ -15,12 +15,14 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  Image,
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import type {StackNavigationProp} from '@react-navigation/stack';
 import {useAuth} from '@/context';
 import type {AuthStackParamList} from '@/navigation/AuthNavigator';
 import Theme from '@/constants/theme';
+import MaterialIcons from '@react-native-vector-icons/material-icons';
 
 type LoginScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'Login'>;
 
@@ -118,8 +120,8 @@ const LoginScreen: React.FC = () => {
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.appName}>CutBook</Text>
-          <Text style={styles.tagline}>Professional Salon Management</Text>
+          <Image style={styles.applogo} source={require('../../assets/loginlogo.png')} />
+          <Text style={styles.tagline}>POS for Salon Management</Text>
         </View>
 
         {/* Form */}
@@ -131,10 +133,10 @@ const LoginScreen: React.FC = () => {
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Phone Number</Text>
             <View style={styles.phoneInputWrapper}>
-              <Text style={styles.countryCode}>+880</Text>
+              <Text style={styles.countryCode}>+88</Text>
               <TextInput
                 style={[styles.input, styles.phoneInput, errors.phone ? styles.inputError : null]}
-                placeholder="01XXXXXXXXX"
+                placeholder="01874XXXX26"
                 value={phone}
                 onChangeText={handlePhoneChange}
                 keyboardType="phone-pad"
@@ -171,7 +173,11 @@ const LoginScreen: React.FC = () => {
                 style={styles.eyeButton}
                 onPress={() => setShowPassword(!showPassword)}
                 disabled={loading}>
-                <Text style={styles.eyeText}>{showPassword ? '👁️' : '👁️‍🗨️'}</Text>
+                <MaterialIcons
+                  name={showPassword ? 'visibility' : 'visibility-off'}
+                  size={24}
+                  color="Gray"
+                />
               </TouchableOpacity>
             </View>
             {errors.password ? <Text style={styles.errorText}>{errors.password}</Text> : null}
@@ -217,20 +223,19 @@ const styles = StyleSheet.create({
   header: {
     alignItems: 'center',
     paddingTop: 60,
-    paddingBottom: 40,
-    backgroundColor: Theme.colors.primary[600],
+    paddingBottom: 20,
+    backgroundColor: '#fffffff',
   },
-  appName: {
-    fontSize: 42,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    marginBottom: 8,
-    letterSpacing: 1,
+  applogo: {
+    width: 100,
+    height: 100,
+    paddingVertical: 40,
   },
   tagline: {
     fontSize: 14,
-    color: '#FFFFFF',
+    color: '#000000',
     opacity: 0.9,
+    fontWeight: 'bold',
   },
   form: {
     flex: 1,
@@ -320,7 +325,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   loginButton: {
-    backgroundColor: Theme.colors.primary[600],
+    backgroundColor: '#000000',
     paddingVertical: 16,
     borderRadius: Theme.borderRadius.md,
     alignItems: 'center',
@@ -349,7 +354,7 @@ const styles = StyleSheet.create({
   registerLink: {
     fontSize: 14,
     fontWeight: '600',
-    color: Theme.colors.primary[600],
+    color: '#008000',
   },
 });
 

@@ -97,13 +97,13 @@ export default function ServicesScreen({navigation}: any): React.ReactElement {
 
   const renderEmpty = () => (
     <View style={styles.emptyState}>
-      <Text style={styles.emptyIcon}>💈</Text>
+      <MaterialIcons name="assignment-add" style={styles.emptyIcon} />
       <Text style={styles.emptyTitle}>No services yet</Text>
       <Text style={styles.emptyText}>
         Add your first service to start managing your salon offerings
       </Text>
       <TouchableOpacity style={styles.emptyButton} onPress={handleAddService}>
-        <Text style={styles.emptyButtonText}>➕ Add Service</Text>
+        <Text style={styles.emptyButtonText}>Add Service</Text>
       </TouchableOpacity>
     </View>
   );
@@ -139,7 +139,7 @@ export default function ServicesScreen({navigation}: any): React.ReactElement {
           {/* Search Bar */}
           <View style={styles.searchContainer}>
             <View style={styles.searchBar}>
-              <MaterialIcons name="saved-search" style={styles.emptyIcon} />
+              <MaterialIcons name="search" style={styles.emptyIcon} />
               <TextInput
                 style={styles.searchInput}
                 placeholder="Search services..."
@@ -302,7 +302,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
   },
   emptyButton: {
-    backgroundColor: '#2196F3',
+    backgroundColor: '#f36021',
     paddingVertical: 16,
     paddingHorizontal: 32,
     borderRadius: 12,

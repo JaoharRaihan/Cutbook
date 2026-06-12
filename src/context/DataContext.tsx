@@ -224,9 +224,12 @@ export const DataProvider: React.FC<{children: React.ReactNode}> = ({children}) 
         if (payload.serviceId) {
           newEntry.serviceId = payload.serviceId;
         }
-        if (payload.tip && payload.tip > 0) {
+        // IMPORTANT: write tip when it's explicitly provided.
+        // Preserve 0 as a valid value when user entered 0; but still omit undefined.
+        if (payload.tip !== undefined && payload.tip >= 0) {
           newEntry.tip = payload.tip;
         }
+
         if (payload.note && payload.note.trim()) {
           newEntry.note = payload.note.trim();
         }

@@ -7,6 +7,7 @@ import React from 'react';
 import {View, Text, StyleSheet, TouchableOpacity} from 'react-native';
 import {WorkEntry, PaymentMethod} from '@/types';
 import {formatBDT} from '@/utils';
+import MaterialIcons from '@react-native-vector-icons/material-icons';
 
 // ============================================================================
 // TYPES
@@ -30,11 +31,11 @@ export default function WorkEntryCard({
   const getPaymentMethodColor = (method: PaymentMethod): string => {
     switch (method) {
       case PaymentMethod.CASH:
-        return '#4CAF50';
+        return '#008000';
       case PaymentMethod.BKASH:
         return '#E91E63';
       case PaymentMethod.CARD:
-        return '#2196F3';
+        return '#3aa7f4';
       case PaymentMethod.NAGAD:
         return '#FF9800';
       default:
@@ -109,7 +110,7 @@ export default function WorkEntryCard({
 
       {entry.edited && (
         <View style={styles.editedBadge}>
-          <Text style={styles.editedText}>✏️ Edited</Text>
+          <MaterialIcons name="edit" style={styles.editedText} />
         </View>
       )}
     </TouchableOpacity>
@@ -160,7 +161,7 @@ const styles = StyleSheet.create({
   price: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#4CAF50',
+    color: '#000000',
   },
   tipBadge: {
     fontSize: 11,
@@ -182,7 +183,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#2196F3',
+    backgroundColor: '#000000',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 8,
@@ -209,15 +210,15 @@ const styles = StyleSheet.create({
   },
   editedBadge: {
     position: 'absolute',
-    top: 8,
-    right: 8,
+    top: 22,
+    right: 98,
     backgroundColor: '#FFF3E0',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
+    paddingHorizontal: 18,
+    paddingVertical: 6,
     borderRadius: 8,
   },
   editedText: {
-    fontSize: 10,
-    color: '#F57C00',
+    fontSize: 16,
+    color: '#e8913a',
   },
 });

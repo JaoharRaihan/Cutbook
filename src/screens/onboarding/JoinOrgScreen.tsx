@@ -19,6 +19,7 @@ import {
 import {useNavigation} from '@react-navigation/native';
 import {useOrg} from '@/context';
 import Theme from '@/constants/theme';
+import MaterialIcons from '@react-native-vector-icons/material-icons';
 
 // ============================================================================
 // JOIN ORGANIZATION SCREEN
@@ -79,7 +80,7 @@ const JoinOrgScreen: React.FC = () => {
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.headerIcon}>🤝</Text>
+          <MaterialIcons name="join-inner" style={styles.headerIcon} />
           <Text style={styles.title}>Join Organization</Text>
           <Text style={styles.subtitle}>Enter the invite code from your salon owner</Text>
         </View>
@@ -120,7 +121,7 @@ const JoinOrgScreen: React.FC = () => {
 
           {/* Info Box */}
           <View style={styles.infoBox}>
-            <Text style={styles.infoIcon}>ℹ️</Text>
+            <MaterialIcons name="info-outline" style={styles.infoIcon} />
             <View style={styles.infoContent}>
               <Text style={styles.infoTitle}>How to get invite code?</Text>
               <Text style={styles.infoText}>
@@ -198,9 +199,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 20,
     borderWidth: 2,
-    borderColor: Theme.colors.primary[600],
+    borderColor: Theme.colors.text.primary[600],
     borderRadius: Theme.borderRadius.lg,
-    backgroundColor: Theme.colors.primary[50],
     fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
   },
   inputError: {
@@ -220,7 +220,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   joinButton: {
-    backgroundColor: Theme.colors.primary[600],
+    backgroundColor: '#000000',
     paddingVertical: 16,
     borderRadius: Theme.borderRadius.md,
     alignItems: 'center',
@@ -239,7 +239,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     marginTop: 24,
     padding: 16,
-    backgroundColor: Theme.colors.info.light,
+    backgroundColor: '#000000',
     borderRadius: Theme.borderRadius.md,
     borderWidth: 1,
     borderColor: Theme.colors.info.main,
@@ -247,6 +247,7 @@ const styles = StyleSheet.create({
   infoIcon: {
     fontSize: 24,
     marginRight: 12,
+    color: '#ffffff',
   },
   infoContent: {
     flex: 1,
@@ -254,12 +255,12 @@ const styles = StyleSheet.create({
   infoTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: Theme.colors.info.dark,
+    color: '#ffffff',
     marginBottom: 8,
   },
   infoText: {
     fontSize: 13,
-    color: Theme.colors.info.dark,
+    color: '#ffffff',
     lineHeight: 20,
   },
   footer: {
@@ -275,7 +276,7 @@ const styles = StyleSheet.create({
   backLink: {
     fontSize: 14,
     fontWeight: '600',
-    color: Theme.colors.primary[600],
+    color: '#008000',
   },
 });
 

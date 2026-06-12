@@ -10,20 +10,22 @@ import {
   StyleSheet,
   FlatList,
   TouchableOpacity,
-  SafeAreaView,
   StatusBar,
   RefreshControl,
+  ScrollView,
 } from 'react-native';
+import {SafeAreaView} from 'react-native-safe-area-context';
 import {useOrg, useData} from '@/context';
 import {WorkEntry, TransactionStatus} from '@/types';
 import {formatBDT} from '@/utils';
 import WorkEntryCard from '@/components/WorkEntryCard';
+import MaterialIcons from '@react-native-vector-icons/material-icons';
 
 // ============================================================================
 // TYPES
 // ============================================================================
 
-type DateFilter = 'today' | 'yesterday' | 'week' | 'month';
+type DateFilter = 'today' | 'week' | 'month' | 'year';
 
 // ============================================================================
 // COMPONENT
@@ -47,15 +49,21 @@ export default function WorkEntriesScreen({navigation}: any): React.ReactElement
     switch (filter) {
       case 'today':
         return {start: today, end: new Date(today.getTime() + 24 * 60 * 60 * 1000)};
-      case 'yesterday':
-        const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
-        return {start: yesterday, end: today};
       case 'week':
         const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
         return {start: weekAgo, end: new Date(today.getTime() + 24 * 60 * 60 * 1000)};
-      case 'month':
-        const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
-        return {start: monthAgo, end: new Date(today.getTime() + 24 * 60 * 60 * 1000)};
+      case 'month': {
+        // Calendar month: [1st of this month, 1st of next month)
+        const start = new Date(today.getFullYear(), today.getMonth(), 1);
+        const end = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+        return {start, end};
+      }
+      case 'year': {
+        // Year range: [Jan 1, next Jan 1)
+        const start = new Date(today.getFullYear(), 0, 1);
+        const end = new Date(today.getFullYear() + 1, 0, 1);
+        return {start, end};
+      }
       default:
         return {start: today, end: new Date(today.getTime() + 24 * 60 * 60 * 1000)};
     }
@@ -116,7 +124,7 @@ export default function WorkEntriesScreen({navigation}: any): React.ReactElement
       commissionPercentage,
       commission,
       acceptedPayouts,
-      netAmount: commission - acceptedPayouts,
+      netAmount: commission + totalTips - acceptedPayouts,
       employeeName: employee.name,
     };
   }, [selectedEmployee, totalIncome, orgUsers, employeeTransactions]);
@@ -156,9 +164,9 @@ export default function WorkEntriesScreen({navigation}: any): React.ReactElement
   const renderDateFilter = () => {
     const filters: {value: DateFilter; label: string}[] = [
       {value: 'today', label: 'Today'},
-      {value: 'yesterday', label: 'Yesterday'},
       {value: 'week', label: 'This Week'},
       {value: 'month', label: 'This Month'},
+      {value: 'year', label: 'This Year'},
     ];
 
     return (
@@ -222,6 +230,7 @@ export default function WorkEntriesScreen({navigation}: any): React.ReactElement
   };
 
   const renderSummary = () => {
+    if (!employeeEarnings) return null;
     return (
       <View style={styles.summaryContainer}>
         <View style={styles.summaryCard}>
@@ -229,8 +238,8 @@ export default function WorkEntriesScreen({navigation}: any): React.ReactElement
           <Text style={styles.summaryValue}>{formatBDT(totalIncome)}</Text>
         </View>
         <View style={styles.summaryCard}>
-          <Text style={styles.summaryLabel}>Entries</Text>
-          <Text style={styles.summaryValue}>{filteredEntries.length}</Text>
+          <Text style={styles.summaryLabel}>After Commision</Text>
+          <Text style={styles.summaryValue}>{formatBDT(employeeEarnings.commission)}</Text>
         </View>
         <View style={styles.summaryCard}>
           <Text style={styles.summaryLabel}>Tips</Text>
@@ -258,6 +267,17 @@ export default function WorkEntriesScreen({navigation}: any): React.ReactElement
             <Text style={styles.earningsValue}>{formatBDT(employeeEarnings.commission)}</Text>
           </View>
 
+          <View style={styles.earningsRow}>
+            <Text style={styles.earningsLabel}>Tips</Text>
+            <Text style={styles.earningsValue}>{formatBDT(totalTips)}</Text>
+          </View>
+
+          <View style={styles.earningsRow}>
+            <Text style={styles.earningsLabel}> Total (Com & Tips)</Text>
+            <Text style={styles.earningsValue}>
+              {formatBDT(employeeEarnings.commission + totalTips)}
+            </Text>
+          </View>
           {/* Payouts Given */}
           <View style={styles.earningsRow}>
             <Text style={styles.earningsLabel}>Minus: Payouts Given</Text>
@@ -286,7 +306,7 @@ export default function WorkEntriesScreen({navigation}: any): React.ReactElement
   const renderEmptyState = () => {
     return (
       <View style={styles.emptyState}>
-        <Text style={styles.emptyIcon}>📝</Text>
+        <MaterialIcons name="addchart" style={styles.emptyIcon} />
         <Text style={styles.emptyTitle}>No entries found</Text>
         <Text style={styles.emptySubtitle}>
           {selectedEmployee
@@ -313,45 +333,45 @@ export default function WorkEntriesScreen({navigation}: any): React.ReactElement
         <Text style={styles.headerTitle}>Work Entries</Text>
         <Text style={styles.headerSubtitle}>{currentOrg?.name}</Text>
       </View>
-
       {/* Filters */}
       {renderDateFilter()}
       {renderEmployeeFilter()}
+      <ScrollView>
+        {/* Summary */}
+        {renderSummary()}
 
-      {/* Summary */}
-      {renderSummary()}
+        {/* Employee Earnings */}
+        {renderEmployeeEarnings()}
 
-      {/* Employee Earnings */}
-      {renderEmployeeEarnings()}
+        {/* List */}
+        <FlatList
+          data={filteredEntries}
+          keyExtractor={item => item.id}
+          renderItem={({item}) => (
+            <WorkEntryCard
+              entry={item}
+              employeeName={getEmployeeName(item.employeeId)}
+              onPress={() => handleEntryPress(item)}
+            />
+          )}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              colors={['#000000']}
+              tintColor="#000000"
+            />
+          }
+          ListEmptyComponent={renderEmptyState()}
+        />
 
-      {/* List */}
-      <FlatList
-        data={filteredEntries}
-        keyExtractor={item => item.id}
-        renderItem={({item}) => (
-          <WorkEntryCard
-            entry={item}
-            employeeName={getEmployeeName(item.employeeId)}
-            onPress={() => handleEntryPress(item)}
-          />
-        )}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            colors={['#2196F3']}
-            tintColor="#2196F3"
-          />
-        }
-        ListEmptyComponent={renderEmptyState()}
-      />
-
-      {/* FAB */}
-      <TouchableOpacity style={styles.fab} onPress={handleAddEntry}>
-        <Text style={styles.fabText}>+</Text>
-      </TouchableOpacity>
+        {/* FAB */}
+        <TouchableOpacity style={styles.fab} onPress={handleAddEntry}>
+          <MaterialIcons name="add" style={styles.fabText} />
+        </TouchableOpacity>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -394,16 +414,16 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   filterButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 1,
     borderRadius: 20,
     backgroundColor: '#F5F5F5',
     borderWidth: 1,
     borderColor: '#E0E0E0',
   },
   filterButtonActive: {
-    backgroundColor: '#2196F3',
-    borderColor: '#2196F3',
+    backgroundColor: '#000000',
+    borderColor: '#000000',
   },
   filterButtonText: {
     fontSize: 14,
@@ -415,7 +435,7 @@ const styles = StyleSheet.create({
   },
   employeeFilterContainer: {
     backgroundColor: '#FFFFFF',
-    paddingVertical: 12,
+    paddingVertical: 6,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#E0E0E0',
@@ -432,16 +452,16 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   employeeChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 4,
     borderRadius: 16,
     backgroundColor: '#F5F5F5',
     borderWidth: 1,
     borderColor: '#E0E0E0',
   },
   employeeChipActive: {
-    backgroundColor: '#E3F2FD',
-    borderColor: '#2196F3',
+    backgroundColor: '#000000',
+    borderColor: '#000000',
   },
   employeeChipText: {
     fontSize: 13,
@@ -449,7 +469,7 @@ const styles = StyleSheet.create({
     color: '#757575',
   },
   employeeChipTextActive: {
-    color: '#2196F3',
+    color: '#ffffff',
     fontWeight: '600',
   },
   summaryContainer: {
@@ -509,7 +529,7 @@ const styles = StyleSheet.create({
   earningsValue: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#4CAF50',
+    color: '#000000',
   },
   payoutValue: {
     color: '#FF6F00',
@@ -529,7 +549,7 @@ const styles = StyleSheet.create({
   },
   netAmountValue: {
     fontSize: 18,
-    color: '#2E7D32',
+    color: '#000000',
   },
   negativeAmount: {
     color: '#D32F2F',
@@ -561,7 +581,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
   },
   emptyButton: {
-    backgroundColor: '#2196F3',
+    backgroundColor: '#000000',
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
@@ -578,7 +598,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#2196F3',
+    backgroundColor: '#000000',
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',

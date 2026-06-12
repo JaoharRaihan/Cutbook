@@ -1,0 +1,3 @@
+- [x] Refactor `paymentSummaryCard` UI in `src/screens/owner/DashboardScreen.tsx` to match `SummaryCard` styling (padding, border radius, border, shadow, title/value typography).
+- [x] Remove old blue-box styling for paymentSummaryCard while keeping same data and layout.
+- [x] Verify build/run locally (no logic changes).

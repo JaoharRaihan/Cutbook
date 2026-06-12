@@ -6,6 +6,7 @@
 import React from 'react';
 import {View, Text, StyleSheet, ViewStyle, Image, ImageSourcePropType} from 'react-native';
 import Theme from '@/constants/theme';
+import {ReactNode} from 'react';
 
 // ============================================================================
 // TYPES
@@ -14,7 +15,7 @@ import Theme from '@/constants/theme';
 interface SummaryCardProps {
   title: string;
   value: string;
-  icon?: string;
+  icon?: ReactNode;
   iconImage?: ImageSourcePropType;
   subtitle?: string;
   color?: 'primary' | 'success' | 'warning' | 'info';
@@ -66,10 +67,12 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
       {iconImage ? (
         <Image source={iconImage} style={styles.iconImage} resizeMode="contain" />
       ) : icon ? (
-        <Text style={styles.icon}>{icon}</Text>
+        <View style={styles.iconContainer}>{icon}</View>
       ) : null}
+
       <Text style={styles.title}>{title}</Text>
       <Text style={[styles.value, {color: '#fbfbfb'}]}>{value}</Text>
+
       {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
     </View>
   );
@@ -89,6 +92,9 @@ const styles = StyleSheet.create({
   },
   icon: {
     fontSize: 32,
+    marginBottom: 8,
+  },
+  iconContainer: {
     marginBottom: 8,
   },
   iconImage: {

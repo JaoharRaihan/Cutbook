@@ -102,11 +102,11 @@ export default function EmployeesScreen({navigation}: any): React.ReactElement {
 
   const renderEmpty = () => (
     <View style={styles.emptyState}>
-      <Text style={styles.emptyIcon}>👥</Text>
+      <MaterialIcons name="people-alt" style={styles.emptyIcon} />
       <Text style={styles.emptyTitle}>No employees yet</Text>
       <Text style={styles.emptyText}>Add your first employee to start tracking their work</Text>
       <TouchableOpacity style={styles.emptyButton} onPress={handleAddEmployee}>
-        <Text style={styles.emptyButtonText}>➕ Add Employee</Text>
+        <Text style={styles.emptyButtonText}> Add Employee</Text>
       </TouchableOpacity>
     </View>
   );
@@ -142,7 +142,7 @@ export default function EmployeesScreen({navigation}: any): React.ReactElement {
           {/* Search Bar */}
           <View style={styles.searchContainer}>
             <View style={styles.searchBar}>
-              <MaterialIcons name="saved-search" style={styles.emptyIcon} />
+              <MaterialIcons name="search" style={styles.emptyIcon} />
               <TextInput
                 style={styles.searchInput}
                 placeholder="Search by name, phone, or email..."

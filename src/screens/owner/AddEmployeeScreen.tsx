@@ -22,6 +22,7 @@ import {useOrg} from '@/context';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import {UserRole, UserStatus} from '@/types';
+import MaterialIcons from '@react-native-vector-icons/material-icons';
 
 // ============================================================================
 // HELPERS
@@ -194,7 +195,7 @@ export default function AddEmployeeScreen({navigation}: any): React.ReactElement
               </Text>
               <TextInput
                 style={styles.input}
-                placeholder="+880 1XXX-XXXXXX"
+                placeholder="01874-XXXX26"
                 placeholderTextColor="#999"
                 value={employeePhone}
                 onChangeText={setEmployeePhone}
@@ -246,7 +247,7 @@ export default function AddEmployeeScreen({navigation}: any): React.ReactElement
 
           {/* Info Card */}
           <View style={styles.infoCard}>
-            <Text style={styles.infoIcon}>💡</Text>
+            <MaterialIcons name="lightbulb" style={styles.infoIcon} />
             <Text style={styles.infoText}>
               The employee can use their phone number and password to log in to the app after
               registration.
@@ -352,21 +353,22 @@ const styles = StyleSheet.create({
   },
   infoCard: {
     flexDirection: 'row',
-    backgroundColor: '#E3F2FD',
+    backgroundColor: '#000000',
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#2196F3',
+    borderColor: '#000000',
   },
   infoIcon: {
     fontSize: 24,
     marginRight: 12,
+    color: '#ffffff',
   },
   infoText: {
     flex: 1,
     fontSize: 14,
-    color: '#1976D2',
+    color: '#008000',
     lineHeight: 20,
   },
   footer: {
@@ -376,7 +378,7 @@ const styles = StyleSheet.create({
     borderTopColor: '#E0E0E0',
   },
   submitButton: {
-    backgroundColor: '#2196F3',
+    backgroundColor: '#000000',
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',

@@ -231,7 +231,7 @@ export default function AddServiceScreen({navigation}: any): React.ReactElement 
             </View>
 
             {/* Duration */}
-            <View style={styles.inputGroup}>
+            {/* <View style={styles.inputGroup}>
               <Text style={styles.label}>Duration (Optional)</Text>
               <View style={styles.durationInputContainer}>
                 <TextInput
@@ -244,7 +244,7 @@ export default function AddServiceScreen({navigation}: any): React.ReactElement 
                 />
                 <Text style={styles.durationUnit}>minutes</Text>
               </View>
-            </View>
+            </View> */}
 
             {/* Description */}
             <View style={styles.inputGroup}>
@@ -270,7 +270,7 @@ export default function AddServiceScreen({navigation}: any): React.ReactElement 
             onPress={handleSubmit}
             disabled={loading}>
             <Text style={styles.submitButtonText}>
-              {loading ? 'Adding Service...' : '➕ Add Service'}
+              {loading ? 'Adding Service...' : 'Add Service'}
             </Text>
           </TouchableOpacity>
         </View>
@@ -437,7 +437,7 @@ const styles = StyleSheet.create({
     borderTopColor: '#E0E0E0',
   },
   submitButton: {
-    backgroundColor: '#2196F3',
+    backgroundColor: '#000000',
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',

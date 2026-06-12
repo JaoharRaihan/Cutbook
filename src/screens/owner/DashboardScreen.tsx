@@ -24,6 +24,7 @@ import DatePickerModal from '@/components/UI/DatePickerModal';
 import {formatBDT} from '@/utils/currency';
 import {formatDateISO, isToday} from '@/utils/date';
 import {TransactionStatus, TimePeriod} from '@/types';
+import Theme from '@/constants/theme';
 
 export default function DashboardScreen({navigation}: any): React.ReactElement {
   const {currentOrg, employeeTransactions} = useOrg();
@@ -162,9 +163,9 @@ export default function DashboardScreen({navigation}: any): React.ReactElement {
         {!error && summary && (
           <>
             <SummaryCard
-              title="Total Income without Tips "
-              value={formatBDT(summary.totalIncome)}
-              icon="💰"
+              title="Total Revenue "
+              value={formatBDT(summary.totalIncome + summary.totalTips)}
+              icon={<MaterialIcons name="attach-money" size={40} color="#040404" />}
               subtitle={`${summary.entryCount} entries`}
               color="success"
             />
@@ -172,17 +173,17 @@ export default function DashboardScreen({navigation}: any): React.ReactElement {
               <View style={styles.gridRow}>
                 <View style={styles.gridItem}>
                   <SummaryCard
-                    title="Cash"
-                    value={formatBDT(summary.totalCash)}
-                    icon="💵"
+                    title="Without Tips"
+                    value={formatBDT(summary.totalIncome)}
+                    icon={<MaterialIcons name="account-balance-wallet" size={40} color="#000000" />}
                     color="primary"
                   />
                 </View>
                 <View style={styles.gridItem}>
                   <SummaryCard
-                    title="bKash"
-                    value={formatBDT(summary.totalBkash)}
-                    iconImage={require('@/assets/Logo/bkash_payment_logo.png')}
+                    title="Tips"
+                    value={formatBDT(summary.totalTips)}
+                    icon={<MaterialIcons name="savings" size={40} color="#000000" />}
                     color="warning"
                   />
                 </View>
@@ -190,19 +191,42 @@ export default function DashboardScreen({navigation}: any): React.ReactElement {
               <View style={styles.gridRow}>
                 <View style={styles.gridItem}>
                   <SummaryCard
-                    title="Nagad"
-                    value={formatBDT(summary.totalNagad)}
-                    iconImage={require('@/assets/Logo/Nagad-Logo.wine.png')}
+                    title="Earnings"
+                    value={formatBDT(
+                      cashStats.employeePayouts.reduce((sum, payout) => sum + payout.amount, 0),
+                    )}
+                    icon={<MaterialIcons name="payments" size={40} color="#000000" />}
                     color="info"
                   />
                 </View>
+
+                {/* paymentSummaryCard (match SummaryCard outer look) */}
                 <View style={styles.gridItem}>
-                  <SummaryCard
-                    title="Card"
-                    value={formatBDT(summary.totalCard)}
-                    icon="💳"
-                    color="info"
-                  />
+                  <View style={styles.paymentSummaryCard}>
+                    <Text style={styles.paymentSummaryTitle}>Payment Methods</Text>
+
+                    <View style={styles.paymentRows}>
+                      <View style={styles.paymentRow}>
+                        <Text style={styles.paymentLabel}>Cash</Text>
+                        <Text style={styles.paymentValue}>{formatBDT(summary.totalCash)}</Text>
+                      </View>
+
+                      <View style={styles.paymentRow}>
+                        <Text style={styles.paymentLabel}>bKash</Text>
+                        <Text style={styles.paymentValue}>{formatBDT(summary.totalBkash)}</Text>
+                      </View>
+
+                      <View style={styles.paymentRow}>
+                        <Text style={styles.paymentLabel}>Nagad</Text>
+                        <Text style={styles.paymentValue}>{formatBDT(summary.totalNagad)}</Text>
+                      </View>
+
+                      <View style={styles.paymentRow}>
+                        <Text style={styles.paymentLabel}>Card</Text>
+                        <Text style={styles.paymentValue}>{formatBDT(summary.totalCard)}</Text>
+                      </View>
+                    </View>
+                  </View>
                 </View>
               </View>
             </View>
@@ -213,7 +237,7 @@ export default function DashboardScreen({navigation}: any): React.ReactElement {
                   onPress={() => navigation.navigate('AddWorkEntry')}>
                   <View style={{alignItems: 'center', justifyContent: 'center'}}>
                     <MaterialIcons name="note-add" size={50} color="#000000" />
-                    <Text style={styles.emptyStateButtonText}> Create first entry </Text>
+                    <Text style={styles.emptyStateButtonText}> Create today first entry </Text>
                   </View>
                 </TouchableOpacity>
               </View>
@@ -411,7 +435,49 @@ const styles = StyleSheet.create({
     flex: 1,
     marginHorizontal: 4,
   },
+  paymentSummaryCard: {
+    padding: 16,
+    borderRadius: Theme.borderRadius.lg,
+    borderWidth: 1,
+    borderColor: '#4FC3F7',
+    backgroundColor: '#4FC3F7',
+    ...Theme.shadows.sm,
+    marginHorizontal: 0,
+  },
 
+  paymentSummaryTitle: {
+    fontSize: 10,
+    fontWeight: '500',
+    color: '#530b0b',
+    marginBottom: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+
+  paymentRows: {
+    gap: 0,
+  },
+
+  paymentRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 2,
+    borderBottomWidth: 1,
+    borderBottomColor: Theme.colors.neutral[200],
+  },
+
+  paymentLabel: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+
+  paymentValue: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '700',
+  },
   section: {
     marginTop: 16,
   },

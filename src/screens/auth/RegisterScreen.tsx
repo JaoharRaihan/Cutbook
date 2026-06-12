@@ -15,8 +15,11 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  Image,
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
+import {SafeAreaView} from 'react-native-safe-area-context';
+import MaterialIcons from '@react-native-vector-icons/material-icons';
 import type {StackNavigationProp} from '@react-navigation/stack';
 import {useAuth} from '@/context';
 import type {AuthStackParamList} from '@/navigation/AuthNavigator';
@@ -165,13 +168,11 @@ const RegisterScreen: React.FC = () => {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.appName}>CutBook</Text>
+          <Image style={styles.applogo} source={require('../../assets/loginlogo.png')} />
           <Text style={styles.tagline}>Professional Salon Management</Text>
         </View>
 
@@ -198,10 +199,10 @@ const RegisterScreen: React.FC = () => {
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Phone Number *</Text>
             <View style={styles.phoneInputWrapper}>
-              <Text style={styles.countryCode}>+880</Text>
+              <Text style={styles.countryCode}>+88</Text>
               <TextInput
                 style={[styles.input, styles.phoneInput, errors.phone ? styles.inputError : null]}
-                placeholder="1XXXXXXXXX"
+                placeholder="01874XXXX26"
                 value={formData.phone}
                 onChangeText={handlePhoneChange}
                 keyboardType="phone-pad"
@@ -213,7 +214,7 @@ const RegisterScreen: React.FC = () => {
           </View>
 
           {/* Email Input */}
-          <View style={styles.inputContainer}>
+          {/* <View style={styles.inputContainer}>
             <Text style={styles.label}>Email (Optional)</Text>
             <TextInput
               style={[styles.input, errors.email ? styles.inputError : null]}
@@ -225,7 +226,7 @@ const RegisterScreen: React.FC = () => {
               editable={!loading}
             />
             {errors.email ? <Text style={styles.errorText}>{errors.email}</Text> : null}
-          </View>
+          </View> */}
 
           {/* Role Selection */}
           <View style={styles.inputContainer}>
@@ -289,7 +290,11 @@ const RegisterScreen: React.FC = () => {
                 style={styles.eyeButton}
                 onPress={() => setShowPassword(!showPassword)}
                 disabled={loading}>
-                <Text style={styles.eyeText}>{showPassword ? '👁️' : '👁️‍🗨️'}</Text>
+                <MaterialIcons
+                  name={showPassword ? 'visibility' : 'visibility-off'}
+                  size={24}
+                  color="Gray"
+                />
               </TouchableOpacity>
             </View>
             {errors.password ? <Text style={styles.errorText}>{errors.password}</Text> : null}
@@ -315,7 +320,11 @@ const RegisterScreen: React.FC = () => {
                 style={styles.eyeButton}
                 onPress={() => setShowConfirmPassword(!showConfirmPassword)}
                 disabled={loading}>
-                <Text style={styles.eyeText}>{showConfirmPassword ? '👁️' : '👁️‍🗨️'}</Text>
+                <MaterialIcons
+                  name={showPassword ? 'visibility' : 'visibility-off'}
+                  size={24}
+                  color="Gray"
+                />{' '}
               </TouchableOpacity>
             </View>
             {errors.confirmPassword ? (
@@ -344,7 +353,7 @@ const RegisterScreen: React.FC = () => {
           </View>
         </View>
       </ScrollView>
-    </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
@@ -363,8 +372,8 @@ const styles = StyleSheet.create({
   header: {
     alignItems: 'center',
     paddingTop: 60,
-    paddingBottom: 32,
-    backgroundColor: Theme.colors.primary[600],
+    paddingBottom: 30,
+    backgroundColor: '#ffffff',
   },
   appName: {
     fontSize: 42,
@@ -373,15 +382,20 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     letterSpacing: 1,
   },
+  applogo: {
+    width: 100,
+    height: 100,
+    paddingVertical: 40,
+  },
   tagline: {
     fontSize: 14,
-    color: '#FFFFFF',
+    color: '#000000',
     opacity: 0.9,
   },
   form: {
     flex: 1,
     paddingHorizontal: 24,
-    paddingTop: 24,
+    paddingTop: 6,
     paddingBottom: 32,
   },
   title: {
@@ -481,8 +495,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   roleButtonActive: {
-    borderColor: Theme.colors.primary[600],
-    backgroundColor: Theme.colors.primary[50],
+    borderColor: '#ca5469',
+    backgroundColor: '#ca5469',
   },
   roleButtonText: {
     fontSize: 14,
@@ -490,10 +504,10 @@ const styles = StyleSheet.create({
     color: Theme.colors.text.secondary,
   },
   roleButtonTextActive: {
-    color: Theme.colors.primary[600],
+    color: '#ffffff',
   },
   registerButton: {
-    backgroundColor: Theme.colors.primary[600],
+    backgroundColor: '#000000',
     paddingVertical: 16,
     borderRadius: Theme.borderRadius.md,
     alignItems: 'center',
@@ -521,7 +535,7 @@ const styles = StyleSheet.create({
   loginLink: {
     fontSize: 14,
     fontWeight: '600',
-    color: Theme.colors.primary[600],
+    color: '#008000',
   },
 });
 

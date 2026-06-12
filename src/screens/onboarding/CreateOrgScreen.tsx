@@ -1,6 +1,6 @@
 /**
  * Create Organization Screen
- * First-time owner setup - create new salon organization
+ * First-time owner setup -  salon organization
  */
 
 import React, {useState} from 'react';
@@ -20,6 +20,7 @@ import {useNavigation} from '@react-navigation/native';
 import {useOrg} from '@/context';
 import Theme from '@/constants/theme';
 import {CommissionMode} from '@/types';
+import MaterialIcons from '@react-native-vector-icons/material-icons';
 
 // ============================================================================
 // CREATE ORGANIZATION SCREEN
@@ -98,7 +99,7 @@ const CreateOrgScreen: React.FC = () => {
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.headerIcon}>🏪</Text>
+          <MaterialIcons name="domain-add" style={styles.headerIcon} />
           <Text style={styles.title}>Create Your Salon</Text>
           <Text style={styles.subtitle}>Let's set up your salon organization</Text>
         </View>
@@ -110,7 +111,7 @@ const CreateOrgScreen: React.FC = () => {
             <Text style={styles.label}>Salon Name *</Text>
             <TextInput
               style={[styles.input, errors.name ? styles.inputError : null]}
-              placeholder="e.g., Elite Hair Salon"
+              placeholder="e.g., Mayer Dua Hair Salon"
               value={formData.name}
               onChangeText={text => updateField('name', text)}
               editable={!loading}
@@ -121,22 +122,22 @@ const CreateOrgScreen: React.FC = () => {
           </View>
 
           {/* Timezone */}
-          <View style={styles.inputContainer}>
+          {/* <View style={styles.inputContainer}>
             <Text style={styles.label}>Timezone</Text>
             <View style={styles.readonlyInput}>
               <Text style={styles.readonlyText}>🌍 Asia/Dhaka (GMT+6)</Text>
             </View>
             <Text style={styles.hint}>Bangladesh Standard Time</Text>
-          </View>
+          </View> */}
 
           {/* Currency */}
-          <View style={styles.inputContainer}>
+          {/* <View style={styles.inputContainer}>
             <Text style={styles.label}>Currency</Text>
             <View style={styles.readonlyInput}>
               <Text style={styles.readonlyText}>৳ Bangladeshi Taka (BDT)</Text>
             </View>
             <Text style={styles.hint}>All amounts will be in BDT</Text>
-          </View>
+          </View> */}
 
           {/* Commission Mode */}
           <View style={styles.inputContainer}>
@@ -204,7 +205,7 @@ const CreateOrgScreen: React.FC = () => {
 
           {/* Info Box */}
           <View style={styles.infoBox}>
-            <Text style={styles.infoIcon}>💡</Text>
+            <MaterialIcons name="lightbulb" style={styles.infoIcon} />
             <View style={styles.infoContent}>
               <Text style={styles.infoTitle}>What's Next?</Text>
               <Text style={styles.infoText}>After creating your organization, you can:</Text>
@@ -353,7 +354,7 @@ const styles = StyleSheet.create({
     color: Theme.colors.text.secondary,
   },
   createButton: {
-    backgroundColor: Theme.colors.primary[600],
+    backgroundColor: '#000000',
     paddingVertical: 16,
     borderRadius: Theme.borderRadius.md,
     alignItems: 'center',
@@ -372,14 +373,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     marginTop: 24,
     padding: 16,
-    backgroundColor: Theme.colors.info.light,
+    backgroundColor: '#000000',
     borderRadius: Theme.borderRadius.md,
     borderWidth: 1,
-    borderColor: Theme.colors.info.main,
+    borderColor: '#000000',
   },
   infoIcon: {
     fontSize: 24,
     marginRight: 12,
+    color: '#ffffff',
   },
   infoContent: {
     flex: 1,
@@ -387,12 +389,12 @@ const styles = StyleSheet.create({
   infoTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: Theme.colors.info.dark,
+    color: '#ffffff',
     marginBottom: 8,
   },
   infoText: {
     fontSize: 13,
-    color: Theme.colors.info.dark,
+    color: '#ffffff',
     marginBottom: 4,
   },
 });
