@@ -10,14 +10,15 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  SafeAreaView,
   StatusBar,
   RefreshControl,
   Alert,
 } from 'react-native';
+import {SafeAreaView} from 'react-native-safe-area-context';
 import {useAuth, useOrg, useData} from '@/context';
 import {WorkEntry, PaymentMethod, EmployeePermission} from '@/types';
 import {formatBDT} from '@/utils';
+import MaterialIcons from '@react-native-vector-icons/material-icons';
 
 // ============================================================================
 // COMPONENT
@@ -219,23 +220,23 @@ export default function EmployeeHomeScreen({navigation}: any): React.ReactElemen
 
         {/* Today's Summary Cards */}
         <View style={styles.summarySection}>
-          <Text style={styles.sectionTitle}>📊 Today's Summary</Text>
-
-          <View style={styles.summaryGrid}>
-            <View style={[styles.summaryCard, styles.summaryCardPrimary]}>
-              <Text style={styles.summaryIcon}>💰</Text>
-              <Text style={styles.summaryLabel}>Total Income</Text>
-              <Text style={styles.summaryValue}>{formatBDT(todayStats.totalIncome)}</Text>
-              {currentUser?.commissionPercentage && (
-                <Text style={styles.summarySubtext}>
-                  Your {currentUser.commissionPercentage}%: ৳
-                  {Math.round((todayStats.totalIncome * currentUser.commissionPercentage) / 100)}
-                </Text>
-              )}
-            </View>
-
-            <View style={styles.summaryCard}>
-              <Text style={styles.summaryIcon}>✂️</Text>
+          <MaterialIcons name="bar-chart" style={styles.sectionTitle} />
+          <View style={[styles.summaryCard, styles.summaryCardPrimary]}>
+            <Text style={styles.summaryIcon}>💰</Text>
+            <Text style={styles.summaryLabel}>Total Income</Text>
+            <Text style={styles.summaryValue}>{formatBDT(todayStats.totalIncome)}</Text>
+            {currentUser?.commissionPercentage && (
+              <Text style={styles.summarySubtext}>
+                Your {currentUser.commissionPercentage}%: ৳
+                {Math.round((todayStats.totalIncome * currentUser.commissionPercentage) / 100)}
+              </Text>
+            )}
+          </View>
+        </View>
+        <View style={styles.summaryGrid}>
+          <View style={styles.summaryContainer}>
+            <View style={styles.summaryCarda}>
+              <MaterialIcons name="content-cut" style={styles.summaryIcons} />
               <Text style={styles.summaryLabel}>Services</Text>
               <Text style={styles.summaryValue}>{todayStats.totalServices}</Text>
               <Text style={styles.summarySubtext}>
@@ -247,8 +248,8 @@ export default function EmployeeHomeScreen({navigation}: any): React.ReactElemen
               </Text>
             </View>
 
-            <View style={styles.summaryCard}>
-              <Text style={styles.summaryIcon}>🎁</Text>
+            <View style={styles.summaryCarda}>
+              <MaterialIcons name="savings" style={styles.summaryIcons} />
               <Text style={styles.summaryLabel}>Tips</Text>
               <Text style={styles.summaryValue}>{formatBDT(todayStats.totalTips)}</Text>
               <Text style={styles.summarySubtext}>
@@ -261,7 +262,7 @@ export default function EmployeeHomeScreen({navigation}: any): React.ReactElemen
         {/* Recent Entries */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>🕐 Recent Services</Text>
+            <Text style={styles.sectionTitle}>Recent Services</Text>
             {todayEntries.length > 0 && (
               <TouchableOpacity onPress={handleViewHistory}>
                 <Text style={styles.viewAllLink}>View All →</Text>
@@ -275,7 +276,7 @@ export default function EmployeeHomeScreen({navigation}: any): React.ReactElemen
             </View>
           ) : (
             <View style={styles.emptyState}>
-              <Text style={styles.emptyIcon}>📝</Text>
+              <MaterialIcons name="library-add" style={styles.emptyIcon} />
               <Text style={styles.emptyTitle}>No services yet today</Text>
               <Text style={styles.emptyText}>Your completed services will appear here</Text>
             </View>
@@ -290,8 +291,7 @@ export default function EmployeeHomeScreen({navigation}: any): React.ReactElemen
 
         {/* Quick Stats Card */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>💼 Your Info</Text>
-
+          <Text style={styles.sectionTitle}> Your Info</Text>
           <View style={styles.infoCard}>
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Commission Rate</Text>
@@ -302,7 +302,7 @@ export default function EmployeeHomeScreen({navigation}: any): React.ReactElemen
               <Text style={styles.infoLabel}>Phone</Text>
               <Text style={styles.infoValue}>{currentUser?.phone}</Text>
             </View>
-            {currentUser?.email && (
+            {/* {currentUser?.email && (
               <>
                 <View style={styles.infoDivider} />
                 <View style={styles.infoRow}>
@@ -310,7 +310,7 @@ export default function EmployeeHomeScreen({navigation}: any): React.ReactElemen
                   <Text style={styles.infoValue}>{currentUser.email}</Text>
                 </View>
               </>
-            )}
+            )} */}
           </View>
         </View>
 
@@ -318,14 +318,10 @@ export default function EmployeeHomeScreen({navigation}: any): React.ReactElemen
         <View style={styles.actionButtonsContainer}>
           {(currentUser?.permissions?.includes(EmployeePermission.CAN_ADD_ENTRIES) || false) && (
             <TouchableOpacity style={styles.actionButton} onPress={handleAddEntry}>
-              <Text style={styles.actionButtonIcon}>➕</Text>
+              <MaterialIcons name="domain-add" style={styles.actionButtonIcon} />
               <Text style={styles.actionButtonText}>Add Entry</Text>
             </TouchableOpacity>
           )}
-          <TouchableOpacity style={styles.actionButton} onPress={handleViewHistory}>
-            <Text style={styles.actionButtonIcon}>📜</Text>
-            <Text style={styles.actionButtonText}>View History</Text>
-          </TouchableOpacity>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -348,10 +344,10 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
   },
   header: {
-    backgroundColor: '#2196F3',
+    backgroundColor: '#e8f3ef',
     paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 24,
+    paddingTop: 7,
+    paddingBottom: 4,
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
   },
@@ -364,7 +360,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#1976D2',
+    backgroundColor: '#000000',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
@@ -381,35 +377,35 @@ const styles = StyleSheet.create({
   },
   greeting: {
     fontSize: 14,
-    color: '#E3F2FD',
+    color: '#000000',
     marginBottom: 2,
   },
   userName: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: '#000000',
   },
   date: {
     fontSize: 14,
-    color: '#E3F2FD',
+    color: '#000000',
     marginTop: 8,
   },
   orgName: {
     fontSize: 13,
-    color: '#BBDEFB',
+    color: '#ea2f16',
     marginTop: 4,
   },
   summarySection: {
     padding: 16,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 28,
     fontWeight: '700',
     color: '#212121',
     marginBottom: 16,
   },
   summaryGrid: {
-    gap: 12,
+    gap: 2,
   },
   summaryCard: {
     backgroundColor: '#FFFFFF',
@@ -431,6 +427,9 @@ const styles = StyleSheet.create({
   summaryIcon: {
     fontSize: 40,
     marginBottom: 12,
+  },
+  summaryIcons: {
+    fontSize: 30,
   },
   summaryLabel: {
     fontSize: 14,
@@ -456,7 +455,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 10,
   },
   viewAllLink: {
     fontSize: 14,
@@ -510,7 +509,7 @@ const styles = StyleSheet.create({
   entryPrice: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#4CAF50',
+    color: '#000000',
   },
   entryTip: {
     fontSize: 13,
@@ -545,7 +544,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingVertical: 12,
     alignItems: 'center',
-    marginTop: 12,
+    marginTop: 18,
   },
   viewAllButtonText: {
     fontSize: 14,
@@ -605,5 +604,22 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: '#FFFFFF',
+  },
+  summaryContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+    paddingHorizontal: 15,
+  },
+
+  summaryCarda: {
+    width: '48%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 18,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#c0c3c0',
   },
 });

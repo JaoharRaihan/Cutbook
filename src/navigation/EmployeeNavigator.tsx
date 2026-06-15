@@ -8,6 +8,7 @@ import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {createStackNavigator} from '@react-navigation/stack';
 import {Text} from 'react-native';
 import Theme from '@/constants/theme';
+import MaterialIcons from '@react-native-vector-icons/material-icons';
 
 // Employee screens
 import EmployeeHomeScreen from '@/screens/employee/EmployeeHomeScreen';
@@ -157,7 +158,7 @@ const EmployeeNavigator: React.FC = () => {
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: Theme.colors.primary[600],
+        tabBarActiveTintColor: '#000000',
         tabBarInactiveTintColor: Theme.colors.text.secondary,
         tabBarStyle: {
           backgroundColor: '#FFFFFF',
@@ -177,7 +178,9 @@ const EmployeeNavigator: React.FC = () => {
         component={HomeNavigator}
         options={{
           tabBarLabel: 'Home',
-          tabBarIcon: ({color, size}) => <Text style={{fontSize: size, color}}>🏠</Text>,
+          tabBarIcon: ({color, size}) => (
+            <MaterialIcons name="home" size={size} color={'#000000'} />
+          ),
         }}
       />
       <Tab.Screen
@@ -185,7 +188,9 @@ const EmployeeNavigator: React.FC = () => {
         component={HistoryNavigator}
         options={{
           tabBarLabel: 'History',
-          tabBarIcon: ({color, size}) => <Text style={{fontSize: size, color}}>📋</Text>,
+          tabBarIcon: ({color, size}) => (
+            <MaterialIcons name="history" size={size} color={'#000000'} />
+          ),
         }}
       />
       <Tab.Screen
@@ -193,7 +198,9 @@ const EmployeeNavigator: React.FC = () => {
         component={TransactionsNavigator}
         options={{
           tabBarLabel: 'Payments',
-          tabBarIcon: ({color, size}) => <Text style={{fontSize: size, color}}>💰</Text>,
+          tabBarIcon: ({color, size}) => (
+            <MaterialIcons name="payment" size={size} color={'#000000'} />
+          ),
         }}
       />
       <Tab.Screen
@@ -201,7 +208,9 @@ const EmployeeNavigator: React.FC = () => {
         component={ProfileNavigator}
         options={{
           tabBarLabel: 'Profile',
-          tabBarIcon: ({color, size}) => <Text style={{fontSize: size, color}}>👤</Text>,
+          tabBarIcon: ({color, size}) => (
+            <MaterialIcons name="person" size={size} color={'#000000'} />
+          ),
         }}
       />
     </Tab.Navigator>

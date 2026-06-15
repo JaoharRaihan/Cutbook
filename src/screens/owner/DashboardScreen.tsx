@@ -165,7 +165,7 @@ export default function DashboardScreen({navigation}: any): React.ReactElement {
             <SummaryCard
               title="Total Revenue "
               value={formatBDT(summary.totalIncome + summary.totalTips)}
-              icon={<MaterialIcons name="attach-money" size={40} color="#040404" />}
+              icon={<Text style={{fontSize: 34}}>💰</Text>}
               subtitle={`${summary.entryCount} entries`}
               color="success"
             />
@@ -236,7 +236,7 @@ export default function DashboardScreen({navigation}: any): React.ReactElement {
                   style={styles.emptyStateButton}
                   onPress={() => navigation.navigate('AddWorkEntry')}>
                   <View style={{alignItems: 'center', justifyContent: 'center'}}>
-                    <MaterialIcons name="note-add" size={50} color="#000000" />
+                    <MaterialIcons name="note-add" size={50} color="#ffffff" />
                     <Text style={styles.emptyStateButtonText}> Create today first entry </Text>
                   </View>
                 </TouchableOpacity>

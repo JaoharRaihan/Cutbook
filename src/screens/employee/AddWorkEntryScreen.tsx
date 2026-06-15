@@ -12,12 +12,12 @@ import {
   ScrollView,
   TextInput,
   TouchableOpacity,
-  SafeAreaView,
   StatusBar,
   Alert,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import {SafeAreaView} from 'react-native-safe-area-context';
 import {useOrg, useData, useAuth} from '@/context';
 import {PaymentMethod, Service, EmployeePermission, User} from '@/types';
 

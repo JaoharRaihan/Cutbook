@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
   // Splash Screen Styles
   splashContainer: {
     flex: 1,
-    backgroundColor: Theme.colors.primary[600],
+    backgroundColor: '#ffffff',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -117,13 +117,13 @@ const styles = StyleSheet.create({
   appName: {
     fontSize: 48,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: '#000000',
     marginBottom: 8,
     letterSpacing: 2,
   },
   tagline: {
     fontSize: 16,
-    color: '#FFFFFF',
+    color: '#000000',
     opacity: 0.9,
     marginBottom: 40,
   },

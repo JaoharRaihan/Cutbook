@@ -9,13 +9,13 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  SafeAreaView,
   StatusBar,
   ActivityIndicator,
   TouchableOpacity,
   Alert,
   RefreshControl,
 } from 'react-native';
+import {SafeAreaView} from 'react-native-safe-area-context';
 import {TransactionStatus} from '@/types';
 import {useAuth} from '@/context';
 import {useOrg} from '@/context';
@@ -105,7 +105,7 @@ export default function EmployeeTransactionsScreen(): React.ReactElement {
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={['#2196F3']} />
         }>
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>💰 Payments</Text>
+          <Text style={styles.headerTitle}>Payments</Text>
           <Text style={styles.headerSubtitle}>
             {myTransactions.length === 0
               ? 'No payments yet'

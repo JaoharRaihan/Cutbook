@@ -10,15 +10,16 @@ import {
   StyleSheet,
   FlatList,
   TouchableOpacity,
-  SafeAreaView,
   StatusBar,
   RefreshControl,
   Modal,
   ActivityIndicator,
 } from 'react-native';
+import {SafeAreaView} from 'react-native-safe-area-context';
 import {useAuth, useData} from '@/context';
 import {WorkEntry, PaymentMethod} from '@/types';
 import {formatBDT} from '@/utils';
+import MaterialIcons from '@react-native-vector-icons/material-icons';
 
 // ============================================================================
 // COMPONENT
@@ -227,35 +228,38 @@ export default function HistoryScreen(): React.ReactElement {
           <Text style={styles.monthSelectorLabel}>Selected Month</Text>
           <Text style={styles.monthSelectorValue}>{formatMonthYear(selectedMonth)}</Text>
         </View>
-        <Text style={styles.monthSelectorIcon}>📅</Text>
+        <MaterialIcons name="calendar-month" style={styles.monthSelectorIcon} />
       </TouchableOpacity>
 
       {/* Monthly Summary */}
       <View style={styles.summaryCard}>
         <View style={styles.summaryHeader}>
-          <Text style={styles.summaryTitle}>📊 Monthly Summary</Text>
+          <Text style={styles.summaryTitle}>Monthly Summary </Text>
         </View>
 
         <View style={styles.summaryGrid}>
           <View style={styles.summaryItem}>
-            <Text style={styles.summaryItemLabel}>Total Income</Text>
+            <Text style={styles.summaryItemLabel}>Total Revenue</Text>
             <Text style={styles.summaryItemValue}>{formatBDT(monthlyStats.totalIncome)}</Text>
-            {currentUser?.commissionPercentage && (
-              <Text style={styles.summaryItemSubtext}>
-                Your {currentUser.commissionPercentage}%: ৳
-                {Math.round((monthlyStats.totalIncome * currentUser.commissionPercentage) / 100)}
-              </Text>
-            )}
+            <Text style={styles.summaryItemSubtext}>
+              Total Service {monthlyStats.totalServices}
+            </Text>
           </View>
 
           <View style={styles.summaryDivider} />
 
           <View style={styles.summaryItem}>
-            <Text style={styles.summaryItemLabel}>Services</Text>
-            <Text style={styles.summaryItemValue}>{monthlyStats.totalServices}</Text>
-            <Text style={styles.summaryItemSubtext}>
-              {monthlyStats.totalServices === 0 ? 'No services' : 'Completed'}
-            </Text>
+            <Text style={styles.summaryItemLabel}> Total Income</Text>
+            {currentUser?.commissionPercentage && (
+              <View>
+                <Text style={styles.summaryItemValue}>
+                  ৳{Math.round((monthlyStats.totalIncome * currentUser.commissionPercentage) / 100)}
+                </Text>
+                <Text style={styles.summaryItemSubtext}>
+                  Your {currentUser.commissionPercentage}%
+                </Text>
+              </View>
+            )}
           </View>
 
           <View style={styles.summaryDivider} />
@@ -273,7 +277,7 @@ export default function HistoryScreen(): React.ReactElement {
       {/* Entries Header */}
       {filteredEntries.length > 0 && (
         <View style={styles.entriesHeader}>
-          <Text style={styles.entriesHeaderTitle}>📝 Work History ({filteredEntries.length})</Text>
+          <Text style={styles.entriesHeaderTitle}>Work History ({filteredEntries.length})</Text>
         </View>
       )}
     </>
@@ -281,7 +285,7 @@ export default function HistoryScreen(): React.ReactElement {
 
   const renderEmpty = () => (
     <View style={styles.emptyState}>
-      <Text style={styles.emptyIcon}>📭</Text>
+      <MaterialIcons name="hourglass-empty" style={styles.emptyIcon} />
       <Text style={styles.emptyTitle}>No services found</Text>
       <Text style={styles.emptyText}>
         You have no recorded services for {formatMonthYear(selectedMonth)}
@@ -367,7 +371,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FAFAFA',
   },
   header: {
-    backgroundColor: '#2196F3',
+    backgroundColor: '#e8f3ef',
     paddingHorizontal: 20,
     paddingTop: 16,
     paddingBottom: 20,
@@ -375,12 +379,12 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: '#000000',
     marginBottom: 4,
   },
   headerSubtitle: {
     fontSize: 14,
-    color: '#E3F2FD',
+    color: '#000000',
   },
   listContent: {
     padding: 16,
@@ -408,7 +412,8 @@ const styles = StyleSheet.create({
     color: '#212121',
   },
   monthSelectorIcon: {
-    fontSize: 32,
+    fontSize: 40,
+    color: '#121111',
   },
   summaryCard: {
     backgroundColor: '#E3F2FD',
@@ -441,6 +446,12 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   summaryItemValue: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#212121',
+    marginBottom: 4,
+  },
+  summaryItemValuea: {
     fontSize: 20,
     fontWeight: '700',
     color: '#212121',

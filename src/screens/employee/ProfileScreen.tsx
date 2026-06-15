@@ -4,19 +4,12 @@
  */
 
 import React, {useMemo} from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  SafeAreaView,
-  StatusBar,
-  Alert,
-} from 'react-native';
+import {View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar, Alert} from 'react-native';
+import {SafeAreaView} from 'react-native-safe-area-context';
 import {useAuth, useOrg, useData} from '@/context';
 import {WorkEntry, PaymentMethod, TransactionStatus} from '@/types';
 import {formatBDT} from '@/utils';
+import MaterialIcons from '@react-native-vector-icons/material-icons';
 
 // ============================================================================
 // COMPONENT
@@ -188,126 +181,44 @@ export default function ProfileScreen(): React.ReactElement {
             <Text style={styles.roleBadgeText}>Employee</Text>
           </View>
         </View>
-
-        {/* Personal Information */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>👤 Personal Information</Text>
-
-          <View style={styles.card}>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Phone Number</Text>
-              <Text style={styles.infoValue}>{currentUser?.phone}</Text>
-            </View>
-
-            {currentUser?.email && (
-              <>
-                <View style={styles.infoDivider} />
-                <View style={styles.infoRow}>
-                  <Text style={styles.infoLabel}>Email</Text>
-                  <Text style={styles.infoValue}>{currentUser.email}</Text>
-                </View>
-              </>
-            )}
-
-            <View style={styles.infoDivider} />
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Organization</Text>
-              <Text style={styles.infoValue}>{currentOrg?.name || 'N/A'}</Text>
-            </View>
-
-            <View style={styles.infoDivider} />
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Member Since</Text>
-              <Text style={styles.infoValue}>{formatDate(currentUser?.createdAt)}</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Cash Account */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>💳 Cash Account</Text>
-
-          <View style={[styles.card, styles.cashCard]}>
-            <View style={styles.cashRow}>
-              <View style={styles.cashItem}>
-                <Text style={styles.cashLabel}>Total Received</Text>
-                <Text style={styles.cashValue}>{formatBDT(cashAccount.received)}</Text>
-                <Text style={styles.cashSubtext}>From accepted payments</Text>
-              </View>
-              <View style={styles.cashDivider} />
-              <View style={styles.cashItem}>
-                <Text style={styles.cashLabel}>Pending</Text>
-                <Text style={styles.cashValuePending}>{formatBDT(cashAccount.pending)}</Text>
-                <Text style={styles.cashSubtext}>Awaiting approval</Text>
-              </View>
-            </View>
-          </View>
-        </View>
-
-        {/* Commission Information */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>💰 Commission</Text>
-
-          <View style={[styles.card, styles.commissionCard]}>
-            <View style={styles.commissionHeader}>
-              <Text style={styles.commissionLabel}>Your Commission Rate</Text>
-              <Text style={styles.commissionValue}>{currentUser?.commissionPercentage || 0}%</Text>
-            </View>
-
-            <View style={styles.commissionInfo}>
-              <Text style={styles.commissionInfoText}>
-                💡 You earn {currentUser?.commissionPercentage || 0}% of each service you complete
-              </Text>
-            </View>
-
-            <View style={styles.commissionExample}>
-              <Text style={styles.commissionExampleTitle}>Example:</Text>
-              <View style={styles.commissionExampleRow}>
-                <Text style={styles.commissionExampleLabel}>Service: ৳500</Text>
-                <Text style={styles.commissionExampleValue}>
-                  Your share: ৳{Math.round((500 * (currentUser?.commissionPercentage || 0)) / 100)}
-                </Text>
-              </View>
-            </View>
-          </View>
-        </View>
-
         {/* Overall Statistics */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>📊 Overall Statistics</Text>
+          <Text style={styles.sectionTitle}>Overall Statistics</Text>
 
           <View style={styles.statsGrid}>
             <View style={styles.statCard}>
-              <Text style={styles.statIcon}>✂️</Text>
+              <MaterialIcons name="content-cut" style={styles.statIcon} />
               <Text style={styles.statLabel}>Total Services</Text>
               <Text style={styles.statValue}>{overallStats.totalServices}</Text>
             </View>
 
             <View style={styles.statCard}>
-              <Text style={styles.statIcon}>💵</Text>
+              <MaterialIcons name="attach-money" style={styles.statIcon} />
               <Text style={styles.statLabel}>Total Income</Text>
               <Text style={styles.statValue}>{formatBDT(overallStats.totalIncome)}</Text>
             </View>
 
             <View style={styles.statCard}>
-              <Text style={styles.statIcon}>🎁</Text>
+              <MaterialIcons name="card-giftcard" style={styles.statIcon} />
               <Text style={styles.statLabel}>Total Tips</Text>
               <Text style={styles.statValue}>{formatBDT(overallStats.totalTips)}</Text>
             </View>
 
             <View style={styles.statCard}>
-              <Text style={styles.statIcon}>📈</Text>
-              <Text style={styles.statLabel}>Avg per Service</Text>
-              <Text style={styles.statValue}>
-                {formatBDT(Math.round(overallStats.avgPerService))}
-              </Text>
+              <MaterialIcons name="monetization-on" style={styles.statIcon} />
+              <Text style={styles.statLabel}>Your Income</Text>
+              {currentUser?.commissionPercentage && (
+                <Text style={styles.statValue}>
+                  ৳{Math.round((overallStats.monthIncome * currentUser.commissionPercentage) / 100)}
+                </Text>
+              )}
             </View>
           </View>
         </View>
 
         {/* This Month */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>📅 This Month</Text>
+          <Text style={styles.sectionTitle}>This Month</Text>
 
           <View style={[styles.card, styles.monthCard]}>
             <View style={styles.monthRow}>
@@ -340,11 +251,93 @@ export default function ProfileScreen(): React.ReactElement {
             )}
           </View>
         </View>
+        {/* Personal Information */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Personal Information</Text>
+
+          <View style={styles.card}>
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Phone Number</Text>
+              <Text style={styles.infoValue}>{currentUser?.phone}</Text>
+            </View>
+
+            {/* {currentUser?.email && (
+              <>
+                <View style={styles.infoDivider} />
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>Email</Text>
+                  <Text style={styles.infoValue}>{currentUser.email}</Text>
+                </View>
+              </>
+            )} */}
+
+            <View style={styles.infoDivider} />
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Organization</Text>
+              <Text style={styles.infoValue}>{currentOrg?.name || 'N/A'}</Text>
+            </View>
+
+            <View style={styles.infoDivider} />
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Member Since</Text>
+              <Text style={styles.infoValue}>{formatDate(currentUser?.createdAt)}</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Cash Account */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Cash Account</Text>
+
+          <View style={[styles.card, styles.cashCard]}>
+            <View style={styles.cashRow}>
+              <View style={styles.cashItem}>
+                <Text style={styles.cashLabel}>Total Received</Text>
+                <Text style={styles.cashValue}>{formatBDT(cashAccount.received)}</Text>
+                <Text style={styles.cashSubtext}>From accepted payments</Text>
+              </View>
+              <View style={styles.cashDivider} />
+              <View style={styles.cashItem}>
+                <Text style={styles.cashLabel}>Pending</Text>
+                <Text style={styles.cashValuePending}>{formatBDT(cashAccount.pending)}</Text>
+                <Text style={styles.cashSubtext}>Awaiting approval</Text>
+              </View>
+            </View>
+          </View>
+        </View>
+
+        {/* Commission Information */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Commission</Text>
+
+          <View style={[styles.card, styles.commissionCard]}>
+            <View style={styles.commissionHeader}>
+              <Text style={styles.commissionLabel}>Your Commission Rate</Text>
+              <Text style={styles.commissionValue}>{currentUser?.commissionPercentage || 0}%</Text>
+            </View>
+
+            <View style={styles.commissionInfo}>
+              <Text style={styles.commissionInfoText}>
+                💡 You earn {currentUser?.commissionPercentage || 0}% of each service you complete
+              </Text>
+            </View>
+
+            <View style={styles.commissionExample}>
+              <Text style={styles.commissionExampleTitle}>Example:</Text>
+              <View style={styles.commissionExampleRow}>
+                <Text style={styles.commissionExampleLabel}>Service: ৳500</Text>
+                <Text style={styles.commissionExampleValue}>
+                  Your share: ৳{Math.round((500 * (currentUser?.commissionPercentage || 0)) / 100)}
+                </Text>
+              </View>
+            </View>
+          </View>
+        </View>
 
         {/* Logout Button */}
         <View style={styles.section}>
           <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-            <Text style={styles.logoutButtonText}>🚪 Logout</Text>
+            <Text style={styles.logoutButtonText}>Logout</Text>
           </TouchableOpacity>
         </View>
 
@@ -371,7 +364,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    backgroundColor: '#2196F3',
+    backgroundColor: '#e8f3ef',
     alignItems: 'center',
     paddingVertical: 32,
     paddingHorizontal: 20,
@@ -382,7 +375,7 @@ const styles = StyleSheet.create({
     width: 96,
     height: 96,
     borderRadius: 48,
-    backgroundColor: '#1976D2',
+    backgroundColor: '#000000',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
@@ -392,12 +385,12 @@ const styles = StyleSheet.create({
   avatarLargeText: {
     fontSize: 40,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: '#ffffff',
   },
   userName: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: '#000000',
     marginBottom: 8,
   },
   roleBadge: {
@@ -644,11 +637,11 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 13,
-    color: '#BDBDBD',
+    color: '#000000',
     marginBottom: 4,
   },
   footerSubtext: {
     fontSize: 11,
-    color: '#E0E0E0',
+    color: '#000000',
   },
 });
