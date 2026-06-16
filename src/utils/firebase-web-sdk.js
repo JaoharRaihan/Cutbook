@@ -4,7 +4,7 @@
  * This replaces the stub implementation for web platform
  */
 
-import {initializeApp, getApps, getApp} from 'firebase/app';
+import {initializeApp, getApps, getApp, deleteApp} from 'firebase/app';
 import {
   getAuth,
   signInWithEmailAndPassword,
@@ -65,18 +65,19 @@ const firestoreInstance = getFirestore(app);
  * Auth function - returns wrapped auth instance
  * Compatible with @react-native-firebase/auth API
  */
-export function auth() {
+export function auth(appInstance) {
+  const targetAuth = appInstance ? getAuth(appInstance) : authInstance;
   return {
     // Authentication methods
     signInWithEmailAndPassword: (email, password) =>
-      signInWithEmailAndPassword(authInstance, email, password),
+      signInWithEmailAndPassword(targetAuth, email, password),
     createUserWithEmailAndPassword: (email, password) =>
-      createUserWithEmailAndPassword(authInstance, email, password),
-    signOut: () => signOut(authInstance),
-    onAuthStateChanged: callback => onAuthStateChanged(authInstance, callback),
-    currentUser: authInstance.currentUser,
+      createUserWithEmailAndPassword(targetAuth, email, password),
+    signOut: () => signOut(targetAuth),
+    onAuthStateChanged: callback => onAuthStateChanged(targetAuth, callback),
+    currentUser: targetAuth.currentUser,
     updateProfile: (user, profile) => updateProfile(user, profile),
-    sendPasswordResetEmail: email => sendPasswordResetEmail(authInstance, email),
+    sendPasswordResetEmail: email => sendPasswordResetEmail(targetAuth, email),
   };
 }
 
@@ -138,4 +139,14 @@ export default {
   auth,
   firestore,
   firebaseApp: app,
+  app: name => {
+    return name ? getApp(name) : app;
+  },
+  initializeApp: (options, name) => {
+    const createdApp = initializeApp(options, name);
+    return {
+      ...createdApp,
+      delete: () => deleteApp(createdApp),
+    };
+  },
 };

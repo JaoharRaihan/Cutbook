@@ -6,7 +6,6 @@
 import React from 'react';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {createStackNavigator} from '@react-navigation/stack';
-import {Text} from 'react-native';
 import Theme from '@/constants/theme';
 import MaterialIcons from '@react-native-vector-icons/material-icons';
 
@@ -178,9 +177,7 @@ const EmployeeNavigator: React.FC = () => {
         component={HomeNavigator}
         options={{
           tabBarLabel: 'Home',
-          tabBarIcon: ({color, size}) => (
-            <MaterialIcons name="home" size={size} color={'#000000'} />
-          ),
+          tabBarIcon: ({color, size}) => <MaterialIcons name="home" size={size} color={color} />,
         }}
       />
       <Tab.Screen
@@ -188,9 +185,7 @@ const EmployeeNavigator: React.FC = () => {
         component={HistoryNavigator}
         options={{
           tabBarLabel: 'History',
-          tabBarIcon: ({color, size}) => (
-            <MaterialIcons name="history" size={size} color={'#000000'} />
-          ),
+          tabBarIcon: ({color, size}) => <MaterialIcons name="history" size={size} color={color} />,
         }}
       />
       <Tab.Screen
@@ -198,9 +193,7 @@ const EmployeeNavigator: React.FC = () => {
         component={TransactionsNavigator}
         options={{
           tabBarLabel: 'Payments',
-          tabBarIcon: ({color, size}) => (
-            <MaterialIcons name="payment" size={size} color={'#000000'} />
-          ),
+          tabBarIcon: ({color, size}) => <MaterialIcons name="payment" size={size} color={color} />,
         }}
       />
       <Tab.Screen
@@ -208,9 +201,7 @@ const EmployeeNavigator: React.FC = () => {
         component={ProfileNavigator}
         options={{
           tabBarLabel: 'Profile',
-          tabBarIcon: ({color, size}) => (
-            <MaterialIcons name="person" size={size} color={'#000000'} />
-          ),
+          tabBarIcon: ({color, size}) => <MaterialIcons name="person" size={size} color={color} />,
         }}
       />
     </Tab.Navigator>

@@ -7,7 +7,7 @@ import React, {useMemo} from 'react';
 import {View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar, Alert} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useAuth, useOrg, useData} from '@/context';
-import {WorkEntry, PaymentMethod, TransactionStatus} from '@/types';
+import {TransactionStatus} from '@/types';
 import {formatBDT} from '@/utils';
 import MaterialIcons from '@react-native-vector-icons/material-icons';
 
@@ -38,73 +38,9 @@ export default function ProfileScreen(): React.ReactElement {
     return {received: accepted, pending};
   }, [currentUser?.id, employeeTransactions]);
 
-  // Mock work entries and calculate overall stats from real work entries
+  // Calculate overall stats from real work entries
   const overallStats = useMemo(() => {
-    // Mock entries for demonstration
-    const mockEntries: WorkEntry[] = [
-      {
-        id: 'entry_1',
-        orgId: 'org_1',
-        employeeId: 'user_2',
-        employeeName: 'Karim Ahmed',
-        serviceName: 'Regular Haircut',
-        price: 300,
-        tip: 50,
-        paymentMethod: PaymentMethod.CASH,
-        createdBy: 'user_1',
-        createdByName: 'Owner',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        edited: false,
-      },
-      {
-        id: 'entry_2',
-        orgId: 'org_1',
-        employeeId: 'user_2',
-        employeeName: 'Karim Ahmed',
-        serviceName: 'Beard Trim',
-        price: 150,
-        tip: 0,
-        paymentMethod: PaymentMethod.BKASH,
-        createdBy: 'user_1',
-        createdByName: 'Owner',
-        createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
-        updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
-        edited: false,
-      },
-      {
-        id: 'entry_3',
-        orgId: 'org_1',
-        employeeId: 'user_2',
-        employeeName: 'Karim Ahmed',
-        serviceName: 'Hair Color',
-        price: 800,
-        tip: 100,
-        paymentMethod: PaymentMethod.CARD,
-        createdBy: 'user_1',
-        createdByName: 'Owner',
-        createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-        updatedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-        edited: false,
-      },
-      {
-        id: 'entry_4',
-        orgId: 'org_1',
-        employeeId: 'user_2',
-        employeeName: 'Karim Ahmed',
-        serviceName: 'Facial Treatment',
-        price: 600,
-        tip: 50,
-        paymentMethod: PaymentMethod.CASH,
-        createdBy: 'user_1',
-        createdByName: 'Owner',
-        createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
-        updatedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
-        edited: false,
-      },
-    ];
-
-    const entries = employeeEntries.length > 0 ? employeeEntries : mockEntries;
+    const entries = employeeEntries;
     const totalServices = entries.length;
     const totalIncome = entries.reduce((sum, entry) => sum + entry.price + (entry.tip || 0), 0);
     const totalTips = entries.reduce((sum, entry) => sum + (entry.tip || 0), 0);

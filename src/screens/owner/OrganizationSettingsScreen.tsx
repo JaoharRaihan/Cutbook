@@ -10,7 +10,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  SafeAreaView,
   StatusBar,
   TextInput,
   Alert,
@@ -19,6 +18,8 @@ import {
 } from 'react-native';
 import {useOrg} from '@/context';
 import {CommissionMode} from '@/types';
+import {SafeAreaView} from 'react-native-safe-area-context';
+import MaterialIcons from '@react-native-vector-icons/material-icons';
 
 // ============================================================================
 // COMPONENT
@@ -210,7 +211,7 @@ export default function OrganizationSettingsScreen({navigation}: any): React.Rea
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Text style={styles.backButtonText}>← Back</Text>
+          <MaterialIcons name="arrow-back" style={styles.backButtonText} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Organization Settings</Text>
         {isDirty && (
@@ -226,7 +227,7 @@ export default function OrganizationSettingsScreen({navigation}: any): React.Rea
         showsVerticalScrollIndicator={false}>
         {/* Basic Information */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>🏢 Basic Information</Text>
+          <Text style={styles.sectionTitle}>Basic Information</Text>
 
           <View style={styles.formGroup}>
             <Text style={styles.label}>Organization Name *</Text>
@@ -421,7 +422,7 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     fontSize: 16,
-    color: '#2196F3',
+    color: '#000000',
     fontWeight: '600',
   },
   headerTitle: {

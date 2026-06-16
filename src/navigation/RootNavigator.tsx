@@ -8,7 +8,6 @@ import {ActivityIndicator, View, Text, StyleSheet} from 'react-native';
 import {NavigationContainer} from '@react-navigation/native';
 import {createStackNavigator} from '@react-navigation/stack';
 import {useAuth, useOrg} from '@/context';
-import Theme from '@/constants/theme';
 
 // Import navigators
 import AuthNavigator from './AuthNavigator';
@@ -35,10 +34,10 @@ const Stack = createStackNavigator<RootStackParamList>();
 
 const RootNavigator: React.FC = () => {
   const {user, initializing, isAuthenticated} = useAuth();
-  const {currentOrg, loading: orgLoading} = useOrg();
+  const {currentOrg, initialLoading} = useOrg();
 
   // Show splash screen while initializing
-  if (initializing || orgLoading) {
+  if (initializing || initialLoading) {
     return (
       <View style={styles.splashContainer}>
         <View style={styles.splashContent}>

@@ -7,7 +7,6 @@ import React from 'react';
 import {View, Text, StyleSheet, TouchableOpacity} from 'react-native';
 import Theme from '@/constants/theme';
 import {User, UserStatus} from '@/types';
-import MaterialIcons from '@react-native-vector-icons/material-icons';
 
 // ============================================================================
 // TYPES

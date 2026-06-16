@@ -35,20 +35,6 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
   color = 'primary',
   style,
 }) => {
-  // Get color based on variant
-  const getColor = () => {
-    switch (color) {
-      case 'success':
-        return Theme.colors.success.main;
-      case 'warning':
-        return Theme.colors.warning.main;
-      case 'info':
-        return Theme.colors.info.main;
-      default:
-        return Theme.colors.primary[600];
-    }
-  };
-
   const getBackgroundColor = () => {
     switch (color) {
       case 'success':

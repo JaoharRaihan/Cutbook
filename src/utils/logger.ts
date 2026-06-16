@@ -6,6 +6,8 @@
 
 import * as Sentry from '@sentry/react-native';
 
+declare const process: any;
+
 // Determine if we're in development mode
 const isDev = __DEV__ || process.env.NODE_ENV === 'development';
 
@@ -52,7 +54,8 @@ export class Logger {
 
     // Send warning to Sentry in production
     if (!isDev) {
-      Sentry.captureMessage(message, 'warning', {
+      Sentry.captureMessage(message, {
+        level: 'warning',
         contexts: {
           module: {name: this.name},
           extra: {data},

@@ -566,7 +566,7 @@ const styles = StyleSheet.create({
   },
 
   emptyStateButton: {
-    backgroundColor: '#f32121',
+    backgroundColor: '#000000',
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 10,
@@ -578,7 +578,7 @@ const styles = StyleSheet.create({
   },
 
   emptyStateButtonText: {
-    color: '#000000',
+    color: '#FFFFFF',
     fontSize: 15,
     fontWeight: '600',
     paddingHorizontal: 10,

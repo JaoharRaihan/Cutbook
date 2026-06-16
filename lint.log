@@ -1,0 +1,128 @@
+
+> cutbook@1.0.0 lint
+> eslint .
+
+
+/Users/jaoharraihan/Desktop/cut/Cutbook/App.tsx
+  57:16  warning  Inline style: { flex: 1, justifyContent: 'center', alignItems: 'center' }                          react-native/no-inline-styles
+  64:22  warning  Inline style: { marginTop: 16, fontSize: 16 }                                                      react-native/no-inline-styles
+  75:16  warning  Inline style: {
+  flex: 1,
+  justifyContent: 'center',
+  alignItems: 'center',
+  padding: 24
+}     react-native/no-inline-styles
+  83:18  warning  Inline style: {
+  fontSize: 18,
+  fontWeight: 'bold',
+  marginBottom: 12,
+  textAlign: 'center'
+}  react-native/no-inline-styles
+  92:22  warning  Inline style: { fontSize: 14, textAlign: 'center' }                                                react-native/no-inline-styles
+  96:18  warning  Inline style: { fontSize: 12, textAlign: 'center', marginTop: 16 }                                 react-native/no-inline-styles
+
+/Users/jaoharraihan/Desktop/cut/Cutbook/src/components/EmployeeCard.tsx
+  10:8  error  'MaterialIcons' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/jaoharraihan/Desktop/cut/Cutbook/src/components/SummaryCard.tsx
+  39:9   error    'getColor' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  74:35  warning  Inline style: { color: '#fbfbfb' }             react-native/no-inline-styles
+
+/Users/jaoharraihan/Desktop/cut/Cutbook/src/components/UI/SyncStatusCard.tsx
+  35:43  warning  Inline style: { backgroundColor: "isOnline ? '#4CAF50' : '#FF9800'" }  react-native/no-inline-styles
+
+/Users/jaoharraihan/Desktop/cut/Cutbook/src/components/UI/Toast.tsx
+  62:6  warning  React Hook useEffect has missing dependencies: 'hideToast', 'opacity', and 'translateY'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/jaoharraihan/Desktop/cut/Cutbook/src/components/dev/PerformanceMonitor.tsx
+   73:7   warning  Unexpected console statement                                          no-console
+  119:39  warning  Inline style: { color: "metrics.fps >= 55 ? '#4CAF50' : '#F44336'" }  react-native/no-inline-styles
+
+/Users/jaoharraihan/Desktop/cut/Cutbook/src/components/examples/DataPersistenceExample.tsx
+  52:5  warning  Unexpected console statement  no-console
+
+/Users/jaoharraihan/Desktop/cut/Cutbook/src/components/shared/Checkbox.tsx
+  81:13  warning  Inline style: {
+  borderColor: "error ? '#F44336' : checked ? color : '#BDBDBD'",
+  backgroundColor: "checked ? color : '#FFFFFF'"
+}  react-native/no-inline-styles
+
+/Users/jaoharraihan/Desktop/cut/Cutbook/src/hooks/usePersistedData.ts
+  182:6  warning  React Hook useEffect has missing dependencies: 'initialValues' and 'keys'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/jaoharraihan/Desktop/cut/Cutbook/src/navigation/EmployeeNavigator.tsx
+  180:23  warning  Do not define components during render. React will see a new component type on every render and destroy the entire subtree’s DOM nodes and state (https://reactjs.org/docs/reconciliation.html#elements-of-different-types). Instead, move this component definition out of the parent component “EmployeeNavigator” and pass data as props. If you want to allow component creation in props, set allowAsProps option to true  react/no-unstable-nested-components
+  188:23  warning  Do not define components during render. React will see a new component type on every render and destroy the entire subtree’s DOM nodes and state (https://reactjs.org/docs/reconciliation.html#elements-of-different-types). Instead, move this component definition out of the parent component “EmployeeNavigator” and pass data as props. If you want to allow component creation in props, set allowAsProps option to true  react/no-unstable-nested-components
+  196:23  warning  Do not define components during render. React will see a new component type on every render and destroy the entire subtree’s DOM nodes and state (https://reactjs.org/docs/reconciliation.html#elements-of-different-types). Instead, move this component definition out of the parent component “EmployeeNavigator” and pass data as props. If you want to allow component creation in props, set allowAsProps option to true  react/no-unstable-nested-components
+  204:23  warning  Do not define components during render. React will see a new component type on every render and destroy the entire subtree’s DOM nodes and state (https://reactjs.org/docs/reconciliation.html#elements-of-different-types). Instead, move this component definition out of the parent component “EmployeeNavigator” and pass data as props. If you want to allow component creation in props, set allowAsProps option to true  react/no-unstable-nested-components
+
+/Users/jaoharraihan/Desktop/cut/Cutbook/src/navigation/OwnerNavigator.tsx
+  255:23  warning  Do not define components during render. React will see a new component type on every render and destroy the entire subtree’s DOM nodes and state (https://reactjs.org/docs/reconciliation.html#elements-of-different-types). Instead, move this component definition out of the parent component “OwnerNavigator” and pass data as props. If you want to allow component creation in props, set allowAsProps option to true  react/no-unstable-nested-components
+  265:23  warning  Do not define components during render. React will see a new component type on every render and destroy the entire subtree’s DOM nodes and state (https://reactjs.org/docs/reconciliation.html#elements-of-different-types). Instead, move this component definition out of the parent component “OwnerNavigator” and pass data as props. If you want to allow component creation in props, set allowAsProps option to true  react/no-unstable-nested-components
+  275:23  warning  Do not define components during render. React will see a new component type on every render and destroy the entire subtree’s DOM nodes and state (https://reactjs.org/docs/reconciliation.html#elements-of-different-types). Instead, move this component definition out of the parent component “OwnerNavigator” and pass data as props. If you want to allow component creation in props, set allowAsProps option to true  react/no-unstable-nested-components
+  285:23  warning  Do not define components during render. React will see a new component type on every render and destroy the entire subtree’s DOM nodes and state (https://reactjs.org/docs/reconciliation.html#elements-of-different-types). Instead, move this component definition out of the parent component “OwnerNavigator” and pass data as props. If you want to allow component creation in props, set allowAsProps option to true  react/no-unstable-nested-components
+
+/Users/jaoharraihan/Desktop/cut/Cutbook/src/screens/auth/LoginScreen.tsx
+  103:7  warning  Unexpected console statement  no-console
+  111:7  warning  Unexpected console statement  no-console
+
+/Users/jaoharraihan/Desktop/cut/Cutbook/src/screens/owner/AddServiceScreen.tsx
+   64:27  warning  Missing radix parameter  radix
+  103:32  warning  Missing radix parameter  radix
+
+/Users/jaoharraihan/Desktop/cut/Cutbook/src/screens/owner/AddWorkEntryScreen.tsx
+  215:28  warning  Inline style: { fontWeight: '600', color: '#2E7D32', fontSize: 14 }  react-native/no-inline-styles
+
+/Users/jaoharraihan/Desktop/cut/Cutbook/src/screens/owner/DashboardScreen.tsx
+  168:34  warning  Inline style: { fontSize: 34 }                                    react-native/no-inline-styles
+  238:32  warning  Inline style: { alignItems: 'center', justifyContent: 'center' }  react-native/no-inline-styles
+
+/Users/jaoharraihan/Desktop/cut/Cutbook/src/screens/owner/EditServiceScreen.tsx
+   86:27  warning  Missing radix parameter  radix
+  117:30  warning  Missing radix parameter  radix
+
+/Users/jaoharraihan/Desktop/cut/Cutbook/src/screens/owner/EmployeeDetailScreen.tsx
+  315:43  warning  Inline style: { color: 'red' }  react-native/no-inline-styles
+  413:28  warning  Inline style: { flex: 1 }       react-native/no-inline-styles
+
+/Users/jaoharraihan/Desktop/cut/Cutbook/src/screens/owner/OrganizationSettingsScreen.tsx
+  120:7  warning  Unexpected console statement  no-console
+
+/Users/jaoharraihan/Desktop/cut/Cutbook/src/utils/demoData.ts
+  579:5  warning  Unexpected console statement  no-console
+  589:5  warning  Unexpected console statement  no-console
+
+/Users/jaoharraihan/Desktop/cut/Cutbook/src/utils/firebase-crashlytics-web-stub.js
+  7:7  warning  'noopVoid' is assigned a value but never used  no-unused-vars
+
+/Users/jaoharraihan/Desktop/cut/Cutbook/src/utils/firebase-web-stub.js
+  6:7  warning  'emptyObject' is assigned a value but never used  no-unused-vars
+
+/Users/jaoharraihan/Desktop/cut/Cutbook/src/utils/logger.ts
+  36:7  warning  Unexpected console statement  no-console
+  45:7  warning  Unexpected console statement  no-console
+
+/Users/jaoharraihan/Desktop/cut/Cutbook/src/utils/mockPasswords.ts
+   94:3  warning  Unexpected console statement  no-console
+   95:3  warning  Unexpected console statement  no-console
+   96:3  warning  Unexpected console statement  no-console
+   98:3  warning  Unexpected console statement  no-console
+  100:5  warning  Unexpected console statement  no-console
+  101:5  warning  Unexpected console statement  no-console
+  104:3  warning  Unexpected console statement  no-console
+  106:5  warning  Unexpected console statement  no-console
+  107:5  warning  Unexpected console statement  no-console
+  110:3  warning  Unexpected console statement  no-console
+
+/Users/jaoharraihan/Desktop/cut/Cutbook/src/utils/testing.ts
+  168:3  warning  Unexpected console statement  no-console
+  368:3  warning  Unexpected console statement  no-console
+  369:3  warning  Unexpected console statement  no-console
+  370:3  warning  Unexpected console statement  no-console
+  371:3  warning  Unexpected console statement  no-console
+  372:3  warning  Unexpected console statement  no-console
+  373:3  warning  Unexpected console statement  no-console
+  381:5  warning  Unexpected console statement  no-console
+
+✖ 60 problems (2 errors, 58 warnings)
+

@@ -4,7 +4,7 @@
  */
 
 import React, {useState, useMemo} from 'react';
-import {View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar, Alert} from 'react-native';
+import {View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useOrg, useData} from '@/context';
 import {PaymentMethod} from '@/types';
@@ -205,29 +205,29 @@ export default function ReportsScreen({navigation: _navigation}: any): React.Rea
   // HANDLERS
   // ============================================================================
 
-  const _handleExport = () => {
-    Alert.alert(
-      'Export Report',
-      `Export ${totalEntries} entries as CSV?\n\nThis will generate a downloadable file with all transaction details.`,
-      [
-        {text: 'Cancel', style: 'cancel'},
-        {
-          text: 'Export',
-          onPress: () => {
-            // Mock export
-            setTimeout(() => {
-              Alert.alert(
-                'Success',
-                'Report exported successfully!\n\nFile: cutbook_report_' +
-                  new Date().toISOString().split('T')[0] +
-                  '.csv',
-              );
-            }, 500);
-          },
-        },
-      ],
-    );
-  };
+  // const _handleExport = () => {
+  //   Alert.alert(
+  //     'Export Report',
+  //     `Export ${totalEntries} entries as CSV?\n\nThis will generate a downloadable file with all transaction details.`,
+  //     [
+  //       {text: 'Cancel', style: 'cancel'},
+  //       {
+  //         text: 'Export',
+  //         onPress: () => {
+  //           // Mock export
+  //           setTimeout(() => {
+  //             Alert.alert(
+  //               'Success',
+  //               'Report exported successfully!\n\nFile: cutbook_report_' +
+  //                 new Date().toISOString().split('T')[0] +
+  //                 '.csv',
+  //             );
+  //           }, 500);
+  //         },
+  //       },
+  //     ],
+  //   );
+  // };
 
   const getPaymentMethodColor = (method: PaymentMethod): string => {
     switch (method) {

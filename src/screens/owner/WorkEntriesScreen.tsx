@@ -127,7 +127,7 @@ export default function WorkEntriesScreen({navigation}: any): React.ReactElement
       netAmount: commission + totalTips - acceptedPayouts,
       employeeName: employee.name,
     };
-  }, [selectedEmployee, totalIncome, orgUsers, employeeTransactions]);
+  }, [selectedEmployee, totalIncome, orgUsers, employeeTransactions, totalTips]);
 
   // ============================================================================
   // HANDLERS

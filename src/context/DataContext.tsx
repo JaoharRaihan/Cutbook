@@ -270,7 +270,7 @@ export const DataProvider: React.FC<{children: React.ReactNode}> = ({children}) 
       try {
         const entryDocRef = firestore().collection('workEntries').doc(id);
         const entryDocSnap = await entryDocRef.get();
-        if (!entryDocSnap.exists) {
+        if (!entryDocSnap.exists()) {
           throw new Error('Work entry not found');
         }
         const existingEntry = entryDocSnap.data() as WorkEntry;

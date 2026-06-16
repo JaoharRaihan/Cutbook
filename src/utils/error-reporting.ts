@@ -6,6 +6,8 @@
 import * as Sentry from '@sentry/react-native';
 import {createLogger} from './logger';
 
+declare const process: any;
+
 const logger = createLogger('ErrorReporting');
 const isDev = __DEV__ || process.env.NODE_ENV === 'development';
 
@@ -119,7 +121,8 @@ export function captureError(error: Error | string, context?: Record<string, any
 
   try {
     if (typeof error === 'string') {
-      Sentry.captureMessage(error, 'error', {
+      Sentry.captureMessage(error, {
+        level: 'error',
         contexts: {custom: context},
       });
     } else {

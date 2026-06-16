@@ -6,7 +6,6 @@
 import React from 'react';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {createStackNavigator} from '@react-navigation/stack';
-import {Text} from 'react-native';
 import Theme from '@/constants/theme';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 

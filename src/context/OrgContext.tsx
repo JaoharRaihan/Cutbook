@@ -35,6 +35,7 @@ interface OrgContextValue {
   orgServices: Service[];
   employeeTransactions: EmployeeTransaction[];
   loading: boolean;
+  initialLoading: boolean;
   error: string | null;
 
   // Methods
@@ -89,6 +90,7 @@ export const OrgProvider: React.FC<{children: React.ReactNode}> = ({children}) =
   const [orgServices, setOrgServices] = useState<Service[]>([]);
   const [employeeTransactions, setEmployeeTransactions] = useState<EmployeeTransaction[]>([]);
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // ============================================================================
@@ -103,6 +105,7 @@ export const OrgProvider: React.FC<{children: React.ReactNode}> = ({children}) =
 
     if (user?.orgId) {
       setLoading(true);
+      setInitialLoading(true);
       const orgId = user.orgId;
 
       // 1. Listen to Organization Document
@@ -138,11 +141,13 @@ export const OrgProvider: React.FC<{children: React.ReactNode}> = ({children}) =
               AsyncStorage.removeItem(STORAGE_KEYS.CURRENT_ORG);
             }
             setLoading(false);
+            setInitialLoading(false);
           },
           (err: any) => {
             logger.error('Error listening to org', err);
             setError('Failed to sync organization data');
             setLoading(false);
+            setInitialLoading(false);
           },
         );
 
@@ -225,6 +230,7 @@ export const OrgProvider: React.FC<{children: React.ReactNode}> = ({children}) =
       setOrgUsers([]);
       setOrgServices([]);
       setEmployeeTransactions([]);
+      setInitialLoading(false);
     }
 
     return () => {
@@ -734,7 +740,7 @@ export const OrgProvider: React.FC<{children: React.ReactNode}> = ({children}) =
           .doc(transactionId)
           .get();
 
-        if (!txnDoc.exists) {
+        if (!txnDoc.exists()) {
           throw new Error('Transaction not found');
         }
 
@@ -800,6 +806,7 @@ export const OrgProvider: React.FC<{children: React.ReactNode}> = ({children}) =
     orgServices,
     employeeTransactions,
     loading,
+    initialLoading,
     error,
     createOrg,
     joinOrg,

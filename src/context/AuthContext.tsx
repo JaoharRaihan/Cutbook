@@ -111,14 +111,14 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) 
       logger.debug('Fetching user profile for:', uid);
       const userDoc = await firestore().collection('users').doc(uid).get();
 
-      if (userDoc.exists) {
+      if (userDoc.exists()) {
         const userData = userDoc.data() as User;
         // Ensure ID matches
         userData.id = uid;
 
         // Ensure role is properly set (should never be undefined)
         if (!userData.role || !Object.values(UserRole).includes(userData.role)) {
-          logger.warn('Invalid or missing role for user:', uid, 'Setting to EMPLOYEE');
+          logger.warn(`Invalid or missing role for user: ${uid}. Setting to EMPLOYEE`);
           userData.role = UserRole.EMPLOYEE;
         }
 
@@ -202,7 +202,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) 
       }
 
       setError(errorMessage);
-      logger.error('Login error:', err.code, errorMessage);
+      logger.error(`Login error: ${err.code}`, errorMessage);
       throw new Error(errorMessage);
     } finally {
       setLoading(false);

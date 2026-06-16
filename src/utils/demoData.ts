@@ -23,6 +23,7 @@ export const DEMO_ORG: Organization = {
   id: 'demo-org-1',
   name: 'Elite Cuts Salon',
   ownerId: 'demo-user-1',
+  inviteCode: 'ELITE1',
   timezone: 'Asia/Dhaka',
   currency: 'BDT',
   defaultCommissionMode: CommissionMode.PERCENTAGE,

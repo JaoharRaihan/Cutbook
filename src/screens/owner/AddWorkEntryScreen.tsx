@@ -19,7 +19,6 @@ import {
 } from 'react-native';
 import {useOrg, useData, useAuth} from '@/context';
 import {WorkEntry, PaymentMethod, Service, User} from '@/types';
-import MaterialIcons from '@react-native-vector-icons/material-icons';
 
 // ============================================================================
 // COMPONENT
@@ -33,7 +32,7 @@ export default function AddWorkEntryScreen({navigation}: any): React.ReactElemen
 
   // Form state
   const [selectedEmployee, setSelectedEmployee] = useState<string>('');
-  const [selectedService, setSelectedService] = useState<string>('');
+  const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [customServiceName, setCustomServiceName] = useState('');
   const [price, setPrice] = useState('');
   const [tip, setTip] = useState('');
@@ -58,8 +57,8 @@ export default function AddWorkEntryScreen({navigation}: any): React.ReactElemen
       return 'Please select an employee';
     }
 
-    if (!useCustomService && !selectedService) {
-      return 'Please select a service or use custom service name';
+    if (!useCustomService && selectedServices.length === 0) {
+      return 'Please select at least one service or use custom service name';
     }
 
     if (useCustomService && !customServiceName.trim()) {
@@ -95,9 +94,13 @@ export default function AddWorkEntryScreen({navigation}: any): React.ReactElemen
       if (useCustomService) {
         serviceName = customServiceName.trim();
       } else {
-        const service = activeServices.find((s: Service) => s.id === selectedService);
-        serviceName = service?.name || '';
-        serviceId = service?.id;
+        const selectedServicesData = activeServices.filter((s: Service) =>
+          selectedServices.includes(s.id),
+        );
+        serviceName = selectedServicesData.map(s => s.name).join(', ');
+        if (selectedServicesData.length === 1) {
+          serviceId = selectedServicesData[0].id;
+        }
       }
 
       // Get employee info
@@ -158,7 +161,7 @@ export default function AddWorkEntryScreen({navigation}: any): React.ReactElemen
 
   const resetForm = () => {
     setSelectedEmployee('');
-    setSelectedService('');
+    setSelectedServices([]);
     setCustomServiceName('');
     setPrice('');
     setTip('');
@@ -167,14 +170,23 @@ export default function AddWorkEntryScreen({navigation}: any): React.ReactElemen
   };
 
   const handleServiceSelect = (serviceId: string) => {
-    setSelectedService(serviceId);
-    setShowServicePicker(false);
+    setSelectedServices(prev => {
+      const updated = prev.includes(serviceId)
+        ? prev.filter(id => id !== serviceId)
+        : [...prev, serviceId];
 
-    // Auto-fill price from service default
-    const service = activeServices.find((s: Service) => s.id === serviceId);
-    if (service?.defaultPrice) {
-      setPrice(service.defaultPrice.toString());
-    }
+      // Auto-fill price from services default sum
+      let totalDefaultPrice = 0;
+      updated.forEach(id => {
+        const service = activeServices.find((s: Service) => s.id === id);
+        if (service?.defaultPrice) {
+          totalDefaultPrice += service.defaultPrice;
+        }
+      });
+      setPrice(totalDefaultPrice > 0 ? totalDefaultPrice.toString() : '');
+
+      return updated;
+    });
   };
 
   const getEmployeeName = (id: string): string => {
@@ -182,9 +194,17 @@ export default function AddWorkEntryScreen({navigation}: any): React.ReactElemen
     return employee ? employee.name : 'Select Employee';
   };
 
-  const getServiceName = (id: string): string => {
-    const service = activeServices.find((s: Service) => s.id === id);
-    return service ? service.name : 'Select Service';
+  const getSelectedServicesLabel = (): string => {
+    if (selectedServices.length === 0) {
+      return 'Select Service';
+    }
+    return selectedServices
+      .map(id => {
+        const service = activeServices.find((s: Service) => s.id === id);
+        return service ? service.name : '';
+      })
+      .filter(Boolean)
+      .join(', ');
   };
 
   const paymentMethods = [
@@ -212,11 +232,8 @@ export default function AddWorkEntryScreen({navigation}: any): React.ReactElemen
           {/* Info Card */}
           <View style={styles.infoCard}>
             <Text style={styles.infoText}>
-              Select employee, service, amount, and payment method, then tap{''}
-              <Text style={{fontWeight: '600', color: '#2E7D32', fontSize: 14}}>
-                {' '}
-                Add Work Entry Button
-              </Text>{' '}
+              Select employee, service, amount, and payment method, then ta " Add Work Entry Button
+              "
             </Text>
           </View>
 
@@ -239,7 +256,10 @@ export default function AddWorkEntryScreen({navigation}: any): React.ReactElemen
               </TouchableOpacity>
 
               {showEmployeePicker && (
-                <View style={styles.pickerOptions}>
+                <ScrollView
+                  style={styles.pickerOptions}
+                  nestedScrollEnabled={true}
+                  showsVerticalScrollIndicator={true}>
                   {activeEmployees.length === 0 ? (
                     <View style={styles.emptyState}>
                       <Text style={styles.emptyStateText}>No active employees found</Text>
@@ -269,7 +289,7 @@ export default function AddWorkEntryScreen({navigation}: any): React.ReactElemen
                       </TouchableOpacity>
                     ))
                   )}
-                </View>
+                </ScrollView>
               )}
             </View>
           </View>
@@ -309,14 +329,19 @@ export default function AddWorkEntryScreen({navigation}: any): React.ReactElemen
                   style={styles.pickerButton}
                   onPress={() => setShowServicePicker(!showServicePicker)}>
                   <Text
-                    style={[styles.pickerButtonText, !selectedService && styles.placeholderText]}>
-                    {selectedService ? getServiceName(selectedService) : 'Select Service'}
+                    style={[
+                      styles.pickerButtonText,
+                      selectedServices.length === 0 && styles.placeholderText,
+                    ]}>
+                    {getSelectedServicesLabel()}
                   </Text>
                   <Text style={styles.pickerArrow}>{showServicePicker ? '▲' : '▼'}</Text>
                 </TouchableOpacity>
-
                 {showServicePicker && (
-                  <View style={styles.pickerOptions}>
+                  <ScrollView
+                    style={styles.pickerOptions}
+                    nestedScrollEnabled={true}
+                    showsVerticalScrollIndicator={true}>
                     {activeServices.length === 0 ? (
                       <View style={styles.pickerOption}>
                         <Text style={styles.pickerOptionText}>No active services found</Text>
@@ -328,7 +353,7 @@ export default function AddWorkEntryScreen({navigation}: any): React.ReactElemen
                           key={service.id}
                           style={[
                             styles.pickerOption,
-                            selectedService === service.id && styles.pickerOptionSelected,
+                            selectedServices.includes(service.id) && styles.pickerOptionSelected,
                           ]}
                           onPress={() => handleServiceSelect(service.id)}>
                           <View>
@@ -339,13 +364,13 @@ export default function AddWorkEntryScreen({navigation}: any): React.ReactElemen
                               </Text>
                             )}
                           </View>
-                          {selectedService === service.id && (
+                          {selectedServices.includes(service.id) && (
                             <Text style={styles.checkmark}>✓</Text>
                           )}
                         </TouchableOpacity>
                       ))
                     )}
-                  </View>
+                  </ScrollView>
                 )}
               </View>
             ) : (
@@ -470,7 +495,7 @@ export default function AddWorkEntryScreen({navigation}: any): React.ReactElemen
             onPress={handleSubmit}
             disabled={loading}>
             <Text style={styles.submitButtonText}>
-              {loading ? 'Adding Entry...' : '✓ Add Work Entry'}
+              {loading ? 'Adding Entry...' : 'Add Work Entry'}
             </Text>
           </TouchableOpacity>
         </View>
@@ -739,7 +764,7 @@ const styles = StyleSheet.create({
     borderTopColor: '#E0E0E0',
   },
   submitButton: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#000000',
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',

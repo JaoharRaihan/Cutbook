@@ -114,8 +114,8 @@ export interface User extends BaseEntity {
   address?: string;
   permissions?: EmployeePermission[]; // Permissions for employees (delegated by owner)
   // Cash account tracking
-  totalPayoutReceived: number; // Total cash employee has accepted/received from transactions
-  totalPayoutPending: number; // Total cash employee has pending (PENDING transactions)
+  totalPayoutReceived?: number; // Total cash employee has accepted/received from transactions
+  totalPayoutPending?: number; // Total cash employee has pending (PENDING transactions)
 }
 
 /**
@@ -167,8 +167,8 @@ export interface Organization extends BaseEntity {
   logo?: string;
   inviteCode: string; // Required for joining organizations
   // Cash account tracking
-  mainCash: number; // Organization's main cash account balance
-  totalPayoutsGiven: number; // Total cash paid out to employees (from ACCEPTED transactions)
+  mainCash?: number; // Organization's main cash account balance
+  totalPayoutsGiven?: number; // Total cash paid out to employees (from ACCEPTED transactions)
 }
 
 /**

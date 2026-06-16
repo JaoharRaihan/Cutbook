@@ -36,7 +36,7 @@ export default function AddWorkEntryScreen({navigation}: any): React.ReactElemen
 
   // Form state
   const [selectedEmployee, setSelectedEmployee] = useState<string>(user?.id || '');
-  const [selectedService, setSelectedService] = useState<string>('');
+  const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [customServiceName, setCustomServiceName] = useState('');
   const [price, setPrice] = useState('');
   const [tip, setTip] = useState('');
@@ -45,6 +45,39 @@ export default function AddWorkEntryScreen({navigation}: any): React.ReactElemen
   const [showEmployeePicker, setShowEmployeePicker] = useState(false);
   const [showServicePicker, setShowServicePicker] = useState(false);
   const [useCustomService, setUseCustomService] = useState(false);
+
+  const handleServiceSelect = (serviceId: string) => {
+    setSelectedServices(prev => {
+      const updated = prev.includes(serviceId)
+        ? prev.filter(id => id !== serviceId)
+        : [...prev, serviceId];
+
+      // Auto-fill price from services default sum
+      let totalDefaultPrice = 0;
+      updated.forEach(id => {
+        const service = activeServices.find((s: Service) => s.id === id);
+        if (service?.defaultPrice) {
+          totalDefaultPrice += service.defaultPrice;
+        }
+      });
+      setPrice(totalDefaultPrice > 0 ? totalDefaultPrice.toString() : '');
+
+      return updated;
+    });
+  };
+
+  const getSelectedServicesLabel = (): string => {
+    if (selectedServices.length === 0) {
+      return 'Select service';
+    }
+    return selectedServices
+      .map(id => {
+        const service = activeServices.find((s: Service) => s.id === id);
+        return service ? service.name : '';
+      })
+      .filter(Boolean)
+      .join(', ');
+  };
 
   // Filter active employees (all employees in the org)
   const activeEmployees = orgUsers.filter(u => u.status === 'active');
@@ -63,8 +96,8 @@ export default function AddWorkEntryScreen({navigation}: any): React.ReactElemen
       return 'Please select an employee';
     }
 
-    if (!useCustomService && !selectedService) {
-      return 'Please select a service or use custom service name';
+    if (!useCustomService && selectedServices.length === 0) {
+      return 'Please select at least one service or use custom service name';
     }
 
     if (useCustomService && !customServiceName.trim()) {
@@ -105,9 +138,13 @@ export default function AddWorkEntryScreen({navigation}: any): React.ReactElemen
       if (useCustomService) {
         serviceName = customServiceName.trim();
       } else {
-        const service = activeServices.find((s: Service) => s.id === selectedService);
-        serviceName = service?.name || '';
-        serviceId = service?.id;
+        const selectedServicesData = activeServices.filter((s: Service) =>
+          selectedServices.includes(s.id),
+        );
+        serviceName = selectedServicesData.map(s => s.name).join(', ');
+        if (selectedServicesData.length === 1) {
+          serviceId = selectedServicesData[0].id;
+        }
       }
 
       // Create entry object and save to Firestore
@@ -202,7 +239,7 @@ export default function AddWorkEntryScreen({navigation}: any): React.ReactElemen
                   style={[styles.toggle, !useCustomService && styles.toggleActive]}
                   onPress={() => {
                     setUseCustomService(false);
-                    setSelectedService('');
+                    setSelectedServices([]);
                     setCustomServiceName('');
                     setPrice('');
                   }}>
@@ -214,7 +251,7 @@ export default function AddWorkEntryScreen({navigation}: any): React.ReactElemen
                   style={[styles.toggle, useCustomService && styles.toggleActive]}
                   onPress={() => {
                     setUseCustomService(true);
-                    setSelectedService('');
+                    setSelectedServices([]);
                     setCustomServiceName('');
                     setPrice('');
                   }}>
@@ -231,10 +268,7 @@ export default function AddWorkEntryScreen({navigation}: any): React.ReactElemen
                     style={styles.picker}
                     onPress={() => setShowServicePicker(!showServicePicker)}>
                     <Text style={styles.pickerText}>
-                      {selectedService
-                        ? activeServices.find(s => s.id === selectedService)?.name ||
-                          'Select service'
-                        : 'Select service'}
+                      {getSelectedServicesLabel()}
                     </Text>
                   </TouchableOpacity>
 
@@ -247,27 +281,20 @@ export default function AddWorkEntryScreen({navigation}: any): React.ReactElemen
                         <TouchableOpacity
                           key={service.id}
                           style={styles.pickerOption}
-                          onPress={() => {
-                            setSelectedService(service.id);
-                            // Auto-populate price from service's default price
-                            if (service.defaultPrice) {
-                              setPrice(service.defaultPrice.toString());
-                            }
-                            setShowServicePicker(false);
-                          }}>
+                          onPress={() => handleServiceSelect(service.id)}>
                           <View style={styles.pickerOptionContent}>
                             <Text
                               style={[
                                 styles.pickerOptionText,
-                                selectedService === service.id && styles.pickerOptionTextActive,
+                                selectedServices.includes(service.id) && styles.pickerOptionTextActive,
                               ]}>
-                              {service.name}
+                              {service.name} {selectedServices.includes(service.id) ? '✓' : ''}
                             </Text>
                             {service.defaultPrice && (
                               <Text
                                 style={[
                                   styles.pickerOptionPrice,
-                                  selectedService === service.id && styles.pickerOptionPriceActive,
+                                  selectedServices.includes(service.id) && styles.pickerOptionPriceActive,
                                 ]}>
                                 ৳{service.defaultPrice}
                               </Text>

@@ -19,6 +19,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import {useOrg} from '@/context';
+import firebase from '@react-native-firebase/app';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import {UserRole, UserStatus} from '@/types';
@@ -104,9 +105,21 @@ export default function AddEmployeeScreen({navigation}: any): React.ReactElement
       const password = employeePassword.trim();
       const commission = parseFloat(commissionPercentage);
 
-      // Step 1: Create Firebase Auth account
-      const userCredential = await auth().createUserWithEmailAndPassword(email, password);
-      const uid = userCredential.user.uid;
+      // Step 1: Create Firebase Auth account on a secondary Firebase app to prevent logging out the current owner
+      const existingApp = firebase.apps.find(app => app.name === 'SecondaryApp');
+      if (existingApp) {
+        await existingApp.delete();
+      }
+
+      const secondaryApp = await firebase.initializeApp(firebase.app().options, 'SecondaryApp');
+      let uid = '';
+      try {
+        const secondaryAuth = auth(secondaryApp);
+        const userCredential = await secondaryAuth.createUserWithEmailAndPassword(email, password);
+        uid = userCredential.user.uid;
+      } finally {
+        await secondaryApp.delete();
+      }
 
       // Step 2: Create user document in Firestore
       const userData = {

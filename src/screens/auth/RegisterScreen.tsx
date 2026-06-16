@@ -10,8 +10,6 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
   ScrollView,
   ActivityIndicator,
   Alert,

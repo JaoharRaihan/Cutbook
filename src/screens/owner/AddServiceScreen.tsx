@@ -380,7 +380,7 @@ const styles = StyleSheet.create({
   },
   checkmark: {
     fontSize: 18,
-    color: '#2196F3',
+    color: '#000000ff',
     fontWeight: '700',
   },
   priceInputContainer: {

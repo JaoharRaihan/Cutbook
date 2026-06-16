@@ -220,7 +220,7 @@ export default function EmployeeHomeScreen({navigation}: any): React.ReactElemen
 
         {/* Today's Summary Cards */}
         <View style={styles.summarySection}>
-          <MaterialIcons name="bar-chart" style={styles.sectionTitle} />
+          <Text style={styles.sectionTitle}>Today's Summary</Text>
           <View style={[styles.summaryCard, styles.summaryCardPrimary]}>
             <Text style={styles.summaryIcon}>💰</Text>
             <Text style={styles.summaryLabel}>Total Income</Text>

@@ -172,8 +172,8 @@ export default function ServicesScreen({navigation}: any): React.ReactElement {
               <RefreshControl
                 refreshing={refreshing}
                 onRefresh={handleRefresh}
-                colors={['#2196F3']}
-                tintColor="#2196F3"
+                colors={['#000000ff']}
+                tintColor="#000000ff"
               />
             }
           />
@@ -266,13 +266,13 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#9572dc',
+    color: '#000000ff',
     textTransform: 'capitalize',
   },
   sectionCount: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1976D2',
+    color: '#000000ff',
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 10,
     paddingVertical: 4,
