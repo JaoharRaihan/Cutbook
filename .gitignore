@@ -37,6 +37,8 @@ local.properties
 
 # Android keystore credentials (SENSITIVE!)
 android/keystore.properties
+keystore.properties
+
 
 # node.js
 #
@@ -83,3 +85,4 @@ dist/
 .vercel
 .env*.local
 .env*
+service-account.json

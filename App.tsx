@@ -7,7 +7,8 @@ import React, {useEffect, useState} from 'react';
 import {StatusBar, View, Text, ActivityIndicator} from 'react-native';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
 import firestore from '@react-native-firebase/firestore';
-import {AuthProvider, OrgProvider, DataProvider, ThemeProvider} from '@/context';
+import messaging from '@react-native-firebase/messaging';
+import {AuthProvider, OrgProvider, DataProvider, ThemeProvider, LanguageProvider} from '@/context';
 import {RootNavigator} from '@/navigation';
 import {Colors} from '@/constants/theme';
 import {initializeErrorReporting} from '@/utils/error-reporting';
@@ -17,6 +18,16 @@ const logger = createLogger('App');
 
 // Initialize error reporting on app startup
 initializeErrorReporting();
+
+// ============================================================================
+// BACKGROUND MESSAGE HANDLER (must be registered outside of any component)
+// FCM requires this to be called before the app mounts any React component.
+// ============================================================================
+messaging().setBackgroundMessageHandler(async remoteMessage => {
+  logger.debug('FCM background message received:', remoteMessage?.notification?.title);
+  // The OS displays the notification automatically from the FCM payload.
+  // No extra work needed here unless you want to update badge counts etc.
+});
 
 function App(): React.JSX.Element {
   const [initializing, setInitializing] = useState(true);
@@ -104,13 +115,15 @@ function App(): React.JSX.Element {
     <SafeAreaProvider>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
       <ThemeProvider>
-        <AuthProvider>
-          <OrgProvider>
-            <DataProvider>
-              <RootNavigator />
-            </DataProvider>
-          </OrgProvider>
-        </AuthProvider>
+        <LanguageProvider>
+          <AuthProvider>
+            <OrgProvider>
+              <DataProvider>
+                <RootNavigator />
+              </DataProvider>
+            </OrgProvider>
+          </AuthProvider>
+        </LanguageProvider>
       </ThemeProvider>
     </SafeAreaProvider>
   );

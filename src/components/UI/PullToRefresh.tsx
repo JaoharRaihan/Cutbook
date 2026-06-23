@@ -5,6 +5,7 @@
 
 import React from 'react';
 import {ScrollView, RefreshControl, ScrollViewProps} from 'react-native';
+import Theme from '@/constants/theme';
 
 // ============================================================================
 // TYPES
@@ -44,10 +45,10 @@ export default function PullToRefresh({
         <RefreshControl
           refreshing={refreshing || isRefreshing}
           onRefresh={handleRefresh}
-          colors={['#2196F3']} // Android
-          tintColor="#2196F3" // iOS
+          colors={[Theme.colors.primary[500]]} // Android
+          tintColor={Theme.colors.primary[500]} // iOS
           title="Pull to refresh"
-          titleColor="#757575"
+          titleColor={Theme.colors.text.secondary}
         />
       }>
       {children}

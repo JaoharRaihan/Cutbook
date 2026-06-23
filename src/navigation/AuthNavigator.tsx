@@ -5,11 +5,14 @@
 
 import React from 'react';
 import {createStackNavigator} from '@react-navigation/stack';
+import type {RegistrationData} from '@/types';
 
-// Import screens (will be created)
+// Import screens
 import LoginScreen from '@/screens/auth/LoginScreen';
 import RegisterScreen from '@/screens/auth/RegisterScreen';
-// import OTPScreen from '@/screens/auth/OTPScreen'; // Optional for MVP
+import ForgotPasswordScreen from '@/screens/auth/ForgotPasswordScreen';
+import OTPVerificationScreen from '@/screens/auth/OTPVerificationScreen';
+import ResetPasswordScreen from '@/screens/auth/ResetPasswordScreen';
 
 // ============================================================================
 // AUTH STACK TYPES
@@ -18,7 +21,13 @@ import RegisterScreen from '@/screens/auth/RegisterScreen';
 export type AuthStackParamList = {
   Login: undefined;
   Register: undefined;
-  OTP: {phone: string; password: string};
+  OTPVerification: {
+    phone: string;
+    flow: 'register' | 'reset_password';
+    registrationData?: RegistrationData;
+  };
+  ForgotPassword: undefined;
+  ResetPassword: {phone: string};
 };
 
 const Stack = createStackNavigator<AuthStackParamList>();
@@ -50,15 +59,27 @@ const AuthNavigator: React.FC = () => {
           animation: 'slide_from_right',
         }}
       />
-      {/* Optional OTP Screen
       <Stack.Screen
-        name="OTP"
-        component={OTPScreen}
+        name="ForgotPassword"
+        component={ForgotPasswordScreen}
         options={{
           animation: 'slide_from_right',
         }}
       />
-      */}
+      <Stack.Screen
+        name="OTPVerification"
+        component={OTPVerificationScreen}
+        options={{
+          animation: 'slide_from_right',
+        }}
+      />
+      <Stack.Screen
+        name="ResetPassword"
+        component={ResetPasswordScreen}
+        options={{
+          animation: 'slide_from_right',
+        }}
+      />
     </Stack.Navigator>
   );
 };

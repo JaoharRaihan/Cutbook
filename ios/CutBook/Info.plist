@@ -39,6 +39,8 @@
 	<string>CutBook needs access to your photo library to let you upload profile pictures and logos.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>CutBook needs access to your camera to let you take profile pictures.</string>
+	<key>NSUserNotificationUsageDescription</key>
+	<string>CutBook sends you payment request notifications from your employer. Please allow notifications to stay informed about payout requests.</string>
 	<key>RCTNewArchEnabled</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>
@@ -55,5 +57,10 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+		<string>fetch</string>
+	</array>
 </dict>
 </plist>

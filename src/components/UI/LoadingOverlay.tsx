@@ -5,6 +5,7 @@
 
 import React from 'react';
 import {Modal, View, ActivityIndicator, Text, StyleSheet} from 'react-native';
+import Theme from '@/constants/theme';
 
 // ============================================================================
 // TYPES
@@ -27,7 +28,7 @@ export default function LoadingOverlay({
     <Modal visible={visible} transparent animationType="fade">
       <View style={styles.overlay}>
         <View style={styles.container}>
-          <ActivityIndicator size="large" color="#2196F3" />
+          <ActivityIndicator size="large" color={Theme.colors.primary[500]} />
           {message && <Text style={styles.message}>{message}</Text>}
         </View>
       </View>

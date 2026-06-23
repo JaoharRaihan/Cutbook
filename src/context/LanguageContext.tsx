@@ -102,20 +102,42 @@ export function useLanguage(): LanguageContextValue {
  * Get language name for display
  */
 export function getLanguageName(lang: Language): string {
-  return lang === 'en' ? 'English' : 'বাংলা';
+  switch (lang) {
+    case 'en':
+      return 'English';
+    case 'bn':
+      return 'বাংলা';
+    case 'es':
+      return 'Español';
+    case 'hi':
+      return 'हिन्दी';
+    default:
+      return 'English';
+  }
 }
 
 /**
  * Get opposite language (for toggle)
  */
 export function getOppositeLanguage(lang: Language): Language {
-  return lang === 'en' ? 'bn' : 'en';
+  switch (lang) {
+    case 'en':
+      return 'bn';
+    case 'bn':
+      return 'es';
+    case 'es':
+      return 'hi';
+    case 'hi':
+      return 'en';
+    default:
+      return 'en';
+  }
 }
 
 /**
  * Check if language is RTL (for future support)
  */
-export function isRTL(_lang: Language): boolean {
-  // Bengali is LTR, but function ready for future RTL languages
-  return false;
+export function isRTL(lang: Language): boolean {
+  // Arabic is RTL (for future reference), others are LTR
+  return lang === 'es' ? false : false;
 }

@@ -1,6 +1,6 @@
 /**
  * HistoryScreen.tsx
- * Employee work history with monthly filtering
+ * Employee work history with dashboard-style period filter + calendar date picker
  */
 
 import React, {useState, useMemo} from 'react';
@@ -8,18 +8,31 @@ import {
   View,
   Text,
   StyleSheet,
-  FlatList,
+  SectionList,
   TouchableOpacity,
   StatusBar,
   RefreshControl,
-  Modal,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
-import {useAuth, useData} from '@/context';
-import {WorkEntry, PaymentMethod} from '@/types';
-import {formatBDT} from '@/utils';
+import {useAuth, useOrg, useData, useTheme, useLanguage} from '@/context';
+import {PaymentMethod, TimePeriod} from '@/types';
+import {formatBDT, calculateEmployeeCommission} from '@/utils';
 import MaterialIcons from '@react-native-vector-icons/material-icons';
+import {useThemedStyles} from '@/hooks/useThemedStyles';
+import {ThemeColors} from '@/constants/theme';
+import DatePickerModal from '@/components/UI/DatePickerModal';
+import {formatDateISO, isToday} from '@/utils/date';
+import {getDateRange} from '@/hooks/useDailySummary';
+
+export const Palette = {
+  inkBlack: '#04151f',
+  darkSlateGrey: '#183a37',
+  wheat: '#efd6ac',
+  burntOrange: '#c44900',
+  midnightViolet: '#432534',
+};
 
 // ============================================================================
 // COMPONENT
@@ -27,58 +40,201 @@ import MaterialIcons from '@react-native-vector-icons/material-icons';
 
 export default function HistoryScreen(): React.ReactElement {
   const {user: currentUser} = useAuth();
+  const {currentOrg, employeeTransactions} = useOrg();
   const {workEntries, loading, refreshData} = useData();
-  const [refreshing, setRefreshing] = useState(false);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [selectedMonth, setSelectedMonth] = useState(new Date());
+  const {colors, isDarkMode} = useTheme();
+  const {language, t} = useLanguage();
+  const styles = useThemedStyles(getStyles);
 
-  // Generate month options (last 12 months)
-  const monthOptions = useMemo(() => {
-    const months = [];
-    for (let i = 0; i < 12; i++) {
-      const date = new Date();
-      date.setMonth(date.getMonth() - i);
-      months.push(date);
+  const [refreshing, setRefreshing] = useState(false);
+
+  // ── Filter state (mirrors owner dashboard) ──
+  const [timePeriod, setTimePeriod] = useState<TimePeriod>(TimePeriod.TODAY);
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [datePickerVisible, setDatePickerVisible] = useState(false);
+
+  // ── Locale helpers ──
+  const localeStr =
+    language === 'bn'
+      ? 'bn-BD'
+      : language === 'es'
+        ? 'es-ES'
+        : language === 'hi'
+          ? 'hi-IN'
+          : 'en-US';
+
+  const periodLabel = useMemo(() => {
+    switch (timePeriod) {
+      case TimePeriod.TODAY:
+        return language === 'en'
+          ? 'Today'
+          : language === 'bn'
+            ? 'আজ'
+            : language === 'es'
+              ? 'Hoy'
+              : 'आज';
+      case TimePeriod.WEEKLY:
+        return language === 'en'
+          ? 'This Week'
+          : language === 'bn'
+            ? 'এই সপ্তাহ'
+            : language === 'es'
+              ? 'Esta Semana'
+              : 'इस सप्ताह';
+      case TimePeriod.MONTHLY:
+        return language === 'en'
+          ? 'This Month'
+          : language === 'bn'
+            ? 'এই মাস'
+            : language === 'es'
+              ? 'Este Mes'
+              : 'इस महीने';
+      case TimePeriod.YEARLY:
+        return language === 'en'
+          ? 'This Year'
+          : language === 'bn'
+            ? 'এই বছর'
+            : language === 'es'
+              ? 'Este Año'
+              : 'इस साल';
+      default:
+        return '';
     }
-    return months;
-  }, []);
+  }, [timePeriod, language]);
 
   // Filter for current employee's entries
   const myEntries = useMemo(() => {
     return workEntries.filter(entry => entry.employeeId === currentUser?.id);
   }, [workEntries, currentUser]);
 
-  // Filter entries by selected month
-  const filteredEntries = useMemo(() => {
-    const monthStart = new Date(selectedMonth.getFullYear(), selectedMonth.getMonth(), 1);
-    const monthEnd = new Date(
-      selectedMonth.getFullYear(),
-      selectedMonth.getMonth() + 1,
-      0,
-      23,
-      59,
-      59,
-    );
+  // Date range
+  const dateRange = useMemo(() => {
+    return getDateRange(timePeriod, selectedDate);
+  }, [timePeriod, selectedDate]);
 
+  // Filter entries for selected period
+  const filteredEntries = useMemo(() => {
     return myEntries
       .filter(entry => {
         const entryDate = new Date(entry.createdAt);
-        return entryDate >= monthStart && entryDate <= monthEnd;
+        return entryDate >= dateRange.start && entryDate <= dateRange.end;
       })
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  }, [selectedMonth, myEntries]);
+  }, [myEntries, dateRange]);
 
-  // Calculate monthly totals
-  const monthlyStats = useMemo(() => {
-    const totalIncome = filteredEntries.reduce(
-      (sum, entry) => sum + entry.price + (entry.tip || 0),
-      0,
-    );
-    const totalTips = filteredEntries.reduce((sum, entry) => sum + (entry.tip || 0), 0);
+  // Summary stats for the filtered period
+  const periodStats = useMemo(() => {
     const totalServices = filteredEntries.length;
+    const serviceRevenue = filteredEntries.reduce((sum, e) => sum + e.price, 0);
+    const totalTips = filteredEntries.reduce((sum, e) => sum + (e.tip || 0), 0);
+    const totalIncome = serviceRevenue + totalTips;
+    const commissionPercentage = currentUser?.commissionPercentage || 0;
 
-    return {totalIncome, totalTips, totalServices};
-  }, [filteredEntries]);
+    let commission = 0;
+    if (currentOrg) {
+      filteredEntries.forEach(entry => {
+        commission += calculateEmployeeCommission(entry.price, currentOrg, commissionPercentage);
+      });
+    }
+    commission = Math.round(commission);
+    const myEarnings = commission + totalTips;
+    return {totalServices, totalIncome, totalTips, commission, myEarnings, commissionPercentage};
+  }, [filteredEntries, currentOrg, currentUser?.commissionPercentage]);
+
+  const periodPayouts = useMemo(() => {
+    if (!currentUser?.id || !employeeTransactions) return [];
+    return employeeTransactions.filter(p => {
+      if (p.status !== 'accepted') return false;
+      if (p.employeeId !== currentUser.id) return false;
+      const payoutDate = new Date(p.createdAt);
+      return payoutDate >= dateRange.start && payoutDate <= dateRange.end;
+    });
+  }, [employeeTransactions, currentUser?.id, dateRange]);
+
+  const totalPayoutsAmount = useMemo(() => {
+    return periodPayouts.reduce((sum, p) => sum + p.amount, 0);
+  }, [periodPayouts]);
+
+  const unifiedTransactions = useMemo(() => {
+    // 1. Work Entries (Services)
+    const entriesTxns = filteredEntries.map(entry => ({
+      id: entry.id,
+      type: 'entry' as const,
+      name: entry.serviceName || 'Service',
+      amount: entry.price + (entry.tip || 0),
+      date: new Date(entry.createdAt),
+      raw: entry,
+    }));
+
+    // 2. Payouts (Accepted payments from salon)
+    const payoutsTxns = periodPayouts.map(payout => ({
+      id: payout.id,
+      type: 'payout' as const,
+      name:
+        language === 'en'
+          ? 'Payout received'
+          : language === 'bn'
+            ? 'পে-আউট পেয়েছেন'
+            : language === 'es'
+              ? 'Pago recibido'
+              : 'पेआउट प्राप्त हुआ',
+      amount: payout.amount,
+      date: new Date(payout.createdAt),
+      raw: payout,
+    }));
+
+    // Combine and sort by date descending
+    const combined = [...entriesTxns, ...payoutsTxns];
+    combined.sort((a, b) => b.date.getTime() - a.date.getTime());
+    return combined;
+  }, [filteredEntries, periodPayouts, language]);
+
+  const sections = useMemo(() => {
+    const groups: {[key: string]: any[]} = {};
+
+    unifiedTransactions.forEach(item => {
+      const dateStr = item.date.toDateString();
+      if (!groups[dateStr]) {
+        groups[dateStr] = [];
+      }
+      groups[dateStr].push(item);
+    });
+
+    return Object.keys(groups).map(dateStr => {
+      const dateObj = new Date(dateStr);
+
+      let title = '';
+      const today = new Date();
+      const yesterday = new Date();
+      yesterday.setDate(today.getDate() - 1);
+
+      if (dateObj.toDateString() === today.toDateString()) {
+        title =
+          language === 'en' ? 'Today' : language === 'bn' ? 'আজ' : language === 'es' ? 'Hoy' : 'आज';
+      } else if (dateObj.toDateString() === yesterday.toDateString()) {
+        title =
+          language === 'en'
+            ? 'Yesterday'
+            : language === 'bn'
+              ? 'গতকাল'
+              : language === 'es'
+                ? 'Ayer'
+                : 'कल';
+      } else {
+        title = dateObj.toLocaleDateString(localeStr, {
+          weekday: 'short',
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+        });
+      }
+
+      return {
+        title,
+        data: groups[dateStr],
+      };
+    });
+  }, [unifiedTransactions, language, localeStr]);
 
   // ============================================================================
   // HANDLERS
@@ -95,27 +251,9 @@ export default function HistoryScreen(): React.ReactElement {
     }
   };
 
-  const handleMonthSelect = (month: Date) => {
-    setSelectedMonth(month);
-    setModalVisible(false);
-  };
-
   // ============================================================================
   // FORMAT HELPERS
   // ============================================================================
-
-  const formatMonthYear = (date: Date): string => {
-    return date.toLocaleDateString('en-US', {month: 'long', year: 'numeric'});
-  };
-
-  const formatDate = (date: Date | string): string => {
-    const d = typeof date === 'string' ? new Date(date) : date;
-    return d.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
-  };
 
   const formatTime = (date: Date | string): string => {
     const d = typeof date === 'string' ? new Date(date) : date;
@@ -127,31 +265,21 @@ export default function HistoryScreen(): React.ReactElement {
     return `${displayHours}:${displayMinutes} ${ampm}`;
   };
 
-  const getPaymentMethodColor = (method: PaymentMethod): string => {
-    switch (method) {
-      case PaymentMethod.CASH:
-        return '#4CAF50';
-      case PaymentMethod.BKASH:
-        return '#E91E63';
-      case PaymentMethod.CARD:
-        return '#2196F3';
-      case PaymentMethod.NAGAD:
-        return '#FF9800';
-      default:
-        return '#757575';
-    }
+  const formatTxnDate = (d: Date): string => {
+    const dateStr = d.toLocaleDateString(localeStr, {month: 'short', day: 'numeric'});
+    return `${dateStr} • ${formatTime(d)}`;
   };
 
   const getPaymentMethodLabel = (method: PaymentMethod): string => {
     switch (method) {
       case PaymentMethod.CASH:
-        return 'Cash';
+        return t.payment.cash;
       case PaymentMethod.BKASH:
-        return 'bKash';
+        return t.payment.bkash;
       case PaymentMethod.CARD:
-        return 'Card';
+        return t.payment.card;
       case PaymentMethod.NAGAD:
-        return 'Nagad';
+        return t.payment.nagad;
       default:
         return method;
     }
@@ -161,134 +289,317 @@ export default function HistoryScreen(): React.ReactElement {
   // RENDER METHODS
   // ============================================================================
 
-  const renderEntry = ({item}: {item: WorkEntry}) => {
-    const totalAmount = item.price + (item.tip || 0);
+  const renderTransaction = ({item}: {item: any}) => {
+    const isEntry = item.type === 'entry';
+
+    let iconName = 'receipt';
+    let iconColor = colors.success.main;
+    let amountPrefix = '+';
+    let amountColor = colors.success.main;
+    let typeLabel = '';
+    let details = '';
+
+    if (isEntry) {
+      iconName = 'content-cut';
+      iconColor = colors.success.main;
+      typeLabel =
+        language === 'en'
+          ? 'Service'
+          : language === 'bn'
+            ? 'সেবা'
+            : language === 'es'
+              ? 'Servicio'
+              : 'सेवा';
+      const payMethod = item.raw.paymentMethod;
+      const payLabel = getPaymentMethodLabel(payMethod);
+      details = `${payLabel}`;
+    } else {
+      iconName = 'account-balance-wallet';
+      iconColor = colors.secondary?.[500] || '#9C27B0';
+      typeLabel =
+        language === 'en'
+          ? 'Payout'
+          : language === 'bn'
+            ? 'পে-আউট'
+            : language === 'es'
+              ? 'Pago'
+              : 'पेआउट';
+      amountPrefix = '-';
+      amountColor = colors.secondary?.[500] || '#9C27B0';
+      details =
+        language === 'en'
+          ? 'From salon'
+          : language === 'bn'
+            ? 'সেলুন থেকে'
+            : language === 'es'
+              ? 'Del salón'
+              : 'স্যালুন থেকে';
+    }
+
+    const handlePress = () => {
+      if (isEntry) {
+        Alert.alert(
+          language === 'en'
+            ? 'Service Details'
+            : language === 'bn'
+              ? 'সেবার বিবরণ'
+              : language === 'es'
+                ? 'Detalles del Servicio'
+                : 'सेवा विवरण',
+          `${language === 'en' ? 'Service' : 'সেবা'}: ${item.name}\n` +
+            `${language === 'en' ? 'Price' : 'মূল্য'}: ${formatBDT(item.raw.price)}\n` +
+            (item.raw.tip
+              ? `${language === 'en' ? 'Tip' : 'টিপ'}: ${formatBDT(item.raw.tip)}\n`
+              : '') +
+            `${language === 'en' ? 'Payment' : 'পেমেন্ট'}: ${getPaymentMethodLabel(
+              item.raw.paymentMethod,
+            )}\n` +
+            `${language === 'en' ? 'Time' : 'সময়'}: ${formatTxnDate(item.date)}` +
+            (item.raw.note ? `\n${language === 'en' ? 'Note' : 'নোট'}: ${item.raw.note}` : ''),
+        );
+      } else {
+        Alert.alert(
+          language === 'en'
+            ? 'Payout Details'
+            : language === 'bn'
+              ? 'পে-আউট বিবরণ'
+              : language === 'es'
+                ? 'Detalles del Pago'
+                : 'पेआउट विवरण',
+          `${language === 'en' ? 'Amount Received' : 'প্রাপ্ত পরিমাণ'}: ${formatBDT(
+            item.amount,
+          )}\n` +
+            `${language === 'en' ? 'Time' : 'সময়'}: ${formatTxnDate(item.date)}` +
+            (item.raw.note ? `\n${language === 'en' ? 'Note' : 'নোট'}: ${item.raw.note}` : ''),
+        );
+      }
+    };
 
     return (
-      <View style={styles.entryCard}>
-        <View style={styles.entryHeader}>
-          <View style={styles.entryDateContainer}>
-            <Text style={styles.entryDate}>{formatDate(item.createdAt)}</Text>
-            <Text style={styles.entryTime}>{formatTime(item.createdAt)}</Text>
-          </View>
+      <TouchableOpacity activeOpacity={0.7} onPress={handlePress} style={styles.customTxnCard}>
+        <View style={styles.txnLeft}>
           <View
             style={[
-              styles.paymentBadge,
-              {backgroundColor: getPaymentMethodColor(item.paymentMethod)},
+              styles.txnIconBg,
+              {
+                backgroundColor: isEntry ? 'rgba(76, 175, 80, 0.1)' : 'rgba(156, 39, 176, 0.1)',
+              },
             ]}>
-            <Text style={styles.paymentBadgeText}>{getPaymentMethodLabel(item.paymentMethod)}</Text>
+            <MaterialIcons name={iconName as any} size={24} color={iconColor} />
+          </View>
+          <View style={styles.txnTextContainer}>
+            <Text style={styles.txnTitleText} numberOfLines={1}>
+              {item.name}
+            </Text>
+            <Text style={styles.txnSubtitleText}>
+              {typeLabel} • {details}
+            </Text>
           </View>
         </View>
-
-        <Text style={styles.entryService}>{item.serviceName}</Text>
-
-        <View style={styles.entryFooter}>
-          <View style={styles.entryPriceContainer}>
-            <Text style={styles.entryPriceLabel}>Service:</Text>
-            <Text style={styles.entryPrice}>{formatBDT(item.price)}</Text>
-          </View>
-          {item.tip && item.tip > 0 && (
-            <View style={styles.entryTipContainer}>
-              <Text style={styles.entryTipLabel}>Tip:</Text>
-              <Text style={styles.entryTip}>{formatBDT(item.tip)}</Text>
-            </View>
-          )}
+        <View style={styles.txnRight}>
+          <Text style={[styles.txnAmountText, {color: amountColor}]}>
+            {amountPrefix}
+            {formatBDT(item.amount)}
+          </Text>
+          <Text style={styles.txnDateText}>{formatTxnDate(item.date)}</Text>
         </View>
-
-        <View style={styles.entryTotal}>
-          <Text style={styles.entryTotalLabel}>Total</Text>
-          <Text style={styles.entryTotalAmount}>{formatBDT(totalAmount)}</Text>
-        </View>
-      </View>
+      </TouchableOpacity>
     );
   };
 
-  const renderMonthOption = (month: Date) => {
-    const isSelected =
-      month.getMonth() === selectedMonth.getMonth() &&
-      month.getFullYear() === selectedMonth.getFullYear();
+  const renderHeader = () => {
+    const earningsSubtitle =
+      currentOrg?.defaultCommissionMode === 'fixed'
+        ? `${formatBDT(periodStats.commissionPercentage, true, 0)} + tips`
+        : `${periodStats.commissionPercentage}% + tips`;
 
     return (
-      <TouchableOpacity
-        key={month.toISOString()}
-        style={[styles.monthOption, isSelected && styles.monthOptionSelected]}
-        onPress={() => handleMonthSelect(month)}>
-        <Text style={[styles.monthOptionText, isSelected && styles.monthOptionTextSelected]}>
-          {formatMonthYear(month)}
-        </Text>
-      </TouchableOpacity>
+      <>
+        {/* ── Period Filter Tabs ── */}
+        <View style={styles.filterContainer}>
+          {(
+            [TimePeriod.TODAY, TimePeriod.WEEKLY, TimePeriod.MONTHLY, TimePeriod.YEARLY] as const
+          ).map(period => (
+            <TouchableOpacity
+              key={period}
+              style={[styles.filterTab, timePeriod === period && styles.filterTabActive]}
+              onPress={() => setTimePeriod(period)}>
+              <Text
+                style={[styles.filterTabText, timePeriod === period && styles.filterTabTextActive]}>
+                {period === TimePeriod.TODAY
+                  ? t.common.today
+                  : period === TimePeriod.WEEKLY
+                    ? language === 'en'
+                      ? 'Weekly'
+                      : language === 'bn'
+                        ? 'সাপ্তাহিক'
+                        : language === 'es'
+                          ? 'Semanal'
+                          : 'साप्ताहिक'
+                    : period === TimePeriod.MONTHLY
+                      ? language === 'en'
+                        ? 'Monthly'
+                        : language === 'bn'
+                          ? 'মাসিক'
+                          : language === 'es'
+                            ? 'Mensual'
+                            : 'मासिक'
+                      : language === 'en'
+                        ? 'Yearly'
+                        : language === 'bn'
+                          ? 'বার্ষিক'
+                          : language === 'es'
+                            ? 'Anual'
+                            : 'वार्षिक'}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* ── Consolidated Financial Overview Card ── */}
+        <View style={styles.overviewCard}>
+          <View style={styles.overviewMain}>
+            <Text style={styles.overviewLabel}>
+              {language === 'en'
+                ? 'Net Earnings'
+                : language === 'bn'
+                  ? 'নেট উপার্জন'
+                  : language === 'es'
+                    ? 'Ganancias Netas'
+                    : 'नेट कमाई'}
+            </Text>
+            <Text style={styles.overviewValue}>{formatBDT(periodStats.myEarnings)}</Text>
+            <Text style={styles.overviewSubtitle}>{earningsSubtitle}</Text>
+          </View>
+
+          <View style={styles.overviewDivider} />
+
+          <View style={styles.overviewStatsContainer}>
+            <View style={styles.overviewStatRow}>
+              <View style={styles.overviewStatItem}>
+                <MaterialIcons
+                  name="content-cut"
+                  size={18}
+                  color={colors.primary[300]}
+                  style={styles.statIcon}
+                />
+                <View>
+                  <Text style={styles.statLabel}>
+                    {language === 'en'
+                      ? 'Services'
+                      : language === 'bn'
+                        ? 'সেবা সমূহ'
+                        : language === 'es'
+                          ? 'Servicios'
+                          : 'सेवाएं'}
+                  </Text>
+                  <Text style={styles.statValue}>{periodStats.totalServices}</Text>
+                </View>
+              </View>
+
+              <View style={styles.overviewStatItem}>
+                <MaterialIcons
+                  name="star"
+                  size={18}
+                  color={colors.info.light}
+                  style={styles.statIcon}
+                />
+                <View>
+                  <Text style={styles.statLabel}>
+                    {language === 'en'
+                      ? 'Commission'
+                      : language === 'bn'
+                        ? 'কমিশন'
+                        : language === 'es'
+                          ? 'Comisión'
+                          : 'कमीशन'}
+                  </Text>
+                  <Text style={styles.statValue}>{formatBDT(periodStats.commission)}</Text>
+                </View>
+              </View>
+            </View>
+
+            <View style={styles.overviewStatRow}>
+              <View style={styles.overviewStatItem}>
+                <MaterialIcons
+                  name="savings"
+                  size={18}
+                  color={colors.warning.light}
+                  style={styles.statIcon}
+                />
+                <View>
+                  <Text style={styles.statLabel}>
+                    {language === 'en'
+                      ? 'Tips'
+                      : language === 'bn'
+                        ? 'টিপস'
+                        : language === 'es'
+                          ? 'Propinas'
+                          : 'टिप्स'}
+                  </Text>
+                  <Text style={styles.statValue}>{formatBDT(periodStats.totalTips)}</Text>
+                </View>
+              </View>
+
+              <View style={styles.overviewStatItem}>
+                <MaterialIcons
+                  name="account-balance-wallet"
+                  size={18}
+                  color={colors.error.light}
+                  style={styles.statIcon}
+                />
+                <View>
+                  <Text style={styles.statLabel}>
+                    {language === 'en'
+                      ? 'Payouts'
+                      : language === 'bn'
+                        ? 'পে-আউট'
+                        : language === 'es'
+                          ? 'Pagos'
+                          : 'पेआउट'}
+                  </Text>
+                  <Text style={styles.statValue}>{formatBDT(totalPayoutsAmount)}</Text>
+                </View>
+              </View>
+            </View>
+          </View>
+        </View>
+
+        {/* Entries Header */}
+        {unifiedTransactions.length > 0 && (
+          <View style={styles.entriesHeader}>
+            <Text style={styles.entriesHeaderTitle}>
+              {language === 'en'
+                ? `Activity History (${unifiedTransactions.length})`
+                : language === 'bn'
+                  ? `কার্যক্রমের ইতিহাস (${unifiedTransactions.length}টি)`
+                  : language === 'es'
+                    ? `Historial de Actividad (${unifiedTransactions.length})`
+                    : `गतिविधि इतिहास (${unifiedTransactions.length})`}
+            </Text>
+          </View>
+        )}
+      </>
     );
   };
-
-  const renderHeader = () => (
-    <>
-      {/* Month Selector */}
-      <TouchableOpacity style={styles.monthSelector} onPress={() => setModalVisible(true)}>
-        <View>
-          <Text style={styles.monthSelectorLabel}>Selected Month</Text>
-          <Text style={styles.monthSelectorValue}>{formatMonthYear(selectedMonth)}</Text>
-        </View>
-        <MaterialIcons name="calendar-month" style={styles.monthSelectorIcon} />
-      </TouchableOpacity>
-
-      {/* Monthly Summary */}
-      <View style={styles.summaryCard}>
-        <View style={styles.summaryHeader}>
-          <Text style={styles.summaryTitle}>Monthly Summary </Text>
-        </View>
-
-        <View style={styles.summaryGrid}>
-          <View style={styles.summaryItem}>
-            <Text style={styles.summaryItemLabel}>Total Revenue</Text>
-            <Text style={styles.summaryItemValue}>{formatBDT(monthlyStats.totalIncome)}</Text>
-            <Text style={styles.summaryItemSubtext}>
-              Total Service {monthlyStats.totalServices}
-            </Text>
-          </View>
-
-          <View style={styles.summaryDivider} />
-
-          <View style={styles.summaryItem}>
-            <Text style={styles.summaryItemLabel}> Total Income</Text>
-            {currentUser?.commissionPercentage && (
-              <View>
-                <Text style={styles.summaryItemValue}>
-                  ৳{Math.round((monthlyStats.totalIncome * currentUser.commissionPercentage) / 100)}
-                </Text>
-                <Text style={styles.summaryItemSubtext}>
-                  Your {currentUser.commissionPercentage}%
-                </Text>
-              </View>
-            )}
-          </View>
-
-          <View style={styles.summaryDivider} />
-
-          <View style={styles.summaryItem}>
-            <Text style={styles.summaryItemLabel}>Tips</Text>
-            <Text style={styles.summaryItemValue}>{formatBDT(monthlyStats.totalTips)}</Text>
-            <Text style={styles.summaryItemSubtext}>
-              {monthlyStats.totalTips > 0 ? 'Earned' : 'No tips'}
-            </Text>
-          </View>
-        </View>
-      </View>
-
-      {/* Entries Header */}
-      {filteredEntries.length > 0 && (
-        <View style={styles.entriesHeader}>
-          <Text style={styles.entriesHeaderTitle}>Work History ({filteredEntries.length})</Text>
-        </View>
-      )}
-    </>
-  );
 
   const renderEmpty = () => (
     <View style={styles.emptyState}>
-      <MaterialIcons name="hourglass-empty" style={styles.emptyIcon} />
-      <Text style={styles.emptyTitle}>No services found</Text>
+      <MaterialIcons
+        name="hourglass-empty"
+        style={styles.emptyIcon}
+        size={40}
+        color={colors.text.hint}
+      />
+      <Text style={styles.emptyTitle}>{t.empty.noServices}</Text>
       <Text style={styles.emptyText}>
-        You have no recorded services for {formatMonthYear(selectedMonth)}
+        {language === 'en'
+          ? `No services found for ${periodLabel}`
+          : language === 'bn'
+            ? `${periodLabel}-এর জন্য কোনো সেবা পাওয়া যায়নি`
+            : language === 'es'
+              ? `No se encontraron servicios para ${periodLabel}`
+              : `${periodLabel} के लिए कोई सेवा नहीं मिली`}
       </Text>
     </View>
   );
@@ -299,64 +610,96 @@ export default function HistoryScreen(): React.ReactElement {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#2196F3" />
+      <StatusBar
+        barStyle={isDarkMode ? 'light-content' : 'dark-content'}
+        backgroundColor={colors.background.paper}
+      />
 
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Work History</Text>
-        <Text style={styles.headerSubtitle}>Track your performance over time</Text>
+        <View style={styles.headerLeft}>
+          <Text style={styles.headerTitle}>
+            {language === 'en'
+              ? 'Work History'
+              : language === 'bn'
+                ? 'কাজের ইতিহাস'
+                : language === 'es'
+                  ? 'Historial de Trabajo'
+                  : 'कार्य इतिहास'}
+          </Text>
+          <Text style={styles.headerSubtitle}>
+            {language === 'en'
+              ? 'Track your performance over time'
+              : language === 'bn'
+                ? 'সময়ের সাথে আপনার পারফরম্যান্স ট্র্যাক করুন'
+                : language === 'es'
+                  ? 'Realice un seguimiento de su rendimiento a lo largo del tiempo'
+                  : 'समय के साथ अपने प्रदर्शन को ट्रैक करें'}
+          </Text>
+        </View>
+
+        {/* Calendar button */}
+        <TouchableOpacity
+          style={styles.calendarBtn}
+          onPress={() => setDatePickerVisible(true)}
+          activeOpacity={0.7}>
+          <MaterialIcons name="event" size={16} color={colors.primary[400]} />
+          <Text style={styles.calendarBtnLabel}>
+            {isToday(selectedDate) ? t.common.today : formatDateISO(selectedDate)}
+          </Text>
+        </TouchableOpacity>
       </View>
 
       {/* Loading State */}
-      {loading && filteredEntries.length === 0 ? (
+      {loading && unifiedTransactions.length === 0 ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#2196F3" />
-          <Text style={styles.loadingText}>Loading history...</Text>
+          <ActivityIndicator size="large" color={colors.primary[500]} />
+          <Text style={styles.loadingText}>
+            {language === 'en'
+              ? 'Loading history...'
+              : language === 'bn'
+                ? 'ইতিহাস লোড হচ্ছে...'
+                : language === 'es'
+                  ? 'Cargando historial...'
+                  : 'इतिहास लोड हो रहा है...'}
+          </Text>
         </View>
       ) : (
-        /* Entries List */
-        <FlatList
-          data={filteredEntries}
-          renderItem={renderEntry}
-          keyExtractor={item => item.id}
+        <SectionList
+          sections={sections}
+          renderItem={renderTransaction}
+          renderSectionHeader={({section: {title}}) => (
+            <View style={styles.sectionHeaderContainer}>
+              <Text style={styles.sectionHeaderTitle}>{title}</Text>
+            </View>
+          )}
+          keyExtractor={item => item.id + '-' + item.type}
           ListHeaderComponent={renderHeader}
           ListEmptyComponent={renderEmpty}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          stickySectionHeadersEnabled={false}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
               onRefresh={handleRefresh}
-              colors={['#2196F3']}
+              colors={[colors.primary[500]]}
+              tintColor={colors.primary[500]}
             />
           }
         />
       )}
 
-      {/* Month Selector Modal */}
-      <Modal
-        visible={modalVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setModalVisible(false)}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Select Month</Text>
-              <TouchableOpacity onPress={() => setModalVisible(false)}>
-                <Text style={styles.modalClose}>✕</Text>
-              </TouchableOpacity>
-            </View>
-
-            <FlatList
-              data={monthOptions}
-              renderItem={({item}) => renderMonthOption(item)}
-              keyExtractor={item => item.toISOString()}
-              showsVerticalScrollIndicator={false}
-            />
-          </View>
-        </View>
-      </Modal>
+      {/* Date Picker Modal */}
+      <DatePickerModal
+        visible={datePickerVisible}
+        selectedDate={selectedDate}
+        onClose={() => setDatePickerVisible(false)}
+        onDateChange={(date: Date) => {
+          setSelectedDate(date);
+          setDatePickerVisible(false);
+        }}
+      />
     </SafeAreaView>
   );
 }
@@ -365,290 +708,353 @@ export default function HistoryScreen(): React.ReactElement {
 // STYLES
 // ============================================================================
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FAFAFA',
-  },
-  header: {
-    backgroundColor: '#e8f3ef',
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 20,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#000000',
-    marginBottom: 4,
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: '#000000',
-  },
-  listContent: {
-    padding: 16,
-    paddingBottom: 24,
-  },
-  monthSelector: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-  },
-  monthSelectorLabel: {
-    fontSize: 12,
-    color: '#757575',
-    marginBottom: 4,
-  },
-  monthSelectorValue: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#212121',
-  },
-  monthSelectorIcon: {
-    fontSize: 40,
-    color: '#121111',
-  },
-  summaryCard: {
-    backgroundColor: '#E3F2FD',
-    borderRadius: 12,
-    padding: 20,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#2196F3',
-  },
-  summaryHeader: {
-    marginBottom: 16,
-  },
-  summaryTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1976D2',
-  },
-  summaryGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  summaryItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  summaryItemLabel: {
-    fontSize: 12,
-    color: '#1976D2',
-    marginBottom: 6,
-  },
-  summaryItemValue: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#212121',
-    marginBottom: 4,
-  },
-  summaryItemValuea: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#212121',
-    marginBottom: 4,
-  },
-  summaryItemSubtext: {
-    fontSize: 11,
-    color: '#4CAF50',
-    fontWeight: '500',
-  },
-  summaryDivider: {
-    width: 1,
-    height: '100%',
-    backgroundColor: '#90CAF9',
-    marginHorizontal: 8,
-  },
-  entriesHeader: {
-    marginBottom: 12,
-  },
-  entriesHeaderTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#212121',
-  },
-  entryCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-  },
-  entryHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 10,
-  },
-  entryDateContainer: {},
-  entryDate: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#212121',
-    marginBottom: 2,
-  },
-  entryTime: {
-    fontSize: 12,
-    color: '#757575',
-  },
-  paymentBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  paymentBadgeText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  entryService: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#212121',
-    marginBottom: 12,
-  },
-  entryFooter: {
-    flexDirection: 'row',
-    gap: 16,
-    marginBottom: 8,
-  },
-  entryPriceContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  entryPriceLabel: {
-    fontSize: 13,
-    color: '#757575',
-  },
-  entryPrice: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#212121',
-  },
-  entryTipContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  entryTipLabel: {
-    fontSize: 13,
-    color: '#757575',
-  },
-  entryTip: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#FF9800',
-  },
-  entryTotal: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#F5F5F5',
-  },
-  entryTotalLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#757575',
-  },
-  entryTotalAmount: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#4CAF50',
-  },
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: 60,
-    paddingHorizontal: 20,
-  },
-  emptyIcon: {
-    fontSize: 64,
-    marginBottom: 16,
-  },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#212121',
-    marginBottom: 8,
-  },
-  emptyText: {
-    fontSize: 14,
-    color: '#757575',
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    maxHeight: '70%',
-    paddingBottom: 20,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F5F5F5',
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#212121',
-  },
-  modalClose: {
-    fontSize: 24,
-    color: '#757575',
-    paddingHorizontal: 8,
-  },
-  monthOption: {
-    padding: 16,
-    marginHorizontal: 20,
-    marginVertical: 6,
-    borderRadius: 12,
-    backgroundColor: '#F5F5F5',
-  },
-  monthOptionSelected: {
-    backgroundColor: '#E3F2FD',
-    borderWidth: 2,
-    borderColor: '#2196F3',
-  },
-  monthOptionText: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#212121',
-  },
-  monthOptionTextSelected: {
-    fontWeight: '700',
-    color: '#2196F3',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 40,
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: '#757575',
-  },
-});
+const getStyles = (colors: ThemeColors, isDarkMode: boolean) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background.default,
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      backgroundColor: colors.background.paper,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border.light,
+      shadowColor: '#000',
+      shadowOffset: {width: 0, height: 2},
+      shadowOpacity: isDarkMode ? 0.2 : 0.06,
+      shadowRadius: 6,
+      elevation: 4,
+    },
+    headerLeft: {
+      flex: 1,
+    },
+    headerTitle: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: colors.text.primary,
+    },
+    headerSubtitle: {
+      fontSize: 12,
+      color: colors.text.secondary,
+      marginTop: 2,
+    },
+    calendarBtn: {
+      flexDirection: 'row',
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      borderRadius: 8,
+      backgroundColor: colors.background.paper,
+      borderWidth: 1,
+      borderColor: colors.border.main,
+      justifyContent: 'center',
+      alignItems: 'center',
+      gap: 4,
+    },
+    calendarBtnLabel: {
+      fontSize: 10,
+      color: colors.text.secondary,
+      fontWeight: '600',
+    },
+    listContent: {
+      padding: 16,
+      paddingBottom: 24,
+    },
+    // ── Filter Tabs ──
+    filterContainer: {
+      flexDirection: 'row',
+      backgroundColor: colors.background.paper,
+      borderRadius: 12,
+      padding: 4,
+      marginBottom: 16,
+      borderWidth: 1,
+      borderColor: colors.border.light,
+    },
+    filterTab: {
+      flex: 1,
+      paddingVertical: 8,
+      alignItems: 'center',
+      borderRadius: 8,
+    },
+    filterTabActive: {
+      backgroundColor: colors.primary[500],
+    },
+    filterTabText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: colors.text.secondary,
+    },
+    filterTabTextActive: {
+      color: '#FFFFFF',
+    },
+    // ── Overview Card ──
+    overviewCard: {
+      backgroundColor: colors.background.paper,
+      borderRadius: 16,
+      padding: 16,
+      marginBottom: 16,
+      borderWidth: 1,
+      borderColor: colors.border.light,
+      shadowColor: '#000',
+      shadowOffset: {width: 0, height: 2},
+      shadowOpacity: isDarkMode ? 0.2 : 0.05,
+      shadowRadius: 4,
+      elevation: 2,
+    },
+    overviewMain: {
+      alignItems: 'center',
+      paddingVertical: 8,
+    },
+    overviewLabel: {
+      fontSize: 12,
+      fontWeight: '600',
+      textTransform: 'uppercase',
+      color: colors.text.secondary,
+      letterSpacing: 0.8,
+      marginBottom: 4,
+    },
+    overviewValue: {
+      fontSize: 32,
+      fontWeight: 'bold',
+      color: colors.success.main,
+    },
+    overviewSubtitle: {
+      fontSize: 12,
+      color: colors.text.secondary,
+      marginTop: 2,
+    },
+    overviewDivider: {
+      height: 1,
+      backgroundColor: colors.border.light,
+      marginVertical: 14,
+    },
+    overviewStatsContainer: {
+      gap: 12,
+    },
+    overviewStatRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+    },
+    overviewStatItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1,
+      gap: 10,
+    },
+    statIcon: {
+      padding: 6,
+      backgroundColor: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)',
+      borderRadius: 8,
+    },
+    statLabel: {
+      fontSize: 11,
+      color: colors.text.secondary,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+    },
+    statValue: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: colors.text.primary,
+    },
+    // ── Timeline Section Header ──
+    sectionHeaderContainer: {
+      paddingVertical: 8,
+      marginTop: 12,
+      marginBottom: 6,
+    },
+    sectionHeaderTitle: {
+      fontSize: 12,
+      fontWeight: '700',
+      textTransform: 'uppercase',
+      letterSpacing: 0.8,
+      color: colors.text.secondary,
+    },
+    // ── Entry Card (legacy, kept to prevent compile/TS issues if any dependencies exist) ──
+    entryCard: {
+      backgroundColor: colors.background.paper,
+      borderRadius: 12,
+      padding: 16,
+      marginBottom: 12,
+      borderWidth: 1,
+      borderColor: colors.border.light,
+    },
+    entryHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+    },
+    entryDateContainer: {},
+    entryDate: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: colors.text.primary,
+    },
+    entryTime: {
+      fontSize: 12,
+      color: colors.text.secondary,
+    },
+    paymentBadge: {
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: 12,
+    },
+    paymentBadgeText: {
+      fontSize: 11,
+      fontWeight: '600',
+      color: '#FFFFFF',
+    },
+    entryService: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: colors.text.primary,
+    },
+    entryFooter: {
+      flexDirection: 'row',
+      gap: 16,
+    },
+    entryPriceContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    entryPriceLabel: {
+      fontSize: 13,
+      color: colors.text.secondary,
+    },
+    entryPrice: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: colors.text.primary,
+    },
+    entryTipContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    entryTipLabel: {
+      fontSize: 13,
+      color: colors.text.secondary,
+    },
+    entryTip: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: colors.warning.main,
+    },
+    entryTotal: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+    },
+    entryTotalLabel: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: colors.text.secondary,
+    },
+    entryTotalAmount: {
+      fontSize: 22,
+      fontWeight: '700',
+      color: colors.success.main,
+    },
+    entriesHeader: {
+      marginBottom: 12,
+      marginTop: 8,
+    },
+    entriesHeaderTitle: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: colors.text.primary,
+    },
+    // ── Unified custom transaction card styles ──
+    customTxnCard: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      backgroundColor: colors.background.paper,
+      padding: 14,
+      borderRadius: 12,
+      marginHorizontal: 0,
+      marginBottom: 10,
+      borderWidth: 1,
+      borderColor: colors.border.light,
+      shadowColor: '#000',
+      shadowOffset: {width: 0, height: 1},
+      shadowOpacity: isDarkMode ? 0.15 : 0.04,
+      shadowRadius: 4,
+      elevation: 1,
+    },
+    txnLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1,
+      marginRight: 12,
+    },
+    txnIconBg: {
+      width: 42,
+      height: 42,
+      borderRadius: 21,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: 12,
+    },
+    txnTextContainer: {
+      flex: 1,
+    },
+    txnTitleText: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: colors.text.primary,
+      marginBottom: 2,
+    },
+    txnSubtitleText: {
+      fontSize: 11,
+      color: colors.text.secondary,
+    },
+    txnRight: {
+      alignItems: 'flex-end',
+    },
+    txnAmountText: {
+      fontSize: 15,
+      fontWeight: '700',
+      marginBottom: 2,
+    },
+    txnDateText: {
+      fontSize: 10,
+      color: colors.text.secondary,
+    },
+    // ── States ──
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      gap: 16,
+    },
+    loadingText: {
+      fontSize: 14,
+      color: colors.text.secondary,
+    },
+    emptyState: {
+      alignItems: 'center',
+      paddingVertical: 60,
+      paddingHorizontal: 20,
+      backgroundColor: colors.background.paper,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.border.light,
+    },
+    emptyIcon: {
+      marginBottom: 16,
+    },
+    emptyTitle: {
+      fontSize: 20,
+      fontWeight: '600',
+      color: colors.text.primary,
+      marginBottom: 8,
+    },
+    emptyText: {
+      fontSize: 14,
+      color: colors.text.secondary,
+      textAlign: 'center',
+      lineHeight: 20,
+    },
+  });

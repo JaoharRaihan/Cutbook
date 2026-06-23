@@ -4,6 +4,7 @@
  */
 
 import React, {useState} from 'react';
+import Theme from '@/constants/theme';
 import {
   View,
   Text,
@@ -258,7 +259,7 @@ const styles = StyleSheet.create({
   },
   navButtonText: {
     fontSize: 24,
-    color: '#2196F3',
+    color: Theme.colors.primary[500],
     fontWeight: '600',
   },
   monthYear: {
@@ -306,11 +307,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   dayButtonSelected: {
-    backgroundColor: '#2196F3',
+    backgroundColor: Theme.colors.primary[500],
   },
   dayButtonToday: {
     borderWidth: 2,
-    borderColor: '#2196F3',
+    borderColor: Theme.colors.primary[500],
   },
   dayButtonDisabled: {
     opacity: 0.3,
@@ -351,7 +352,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 12,
     borderRadius: 8,
-    backgroundColor: '#2196F3',
+    backgroundColor: Theme.colors.primary[500],
     justifyContent: 'center',
     alignItems: 'center',
   },

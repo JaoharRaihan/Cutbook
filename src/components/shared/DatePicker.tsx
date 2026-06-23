@@ -5,6 +5,7 @@
 
 import React, {useState} from 'react';
 import {View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView} from 'react-native';
+import Theme from '@/constants/theme';
 
 // ============================================================================
 // TYPES
@@ -219,20 +220,20 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: Theme.colors.border.light,
   },
   selectorLeft: {
     flex: 1,
   },
   label: {
     fontSize: 13,
-    color: '#757575',
+    color: Theme.colors.text.secondary,
     marginBottom: 4,
   },
   value: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#212121',
+    color: Theme.colors.text.primary,
   },
   icon: {
     fontSize: 24,
@@ -243,7 +244,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Theme.colors.background.paper,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     maxHeight: '80%',
@@ -255,16 +256,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#F5F5F5',
+    borderBottomColor: Theme.colors.border.light,
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#212121',
+    color: Theme.colors.text.primary,
   },
   modalClose: {
     fontSize: 24,
-    color: '#757575',
+    color: Theme.colors.text.secondary,
     paddingHorizontal: 8,
   },
   calendar: {
@@ -273,7 +274,7 @@ const styles = StyleSheet.create({
   monthTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#212121',
+    color: Theme.colors.text.primary,
     marginBottom: 16,
     textAlign: 'center',
   },
@@ -286,7 +287,7 @@ const styles = StyleSheet.create({
     width: 40,
     fontSize: 12,
     fontWeight: '600',
-    color: '#757575',
+    color: Theme.colors.text.secondary,
     textAlign: 'center',
   },
   daysGrid: {
@@ -303,21 +304,21 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   daySelected: {
-    backgroundColor: '#2196F3',
+    backgroundColor: Theme.colors.primary[500],
   },
   dayInRange: {
-    backgroundColor: '#E3F2FD',
+    backgroundColor: Theme.colors.primary[50],
   },
   dayText: {
     fontSize: 14,
-    color: '#212121',
+    color: Theme.colors.text.primary,
   },
   dayTextSelected: {
     color: '#FFFFFF',
     fontWeight: '700',
   },
   confirmButton: {
-    backgroundColor: '#2196F3',
+    backgroundColor: Theme.colors.primary[500],
     borderRadius: 12,
     paddingVertical: 16,
     marginHorizontal: 20,

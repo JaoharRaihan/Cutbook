@@ -674,6 +674,11 @@ export const OrgProvider: React.FC<{children: React.ReactNode}> = ({children}) =
           throw new Error('Employee not found');
         }
 
+        const isOwnerRecipient = employee.role === UserRole.OWNER;
+        const initialStatus = isOwnerRecipient
+          ? TransactionStatus.ACCEPTED
+          : TransactionStatus.PENDING;
+
         const transactionData: EmployeeTransaction = {
           id: '', // Will be set by Firestore
           orgId: currentOrg.id,
@@ -683,7 +688,7 @@ export const OrgProvider: React.FC<{children: React.ReactNode}> = ({children}) =
           ownerName: user.name,
           amount,
           note,
-          status: TransactionStatus.PENDING,
+          status: initialStatus,
           includeInDailyCount: true,
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -701,11 +706,25 @@ export const OrgProvider: React.FC<{children: React.ReactNode}> = ({children}) =
         const docRef = firestore().collection('employeeTransactions').doc();
         batch.set(docRef, firestoreData);
 
-        // 2. Update employee's pending amount
-        batch.update(firestore().collection('users').doc(employeeId), {
-          totalPayoutPending: firestore.FieldValue.increment(amount),
-          updatedAt: now,
-        });
+        if (isOwnerRecipient) {
+          // Owner payouts are auto-accepted: update received payout and organization cash directly
+          batch.update(firestore().collection('users').doc(employeeId), {
+            totalPayoutReceived: firestore.FieldValue.increment(amount),
+            updatedAt: now,
+          });
+
+          batch.update(firestore().collection('organizations').doc(currentOrg.id), {
+            mainCash: firestore.FieldValue.increment(-amount),
+            totalPayoutsGiven: firestore.FieldValue.increment(amount),
+            updatedAt: now,
+          });
+        } else {
+          // Standard employee payouts go to pending
+          batch.update(firestore().collection('users').doc(employeeId), {
+            totalPayoutPending: firestore.FieldValue.increment(amount),
+            updatedAt: now,
+          });
+        }
 
         await batch.commit();
 

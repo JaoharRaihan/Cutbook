@@ -5,6 +5,7 @@
 
 import React, {useEffect, useRef} from 'react';
 import {View, StyleSheet, Animated, ViewStyle} from 'react-native';
+import Theme from '@/constants/theme';
 
 // ============================================================================
 // TYPES
@@ -27,8 +28,8 @@ export interface ProgressBarProps {
 export default function ProgressBar({
   progress,
   height = 6,
-  backgroundColor = '#E0E0E0',
-  progressColor = '#2196F3',
+  backgroundColor = Theme.colors.border.light,
+  progressColor = Theme.colors.primary[500],
   borderRadius = 3,
   animated = true,
   style,

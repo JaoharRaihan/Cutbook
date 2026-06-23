@@ -5,6 +5,7 @@
 
 import React from 'react';
 import {View, Text, TouchableOpacity, StyleSheet, ViewStyle} from 'react-native';
+import Theme from '@/constants/theme';
 
 // ============================================================================
 // TYPES
@@ -156,10 +157,10 @@ const styles = StyleSheet.create({
   option: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    backgroundColor: Theme.colors.background.paper,
+    borderRadius: Theme.borderRadius.card,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: Theme.colors.border.light,
     padding: 16,
   },
   optionHorizontal: {
@@ -167,11 +168,11 @@ const styles = StyleSheet.create({
     minWidth: '45%',
   },
   optionSelected: {
-    borderColor: '#2196F3',
-    backgroundColor: '#E3F2FD',
+    borderColor: Theme.colors.primary[500],
+    backgroundColor: Theme.colors.primary[50],
   },
   optionDisabled: {
-    backgroundColor: '#F5F5F5',
+    backgroundColor: Theme.colors.neutral[100],
     opacity: 0.6,
   },
   optionContent: {
@@ -189,7 +190,7 @@ const styles = StyleSheet.create({
   optionLabel: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#424242',
+    color: Theme.colors.text.primary,
   },
   optionLabelSmall: {
     fontSize: 13,
@@ -198,39 +199,39 @@ const styles = StyleSheet.create({
     fontSize: 17,
   },
   optionLabelSelected: {
-    color: '#2196F3',
+    color: Theme.colors.primary[500],
   },
   optionLabelDisabled: {
-    color: '#9E9E9E',
+    color: Theme.colors.text.disabled,
   },
   optionDescription: {
     fontSize: 13,
-    color: '#757575',
+    color: Theme.colors.text.secondary,
     marginTop: 4,
   },
   optionDescriptionDisabled: {
-    color: '#BDBDBD',
+    color: Theme.colors.neutral[400],
   },
   radioOuter: {
     borderRadius: 100,
     borderWidth: 2,
-    borderColor: '#BDBDBD',
+    borderColor: Theme.colors.neutral[300],
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 2,
   },
   radioOuterSelected: {
-    borderColor: '#2196F3',
+    borderColor: Theme.colors.primary[500],
   },
   radioOuterDisabled: {
-    borderColor: '#E0E0E0',
+    borderColor: Theme.colors.border.light,
   },
   radioInner: {
     borderRadius: 100,
-    backgroundColor: '#2196F3',
+    backgroundColor: Theme.colors.primary[500],
   },
   radioInnerDisabled: {
-    backgroundColor: '#BDBDBD',
+    backgroundColor: Theme.colors.neutral[400],
   },
   errorText: {
     fontSize: 12,

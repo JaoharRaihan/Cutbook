@@ -8,46 +8,46 @@
 // ============================================================================
 
 export const Colors = {
-  // Primary - Professional Blue
+  // Primary - Barber Green / Dark Slate Grey (Dashboard theme)
   primary: {
-    50: '#E3F2FD',
-    100: '#BBDEFB',
-    200: '#90CAF9',
-    300: '#64B5F6',
-    400: '#42A5F5',
-    500: '#2196F3', // Main primary
-    600: '#1E88E5',
-    700: '#1976D2',
-    800: '#1565C0',
-    900: '#0D47A1',
+    50: '#E8F0EE',
+    100: '#C9DBD8',
+    200: '#A8C4C0',
+    300: '#87ADA7',
+    400: '#5A8B84',
+    500: '#183A37', // Main Primary (Dark Slate Grey)
+    600: '#14312E',
+    700: '#102725',
+    800: '#0C1D1B',
+    900: '#071312',
   },
 
-  // Secondary - Elegant Purple
+  // Secondary - Burnt Orange (Dashboard pop accents)
   secondary: {
-    50: '#F3E5F5',
-    100: '#E1BEE7',
-    200: '#CE93D8',
-    300: '#BA68C8',
-    400: '#AB47BC',
-    500: '#9C27B0', // Main secondary
-    600: '#8E24AA',
-    700: '#7B1FA2',
-    800: '#6A1B9A',
-    900: '#4A148C',
+    50: '#FFF8F0',
+    100: '#FCE8D3',
+    200: '#F8CEAA',
+    300: '#F1B07C',
+    400: '#EA9352',
+    500: '#C44900', // Main Secondary (Burnt Orange)
+    600: '#A63E00',
+    700: '#873200',
+    800: '#692700',
+    900: '#4B1C00',
   },
 
-  // Accent - Modern Teal
+  // Accent - Midnight Violet (Dashboard secondary actions)
   accent: {
-    50: '#E0F2F1',
-    100: '#B2DFDB',
-    200: '#80CBC4',
-    300: '#4DB6AC',
-    400: '#26A69A',
-    500: '#009688', // Main accent
-    600: '#00897B',
-    700: '#00796B',
-    800: '#00695C',
-    900: '#004D40',
+    50: '#FDF4F8',
+    100: '#F9E2EE',
+    200: '#F2BEDB',
+    300: '#E48EC0',
+    400: '#D262A2',
+    500: '#432534', // Main Accent (Midnight Violet)
+    600: '#391F2C',
+    700: '#2E1924',
+    800: '#23131B',
+    900: '#190D13',
   },
 
   // Success - Green
@@ -57,7 +57,7 @@ export const Colors = {
     dark: '#388E3C',
   },
 
-  // Warning - Orange
+  // Warning - Orange/Amber
   warning: {
     light: '#FFB74D',
     main: '#FF9800',
@@ -71,51 +71,51 @@ export const Colors = {
     dark: '#D32F2F',
   },
 
-  // Info - Light Blue
+  // Info - Light Blue / Teal
   info: {
     light: '#4FC3F7',
     main: '#03A9F4',
     dark: '#0288D1',
   },
 
-  // Neutral/Gray Scale
+  // Neutral - Warm sandy wheat gradients (barber salon theme)
   neutral: {
     0: '#FFFFFF',
-    50: '#FAFAFA',
-    100: '#F5F5F5',
-    200: '#EEEEEE',
-    300: '#E0E0E0',
-    400: '#BDBDBD',
-    500: '#9E9E9E',
-    600: '#757575',
-    700: '#616161',
-    800: '#424242',
-    900: '#212121',
+    50: '#FAF7F2', // Warm off-white
+    100: '#F4EDE2', // Warm light beige
+    200: '#EFD6AC', // Sandy Wheat (Matches dashboard wheat)
+    300: '#DFBE88',
+    400: '#CFA665',
+    500: '#9E804F',
+    600: '#755E39',
+    700: '#614E2F',
+    800: '#423520',
+    900: '#211B10', // Warm black
     1000: '#000000',
   },
 
   // Text Colors
   text: {
-    primary: '#212121',
-    secondary: '#757575',
-    disabled: '#BDBDBD',
-    hint: '#9E9E9E',
+    primary: '#211B10',
+    secondary: '#755E39',
+    disabled: '#CFA665',
+    hint: '#9E804F',
     inverse: '#FFFFFF',
   },
 
   // Background Colors
   background: {
-    default: '#FAFAFA',
+    default: '#FAF7F2',
     paper: '#FFFFFF',
-    dark: '#212121',
-    overlay: 'rgba(0, 0, 0, 0.5)',
+    dark: '#211B10',
+    overlay: 'rgba(33, 27, 16, 0.5)',
   },
 
   // Border Colors
   border: {
-    light: '#E0E0E0',
-    main: '#BDBDBD',
-    dark: '#757575',
+    light: '#EFD6AC', // Sandy Wheat
+    main: '#CFA665',
+    dark: '#755E39',
   },
 
   // Payment Method Colors
@@ -136,9 +136,9 @@ export const Colors = {
 
   // Service Category Colors
   category: {
-    haircut: '#2196F3',
-    shave: '#00BCD4',
-    beard: '#795548',
+    haircut: '#183A37',
+    shave: '#C44900',
+    beard: '#432534',
     color: '#E91E63',
     facial: '#FF9800',
     massage: '#9C27B0',
@@ -442,6 +442,50 @@ export const Animation = {
 // ============================================================================
 // THEME OBJECT (Main Export)
 // ============================================================================
+
+export const LightColors = Colors;
+
+export const DarkColors = {
+  ...Colors,
+  neutral: {
+    0: '#04151F', // Main Ink Black dark mode background
+    50: '#0A1E29', // Lighter blue-slate paper
+    100: '#102C3C',
+    200: '#193C50',
+    300: '#234B64',
+    400: '#376582',
+    500: '#5481A0',
+    600: '#7BA1BE',
+    700: '#A2C0D6',
+    800: '#C9DDEB',
+    900: '#ECF4F8',
+    1000: '#FFFFFF',
+  },
+  text: {
+    primary: '#FFFFFF',
+    secondary: '#A2C0D6',
+    disabled: '#5481A0',
+    hint: '#376582',
+    inverse: '#04151F',
+  },
+  background: {
+    default: '#04151F',
+    paper: '#0A1E29',
+    dark: '#020B10',
+    overlay: 'rgba(4, 21, 31, 0.7)',
+  },
+  border: {
+    light: '#102C3C',
+    main: '#193C50',
+    dark: '#234B64',
+  },
+} as const;
+
+export type DeepString<T> = {
+  [K in keyof T]: T[K] extends object ? DeepString<T[K]> : string;
+};
+
+export type ThemeColors = DeepString<typeof Colors>;
 
 export const Theme = {
   colors: Colors,

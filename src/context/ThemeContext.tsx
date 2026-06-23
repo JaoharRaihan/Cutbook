@@ -6,6 +6,7 @@
 import React, {createContext, useContext, useState, useEffect, useCallback, ReactNode} from 'react';
 import {saveThemeMode, loadThemeMode} from '@/utils/storage';
 import {createLogger} from '@/utils/logger';
+import {LightColors, DarkColors, ThemeColors} from '@/constants/theme';
 
 const logger = createLogger('ThemeContext');
 
@@ -18,6 +19,7 @@ export type ThemeMode = 'light' | 'dark';
 export interface ThemeContextValue {
   isDarkMode: boolean;
   themeMode: ThemeMode;
+  colors: ThemeColors;
   setThemeMode: (mode: ThemeMode) => Promise<void>;
   toggleDarkMode: () => Promise<void>;
   isLoading: boolean;
@@ -78,9 +80,12 @@ export function ThemeProvider({
     await setThemeMode(newMode);
   }, [themeMode, setThemeMode]);
 
+  const colors = themeMode === 'dark' ? DarkColors : LightColors;
+
   const value: ThemeContextValue = {
     isDarkMode: themeMode === 'dark',
     themeMode,
+    colors,
     setThemeMode,
     toggleDarkMode,
     isLoading,

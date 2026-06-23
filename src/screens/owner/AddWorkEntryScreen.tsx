@@ -1,6 +1,6 @@
 /**
  * AddWorkEntryScreen.tsx
- * Form to add a new work entry
+ * Form to add a new work entry (Owner Version)
  */
 
 import React, {useState} from 'react';
@@ -11,14 +11,16 @@ import {
   ScrollView,
   TextInput,
   TouchableOpacity,
-  SafeAreaView,
   StatusBar,
   Alert,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import {useOrg, useData, useAuth} from '@/context';
+import {SafeAreaView} from 'react-native-safe-area-context';
+import {useOrg, useData, useAuth, useTheme, useLanguage} from '@/context';
 import {WorkEntry, PaymentMethod, Service, User} from '@/types';
+import {useThemedStyles} from '@/hooks/useThemedStyles';
+import {ThemeColors} from '@/constants/theme';
 
 // ============================================================================
 // COMPONENT
@@ -29,6 +31,9 @@ export default function AddWorkEntryScreen({navigation}: any): React.ReactElemen
   const {orgUsers, orgServices, currentOrg, loading: orgLoading} = useOrg();
   const {addWorkEntry, loading: dataLoading} = useData();
   const {user} = useAuth();
+  const {colors, isDarkMode} = useTheme();
+  const {language, t} = useLanguage();
+  const styles = useThemedStyles(getStyles);
 
   // Form state
   const [selectedEmployee, setSelectedEmployee] = useState<string>('');
@@ -42,8 +47,10 @@ export default function AddWorkEntryScreen({navigation}: any): React.ReactElemen
   const [showServicePicker, setShowServicePicker] = useState(false);
   const [useCustomService, setUseCustomService] = useState(false);
 
-  // Filter active employees and services
-  const activeEmployees = orgUsers.filter(u => u.role === 'employee' && u.status === 'active');
+  // Filter active employees, owner and services
+  const activeEmployees = orgUsers.filter(
+    u => (u.role === 'employee' || u.role === 'owner') && u.status === 'active',
+  );
   const activeServices = orgServices.filter(s => s.isActive);
 
   const loading = orgLoading || dataLoading;
@@ -54,23 +61,53 @@ export default function AddWorkEntryScreen({navigation}: any): React.ReactElemen
 
   const validateForm = (): string | null => {
     if (!selectedEmployee) {
-      return 'Please select an employee';
+      return language === 'en'
+        ? 'Please select an employee'
+        : language === 'bn'
+          ? 'দয়া করে একজন কর্মী নির্বাচন করুন'
+          : language === 'es'
+            ? 'Por favor seleccione un empleado'
+            : 'कृपया एक कर्मचारी चुनें';
     }
 
     if (!useCustomService && selectedServices.length === 0) {
-      return 'Please select at least one service or use custom service name';
+      return language === 'en'
+        ? 'Please select at least one service or use custom service name'
+        : language === 'bn'
+          ? 'দয়া করে কমপক্ষে একটি সেবা নির্বাচন করুন বা কাস্টম সেবার নাম ব্যবহার করুন'
+          : language === 'es'
+            ? 'Por favor seleccione al menos un servicio o use un nombre de servicio personalizado'
+            : 'कृपया कम से कम एक सेवा चुनें या कस्टम सेवा नाम का उपयोग करें';
     }
 
     if (useCustomService && !customServiceName.trim()) {
-      return 'Please enter a service name';
+      return language === 'en'
+        ? 'Please enter a service name'
+        : language === 'bn'
+          ? 'দয়া করে একটি সেবার নাম লিখুন'
+          : language === 'es'
+            ? 'Por favor ingrese un nombre de servicio'
+            : 'कृपया सेवा का नाम दर्ज करें';
     }
 
     if (!price || isNaN(parseFloat(price)) || parseFloat(price) <= 0) {
-      return 'Please enter a valid price';
+      return language === 'en'
+        ? 'Please enter a valid price'
+        : language === 'bn'
+          ? 'দয়া করে একটি বৈধ মূল্য লিখুন'
+          : language === 'es'
+            ? 'Por favor ingrese un precio válido'
+            : 'कृपया एक मान्य मूल्य दर्ज करें';
     }
 
     if (tip && (isNaN(parseFloat(tip)) || parseFloat(tip) < 0)) {
-      return 'Please enter a valid tip amount';
+      return language === 'en'
+        ? 'Please enter a valid tip amount'
+        : language === 'bn'
+          ? 'দয়া করে একটি বৈধ টিপ পরিমাণ লিখুন'
+          : language === 'es'
+            ? 'Por favor ingrese un monto de propina válido'
+            : 'कृपया एक मान्य टिप राशि दर्ज करें';
     }
 
     return null;
@@ -83,7 +120,16 @@ export default function AddWorkEntryScreen({navigation}: any): React.ReactElemen
   const handleSubmit = async () => {
     const error = validateForm();
     if (error) {
-      Alert.alert('Validation Error', error);
+      Alert.alert(
+        language === 'en'
+          ? 'Validation Error'
+          : language === 'bn'
+            ? 'যাচাইকরণ ত্রুটি'
+            : language === 'es'
+              ? 'Error de Validación'
+              : 'सत्यापन त्रुटि',
+        error,
+      );
       return;
     }
 
@@ -106,7 +152,16 @@ export default function AddWorkEntryScreen({navigation}: any): React.ReactElemen
       // Get employee info
       const employee = activeEmployees.find((e: User) => e.id === selectedEmployee);
       if (!employee) {
-        Alert.alert('Error', 'Selected employee not found');
+        Alert.alert(
+          t.common.error,
+          language === 'en'
+            ? 'Selected employee not found'
+            : language === 'bn'
+              ? 'নির্বাচিত কর্মী পাওয়া যায়নি'
+              : language === 'es'
+                ? 'Empleado seleccionado no encontrado'
+                : 'चयनित कर्मचारी नहीं मिला',
+        );
         return;
       }
 
@@ -140,22 +195,45 @@ export default function AddWorkEntryScreen({navigation}: any): React.ReactElemen
       const totalAmount = parseFloat(price) + (tip ? parseFloat(tip) : 0);
 
       Alert.alert(
-        'Success',
-        `Work entry for ${employee.name} has been added!\nTotal: ৳${totalAmount}`,
+        t.common.success,
+        language === 'en'
+          ? `Work entry for ${employee.name} has been added!\nTotal: ৳${totalAmount}`
+          : language === 'bn'
+            ? `${employee.name}-এর কাজের এন্ট্রি যোগ করা হয়েছে!\nমোট: ৳${totalAmount}`
+            : language === 'es'
+              ? `¡Se ha añadido la entrada de trabajo para ${employee.name}!\nTotal: ৳${totalAmount}`
+              : `${employee.name} के लिए कार्य प्रविष्टि जोड़ दी गई है!\nकुल: ৳${totalAmount}`,
         [
           {
-            text: 'Add Another',
+            text:
+              language === 'en'
+                ? 'Add Another'
+                : language === 'bn'
+                  ? 'আরেকটি যোগ করুন'
+                  : language === 'es'
+                    ? 'Añadir otro'
+                    : 'एक और जोड़ें',
             onPress: () => resetForm(),
           },
           {
-            text: 'Done',
+            text: t.common.done,
             onPress: () => navigation.goBack(),
           },
         ],
       );
     } catch (err: any) {
       console.error('Error adding work entry:', err);
-      Alert.alert('Error', err.message || 'Failed to add work entry. Please try again.');
+      Alert.alert(
+        t.common.error,
+        err.message ||
+          (language === 'en'
+            ? 'Failed to add work entry. Please try again.'
+            : language === 'bn'
+              ? 'কাজের এন্ট্রি যোগ করতে ব্যর্থ হয়েছে। আবার চেষ্টা করুন।'
+              : language === 'es'
+                ? 'Error al añadir la entrada de trabajo. Por favor intente de nuevo.'
+                : 'कार्य प्रविष्टि जोड़ने में विफल। कृपया पुनः प्रयास करें।'),
+      );
     }
   };
 
@@ -191,12 +269,12 @@ export default function AddWorkEntryScreen({navigation}: any): React.ReactElemen
 
   const getEmployeeName = (id: string): string => {
     const employee = activeEmployees.find((e: User) => e.id === id);
-    return employee ? employee.name : 'Select Employee';
+    return employee ? employee.name : t.workEntries.selectEmployee;
   };
 
   const getSelectedServicesLabel = (): string => {
     if (selectedServices.length === 0) {
-      return 'Select Service';
+      return t.workEntries.selectService;
     }
     return selectedServices
       .map(id => {
@@ -208,10 +286,30 @@ export default function AddWorkEntryScreen({navigation}: any): React.ReactElemen
   };
 
   const paymentMethods = [
-    {value: PaymentMethod.CASH, label: 'Cash', icon: '💵', color: '#4CAF50'},
-    {value: PaymentMethod.BKASH, label: 'bKash', icon: '📱', color: '#E91E63'},
-    {value: PaymentMethod.CARD, label: 'Card', icon: '💳', color: '#2196F3'},
-    {value: PaymentMethod.NAGAD, label: 'Nagad', icon: '📱', color: '#FF9800'},
+    {
+      value: PaymentMethod.CASH,
+      label: t.payment.cash,
+      icon: '💵',
+      color: colors.payment.cash || '#4CAF50',
+    },
+    {
+      value: PaymentMethod.BKASH,
+      label: t.payment.bkash,
+      icon: '📱',
+      color: colors.payment.bkash || '#E91E63',
+    },
+    {
+      value: PaymentMethod.CARD,
+      label: t.payment.card,
+      icon: '💳',
+      color: colors.payment.card || colors.primary[500],
+    },
+    {
+      value: PaymentMethod.NAGAD,
+      label: t.payment.nagad,
+      icon: '📱',
+      color: colors.payment.nagad || '#FF9800',
+    },
   ];
 
   // ============================================================================
@@ -220,7 +318,10 @@ export default function AddWorkEntryScreen({navigation}: any): React.ReactElemen
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+      <StatusBar
+        barStyle={isDarkMode ? 'light-content' : 'dark-content'}
+        backgroundColor={colors.background.paper}
+      />
 
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -232,25 +333,40 @@ export default function AddWorkEntryScreen({navigation}: any): React.ReactElemen
           {/* Info Card */}
           <View style={styles.infoCard}>
             <Text style={styles.infoText}>
-              Select employee, service, amount, and payment method, then ta " Add Work Entry Button
-              "
+              {language === 'en'
+                ? "Select employee, service, amount, and payment method, then tap 'Add Work Entry'"
+                : language === 'bn'
+                  ? "কর্মী, সেবা, পরিমাণ এবং পেমেন্ট পদ্ধতি নির্বাচন করুন, তারপর 'কাজের এন্ট্রি যোগ করুন' এ আলতো চাপুন"
+                  : language === 'es'
+                    ? "Seleccione el empleado, el servicio, el monto y el método de pago, luego toque 'Añadir entrada de trabajo'"
+                    : "कर्मचारी, सेवा, राशि और भुगतान विधि चुनें, फिर 'कार्य प्रविष्टि जोड़ें' पर टैप करें"}
             </Text>
           </View>
 
           {/* Employee Selection */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Employee</Text>
+            <Text style={styles.sectionTitle}>
+              {language === 'en'
+                ? 'Employee'
+                : language === 'bn'
+                  ? 'কর্মী'
+                  : language === 'es'
+                    ? 'Empleado'
+                    : 'कर्मचारी'}
+            </Text>
 
             <View style={styles.inputGroup}>
               <Text style={styles.label}>
-                Select Employee <Text style={styles.required}>*</Text>
+                {t.workEntries.selectEmployee} <Text style={styles.required}>*</Text>
               </Text>
               <TouchableOpacity
                 style={styles.pickerButton}
                 onPress={() => setShowEmployeePicker(!showEmployeePicker)}>
                 <Text
                   style={[styles.pickerButtonText, !selectedEmployee && styles.placeholderText]}>
-                  {selectedEmployee ? getEmployeeName(selectedEmployee) : 'Select Employee'}
+                  {selectedEmployee
+                    ? getEmployeeName(selectedEmployee)
+                    : t.workEntries.selectEmployee}
                 </Text>
                 <Text style={styles.pickerArrow}>{showEmployeePicker ? '▲' : '▼'}</Text>
               </TouchableOpacity>
@@ -262,8 +378,24 @@ export default function AddWorkEntryScreen({navigation}: any): React.ReactElemen
                   showsVerticalScrollIndicator={true}>
                   {activeEmployees.length === 0 ? (
                     <View style={styles.emptyState}>
-                      <Text style={styles.emptyStateText}>No active employees found</Text>
-                      <Text style={styles.emptyStateSubtext}>Add employees from Settings</Text>
+                      <Text style={styles.emptyStateText}>
+                        {language === 'en'
+                          ? 'No active employees found'
+                          : language === 'bn'
+                            ? 'কোন সক্রিয় কর্মী পাওয়া যায়নি'
+                            : language === 'es'
+                              ? 'No se encontraron empleados activos'
+                              : 'कोई सक्रिय कर्मचारी नहीं मिला'}
+                      </Text>
+                      <Text style={styles.emptyStateSubtext}>
+                        {language === 'en'
+                          ? 'Add employees from Settings'
+                          : language === 'bn'
+                            ? 'সেটিংস থেকে কর্মী যোগ করুন'
+                            : language === 'es'
+                              ? 'Añadir empleados desde Configuración'
+                              : 'सेटिंग्स से कर्मचारी जोड़ें'}
+                      </Text>
                     </View>
                   ) : (
                     activeEmployees.map((employee: User) => (
@@ -278,9 +410,28 @@ export default function AddWorkEntryScreen({navigation}: any): React.ReactElemen
                           setShowEmployeePicker(false);
                         }}>
                         <View>
-                          <Text style={styles.pickerOptionText}>{employee.name}</Text>
+                          <Text style={styles.pickerOptionText}>
+                            {employee.name}{' '}
+                            {employee.role === 'owner'
+                              ? `(${language === 'en' ? 'Owner' : language === 'bn' ? 'মালিক' : 'Owner'})`
+                              : ''}
+                          </Text>
                           <Text style={styles.pickerOptionSubtext}>
-                            Commission: {employee.commissionPercentage}%
+                            {employee.role === 'owner' && !employee.commissionPercentage
+                              ? language === 'en'
+                                ? 'Owner'
+                                : language === 'bn'
+                                  ? 'মালিক'
+                                  : language === 'es'
+                                    ? 'Propietario'
+                                    : 'Owner'
+                              : language === 'en'
+                                ? `Commission: ${employee.commissionPercentage || 0}%`
+                                : language === 'bn'
+                                  ? `কমিশন: ${employee.commissionPercentage || 0}%`
+                                  : language === 'es'
+                                    ? `Comisión: ${employee.commissionPercentage || 0}%`
+                                    : `कमीशन: ${employee.commissionPercentage || 0}%`}
                           </Text>
                         </View>
                         {selectedEmployee === employee.id && (
@@ -296,7 +447,15 @@ export default function AddWorkEntryScreen({navigation}: any): React.ReactElemen
 
           {/* Service Selection */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Service</Text>
+            <Text style={styles.sectionTitle}>
+              {language === 'en'
+                ? 'Service'
+                : language === 'bn'
+                  ? 'সেবা'
+                  : language === 'es'
+                    ? 'Servicio'
+                    : 'सेवा'}
+            </Text>
 
             <View style={styles.toggleContainer}>
               <TouchableOpacity
@@ -307,7 +466,7 @@ export default function AddWorkEntryScreen({navigation}: any): React.ReactElemen
                     styles.toggleButtonText,
                     !useCustomService && styles.toggleButtonTextActive,
                   ]}>
-                  Select Service
+                  {t.workEntries.selectService}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -318,7 +477,7 @@ export default function AddWorkEntryScreen({navigation}: any): React.ReactElemen
                     styles.toggleButtonText,
                     useCustomService && styles.toggleButtonTextActive,
                   ]}>
-                  Custom Service
+                  {t.workEntries.customService}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -344,8 +503,24 @@ export default function AddWorkEntryScreen({navigation}: any): React.ReactElemen
                     showsVerticalScrollIndicator={true}>
                     {activeServices.length === 0 ? (
                       <View style={styles.pickerOption}>
-                        <Text style={styles.pickerOptionText}>No active services found</Text>
-                        <Text style={styles.pickerOptionSubtext}>Add services from Settings</Text>
+                        <Text style={styles.pickerOptionText}>
+                          {language === 'en'
+                            ? 'No active services found'
+                            : language === 'bn'
+                              ? 'কোন সক্রিয় সেবা পাওয়া যায়নি'
+                              : language === 'es'
+                                ? 'No se encontraron servicios activos'
+                                : 'कोई सक्रिय सेवा नहीं मिली'}
+                        </Text>
+                        <Text style={styles.pickerOptionSubtext}>
+                          {language === 'en'
+                            ? 'Add services from Settings'
+                            : language === 'bn'
+                              ? 'সেটিংস থেকে সেবা যোগ করুন'
+                              : language === 'es'
+                                ? 'Añadir servicios desde Configuración'
+                                : 'सेटिंग्स से सेवा जोड़ें'}
+                        </Text>
                       </View>
                     ) : (
                       activeServices.map((service: Service) => (
@@ -360,7 +535,13 @@ export default function AddWorkEntryScreen({navigation}: any): React.ReactElemen
                             <Text style={styles.pickerOptionText}>{service.name}</Text>
                             {service.defaultPrice && (
                               <Text style={styles.pickerOptionSubtext}>
-                                Default: ৳{service.defaultPrice}
+                                {language === 'en'
+                                  ? `Default: ৳${service.defaultPrice}`
+                                  : language === 'bn'
+                                    ? `ডিফল্ট: ৳${service.defaultPrice}`
+                                    : language === 'es'
+                                      ? `Predeterminado: ৳${service.defaultPrice}`
+                                      : `डिफ़ॉल्ट: ৳${service.defaultPrice}`}
                               </Text>
                             )}
                           </View>
@@ -378,7 +559,7 @@ export default function AddWorkEntryScreen({navigation}: any): React.ReactElemen
                 <TextInput
                   style={styles.input}
                   placeholder="e.g., Special Haircut"
-                  placeholderTextColor="#999"
+                  placeholderTextColor={colors.text.hint}
                   value={customServiceName}
                   onChangeText={setCustomServiceName}
                   autoCapitalize="words"
@@ -389,18 +570,26 @@ export default function AddWorkEntryScreen({navigation}: any): React.ReactElemen
 
           {/* Price & Tip */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Amount</Text>
+            <Text style={styles.sectionTitle}>
+              {language === 'en'
+                ? 'Amount'
+                : language === 'bn'
+                  ? 'পরিমাণ'
+                  : language === 'es'
+                    ? 'Monto'
+                    : 'राशि'}
+            </Text>
 
             <View style={styles.inputGroup}>
               <Text style={styles.label}>
-                Price <Text style={styles.required}>*</Text>
+                {t.workEntries.price} <Text style={styles.required}>*</Text>
               </Text>
               <View style={styles.priceInputContainer}>
                 <Text style={styles.currencySymbol}>৳</Text>
                 <TextInput
                   style={styles.priceInput}
                   placeholder="0"
-                  placeholderTextColor="#999"
+                  placeholderTextColor={colors.text.hint}
                   value={price}
                   onChangeText={setPrice}
                   keyboardType="numeric"
@@ -409,13 +598,21 @@ export default function AddWorkEntryScreen({navigation}: any): React.ReactElemen
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Tip (Optional)</Text>
+              <Text style={styles.label}>
+                {language === 'en'
+                  ? 'Tip (Optional)'
+                  : language === 'bn'
+                    ? 'টিপ (ঐচ্ছিক)'
+                    : language === 'es'
+                      ? 'Propina (Opcional)'
+                      : 'टिप (वैकल्पिक)'}
+              </Text>
               <View style={styles.priceInputContainer}>
                 <Text style={styles.currencySymbol}>৳</Text>
                 <TextInput
                   style={styles.priceInput}
                   placeholder="0"
-                  placeholderTextColor="#999"
+                  placeholderTextColor={colors.text.hint}
                   value={tip}
                   onChangeText={setTip}
                   keyboardType="numeric"
@@ -424,9 +621,17 @@ export default function AddWorkEntryScreen({navigation}: any): React.ReactElemen
             </View>
 
             {/* Total Display */}
-            {price && (
+            {price !== '' && (
               <View style={styles.totalContainer}>
-                <Text style={styles.totalLabel}>Total Amount:</Text>
+                <Text style={styles.totalLabel}>
+                  {language === 'en'
+                    ? 'Total Amount:'
+                    : language === 'bn'
+                      ? 'মোট পরিমাণ:'
+                      : language === 'es'
+                        ? 'Monto Total:'
+                        : 'कुल राशि:'}
+                </Text>
                 <Text style={styles.totalValue}>
                   ৳{parseFloat(price || '0') + parseFloat(tip || '0')}
                 </Text>
@@ -437,7 +642,7 @@ export default function AddWorkEntryScreen({navigation}: any): React.ReactElemen
           {/* Payment Method */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>
-              Payment Method <Text style={styles.required}>*</Text>
+              {t.workEntries.paymentMethod} <Text style={styles.required}>*</Text>
             </Text>
 
             <View style={styles.paymentGrid}>
@@ -473,12 +678,28 @@ export default function AddWorkEntryScreen({navigation}: any): React.ReactElemen
 
           {/* Notes */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Notes (Optional)</Text>
+            <Text style={styles.sectionTitle}>
+              {language === 'en'
+                ? 'Notes (Optional)'
+                : language === 'bn'
+                  ? 'নোট (ঐচ্ছিক)'
+                  : language === 'es'
+                    ? 'Notas (Opcionales)'
+                    : 'नोट्स (वैकल्पिक)'}
+            </Text>
 
             <TextInput
               style={[styles.input, styles.textArea]}
-              placeholder="Add any notes about this service..."
-              placeholderTextColor="#999"
+              placeholder={
+                language === 'en'
+                  ? 'Add any notes about this service...'
+                  : language === 'bn'
+                    ? 'এই সেবা সম্পর্কে কোন নোট যোগ করুন...'
+                    : language === 'es'
+                      ? 'Añada cualquier nota sobre este servicio...'
+                      : 'इस सेवा के बारे में कोई भी नोट जोड़ें...'
+              }
+              placeholderTextColor={colors.text.hint}
               value={note}
               onChangeText={setNote}
               multiline
@@ -495,7 +716,15 @@ export default function AddWorkEntryScreen({navigation}: any): React.ReactElemen
             onPress={handleSubmit}
             disabled={loading}>
             <Text style={styles.submitButtonText}>
-              {loading ? 'Adding Entry...' : 'Add Work Entry'}
+              {loading
+                ? language === 'en'
+                  ? 'Adding Entry...'
+                  : language === 'bn'
+                    ? 'এন্ট্রি যোগ করা হচ্ছে...'
+                    : language === 'es'
+                      ? 'Añadiendo entrada...'
+                      : 'प्रविष्टि जोड़ी जा रही है...'
+                : t.dashboard.addWorkEntry}
             </Text>
           </TouchableOpacity>
         </View>
@@ -508,292 +737,295 @@ export default function AddWorkEntryScreen({navigation}: any): React.ReactElemen
 // STYLES
 // ============================================================================
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FAFAFA',
-  },
-  keyboardView: {
-    flex: 1,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: 16,
-    paddingBottom: 100,
-  },
-  infoCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#d2f1d2',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-  },
-  infoIcon: {
-    fontSize: 24,
-    marginRight: 12,
-    color: '#cb2323',
-  },
-  infoText: {
-    flex: 1,
-    fontSize: 14,
-    color: '#008000',
-    lineHeight: 20,
-  },
-  section: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#212121',
-    marginBottom: 16,
-  },
-  inputGroup: {
-    marginBottom: 20,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#212121',
-    marginBottom: 8,
-  },
-  required: {
-    color: '#F44336',
-  },
-  input: {
-    backgroundColor: '#F5F5F5',
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 16,
-    color: '#212121',
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-  },
-  textArea: {
-    minHeight: 80,
-    paddingTop: 14,
-  },
-  placeholderText: {
-    color: '#008000',
-  },
-  pickerButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#F5F5F5',
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-  },
-  pickerButtonText: {
-    fontSize: 16,
-    color: '#000000',
-  },
-  pickerArrow: {
-    fontSize: 12,
-    color: '#f50c20',
-  },
-  pickerOptions: {
-    marginTop: 8,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-    overflow: 'hidden',
-    maxHeight: 250,
-  },
-  pickerOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F5F5F5',
-  },
-  pickerOptionSelected: {
-    backgroundColor: '#E3F2FD',
-  },
-  pickerOptionText: {
-    fontSize: 16,
-    color: '#060606',
-    fontWeight: '500',
-  },
-  pickerOptionSubtext: {
-    fontSize: 13,
-    color: '#008000',
-    marginTop: 2,
-  },
-  checkmark: {
-    fontSize: 18,
-    color: '#2510b2',
-    fontWeight: '700',
-  },
-  toggleContainer: {
-    flexDirection: 'row',
-    marginBottom: 16,
-    backgroundColor: '#F5F5F5',
-    borderRadius: 8,
-    padding: 4,
-  },
-  toggleButton: {
-    flex: 1,
-    paddingVertical: 10,
-    alignItems: 'center',
-    borderRadius: 6,
-  },
-  toggleButtonActive: {
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 1},
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  toggleButtonText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#757575',
-  },
-  toggleButtonTextActive: {
-    color: '#008000',
-    fontWeight: '600',
-  },
-  priceInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F5F5F5',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-    paddingLeft: 16,
-  },
-  currencySymbol: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#757575',
-    marginRight: 8,
-  },
-  priceInput: {
-    flex: 1,
-    paddingVertical: 14,
-    paddingRight: 16,
-    fontSize: 16,
-    color: '#212121',
-  },
-  totalContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#E8F5E9',
-    borderRadius: 8,
-    padding: 16,
-    marginTop: 8,
-  },
-  totalLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#2E7D32',
-  },
-  totalValue: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#2E7D32',
-  },
-  paymentGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  paymentButton: {
-    flex: 1,
-    minWidth: '45%',
-    aspectRatio: 1.5,
-    backgroundColor: '#F5F5F5',
-    borderRadius: 12,
-    borderWidth: 2,
-    padding: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-  },
-  paymentButtonActive: {
-    borderWidth: 2,
-  },
-  paymentIcon: {
-    fontSize: 32,
-    marginBottom: 8,
-  },
-  paymentLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#212121',
-  },
-  paymentCheck: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  paymentCheckText: {
-    fontSize: 12,
-    color: '#FFFFFF',
-    fontWeight: '700',
-  },
-  footer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: 16,
-    backgroundColor: '#FFFFFF',
-    borderTopWidth: 1,
-    borderTopColor: '#E0E0E0',
-  },
-  submitButton: {
-    backgroundColor: '#000000',
-    borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 4},
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 5,
-  },
-  submitButtonDisabled: {
-    backgroundColor: '#BDBDBD',
-  },
-  submitButtonText: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  emptyState: {
-    padding: 16,
-    alignItems: 'center',
-  },
-  emptyStateText: {
-    fontSize: 14,
-    color: '#666',
-    fontWeight: '500',
-  },
-  emptyStateSubtext: {
-    fontSize: 12,
-    color: '#999',
-    marginTop: 4,
-  },
-});
+const getStyles = (colors: ThemeColors, isDarkMode: boolean) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background.default,
+    },
+    keyboardView: {
+      flex: 1,
+    },
+    scrollView: {
+      flex: 1,
+    },
+    scrollContent: {
+      padding: 16,
+      paddingBottom: 100,
+    },
+    infoCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: isDarkMode ? colors.background.paper : colors.primary[50],
+      borderRadius: 12,
+      padding: 16,
+      marginBottom: 16,
+      borderWidth: 1,
+      borderColor: isDarkMode ? colors.border.light : colors.primary[100],
+    },
+    infoText: {
+      flex: 1,
+      fontSize: 14,
+      color: colors.text.primary,
+      lineHeight: 20,
+    },
+    section: {
+      backgroundColor: colors.background.paper,
+      borderRadius: 12,
+      padding: 16,
+      marginBottom: 16,
+      borderWidth: 1,
+      borderColor: colors.border.light,
+    },
+    sectionTitle: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: colors.text.primary,
+      marginBottom: 16,
+    },
+    inputGroup: {
+      marginBottom: 20,
+    },
+    label: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: colors.text.primary,
+      marginBottom: 8,
+    },
+    required: {
+      color: colors.error.main,
+    },
+    input: {
+      backgroundColor: colors.background.default,
+      borderRadius: 8,
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+      fontSize: 16,
+      color: colors.text.primary,
+      borderWidth: 1,
+      borderColor: colors.border.light,
+    },
+    textArea: {
+      minHeight: 80,
+      paddingTop: 14,
+    },
+    placeholderText: {
+      color: colors.text.hint,
+    },
+    pickerButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: colors.background.default,
+      borderRadius: 8,
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+      borderWidth: 1,
+      borderColor: colors.border.light,
+    },
+    pickerButtonText: {
+      fontSize: 16,
+      color: colors.text.primary,
+    },
+    pickerArrow: {
+      fontSize: 12,
+      color: colors.text.hint,
+    },
+    pickerOptions: {
+      marginTop: 8,
+      backgroundColor: colors.background.paper,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: colors.border.light,
+      overflow: 'hidden',
+      maxHeight: 250,
+    },
+    pickerOption: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border.light,
+      backgroundColor: colors.background.paper,
+    },
+    pickerOptionSelected: {
+      backgroundColor: isDarkMode ? colors.neutral[100] : colors.primary[50],
+    },
+    pickerOptionText: {
+      fontSize: 16,
+      color: colors.text.primary,
+      fontWeight: '500',
+    },
+    pickerOptionSubtext: {
+      fontSize: 13,
+      color: colors.text.secondary,
+      marginTop: 2,
+    },
+    checkmark: {
+      fontSize: 18,
+      color: colors.primary[500],
+      fontWeight: '700',
+    },
+    toggleContainer: {
+      flexDirection: 'row',
+      marginBottom: 16,
+      backgroundColor: colors.background.default,
+      borderRadius: 8,
+      padding: 4,
+    },
+    toggleButton: {
+      flex: 1,
+      paddingVertical: 10,
+      alignItems: 'center',
+      borderRadius: 6,
+    },
+    toggleButtonActive: {
+      backgroundColor: colors.background.paper,
+      shadowColor: '#000',
+      shadowOffset: {width: 0, height: 1},
+      shadowOpacity: 0.1,
+      shadowRadius: 2,
+      elevation: 2,
+    },
+    toggleButtonText: {
+      fontSize: 14,
+      fontWeight: '500',
+      color: colors.text.secondary,
+    },
+    toggleButtonTextActive: {
+      color: colors.primary[500],
+      fontWeight: '600',
+    },
+    priceInputContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.background.default,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: colors.border.light,
+      paddingLeft: 16,
+    },
+    currencySymbol: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: colors.text.secondary,
+      marginRight: 8,
+    },
+    priceInput: {
+      flex: 1,
+      paddingVertical: 14,
+      paddingRight: 16,
+      fontSize: 16,
+      color: colors.text.primary,
+    },
+    totalContainer: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      backgroundColor: isDarkMode ? colors.background.paper : '#E8F5E9',
+      borderRadius: 8,
+      padding: 16,
+      marginTop: 8,
+      borderWidth: isDarkMode ? 1 : 0,
+      borderColor: colors.border.light,
+    },
+    totalLabel: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: colors.success.main,
+    },
+    totalValue: {
+      fontSize: 24,
+      fontWeight: '700',
+      color: colors.success.main,
+    },
+    paymentGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 12,
+    },
+    paymentButton: {
+      flex: 1,
+      minWidth: '45%',
+      aspectRatio: 1.5,
+      backgroundColor: colors.background.paper,
+      borderRadius: 12,
+      borderWidth: 2,
+      padding: 12,
+      alignItems: 'center',
+      justifyContent: 'center',
+      position: 'relative',
+    },
+    paymentButtonActive: {
+      borderWidth: 2,
+    },
+    paymentIcon: {
+      fontSize: 32,
+      marginBottom: 8,
+    },
+    paymentLabel: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: colors.text.primary,
+    },
+    paymentCheck: {
+      position: 'absolute',
+      top: 8,
+      right: 8,
+      width: 20,
+      height: 20,
+      borderRadius: 10,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    paymentCheckText: {
+      fontSize: 12,
+      color: '#FFFFFF',
+      fontWeight: '700',
+    },
+    footer: {
+      position: 'absolute',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      padding: 16,
+      backgroundColor: colors.background.paper,
+      borderTopWidth: 1,
+      borderTopColor: colors.border.light,
+    },
+    submitButton: {
+      backgroundColor: colors.primary[500],
+      borderRadius: 12,
+      paddingVertical: 16,
+      alignItems: 'center',
+      shadowColor: '#000',
+      shadowOffset: {width: 0, height: 4},
+      shadowOpacity: isDarkMode ? 0.3 : 0.2,
+      shadowRadius: 8,
+      elevation: 5,
+    },
+    submitButtonDisabled: {
+      backgroundColor: colors.neutral[300],
+    },
+    submitButtonText: {
+      color: '#FFFFFF',
+      fontSize: 18,
+      fontWeight: '600',
+    },
+    emptyState: {
+      padding: 16,
+      alignItems: 'center',
+    },
+    emptyStateText: {
+      fontSize: 14,
+      color: colors.text.primary,
+      fontWeight: '500',
+    },
+    emptyStateSubtext: {
+      fontSize: 12,
+      color: colors.text.secondary,
+      marginTop: 4,
+    },
+  });

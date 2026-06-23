@@ -14,7 +14,7 @@ import {
   ViewStyle,
   TextStyle,
 } from 'react-native';
-
+import Theme from '@/constants/theme';
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -121,9 +121,9 @@ export default function AnimatedButton({
   const getSpinnerColor = (): string => {
     switch (variant) {
       case 'outline':
-        return '#2196F3';
+        return Theme.colors.primary[500];
       case 'secondary':
-        return '#2196F3';
+        return Theme.colors.primary[500];
       default:
         return '#FFFFFF';
     }
@@ -181,15 +181,15 @@ const styles = StyleSheet.create({
   },
   // Variants
   primaryButton: {
-    backgroundColor: '#2196F3',
+    backgroundColor: Theme.colors.primary[500],
   },
   secondaryButton: {
-    backgroundColor: '#E3F2FD',
+    backgroundColor: Theme.colors.primary[50],
   },
   outlineButton: {
     backgroundColor: 'transparent',
     borderWidth: 2,
-    borderColor: '#2196F3',
+    borderColor: Theme.colors.primary[500],
   },
   dangerButton: {
     backgroundColor: '#F44336',
@@ -214,10 +214,10 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   secondaryText: {
-    color: '#2196F3',
+    color: Theme.colors.primary[500],
   },
   outlineText: {
-    color: '#2196F3',
+    color: Theme.colors.primary[500],
   },
   dangerText: {
     color: '#FFFFFF',

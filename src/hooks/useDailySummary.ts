@@ -53,7 +53,7 @@ interface UseDailySummaryResult {
 /**
  * Get date range for a given time period
  */
-const getDateRange = (
+export const getDateRange = (
   period: TimePeriod,
   baseDate: Date = new Date(),
 ): {start: Date; end: Date} => {
@@ -214,11 +214,10 @@ const useDailySummary = (
           });
         }
       });
-
-      // Get top 3 employees
-      const topEmployees = Array.from(employeeStatsMap.values())
-        .sort((a, b) => b.totalIncome - a.totalIncome)
-        .slice(0, 3);
+      // Get top employees
+      const topEmployees = Array.from(employeeStatsMap.values()).sort(
+        (a, b) => b.totalIncome - a.totalIncome,
+      );
 
       return {
         date: getPeriodLabel(period, date),

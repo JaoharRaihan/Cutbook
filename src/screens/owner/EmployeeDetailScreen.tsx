@@ -17,7 +17,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import {useOrg, useData} from '@/context';
-import {UserStatus, EmployeePermission} from '@/types';
+import {UserStatus, EmployeePermission, UserRole} from '@/types';
 import {formatBDT} from '@/utils/currency';
 import {formatDateISO} from '@/utils/date';
 import MaterialIcons from '@react-native-vector-icons/material-icons';
@@ -201,7 +201,9 @@ export default function EmployeeDetailScreen({route, navigation}: any): React.Re
       await createEmployeeTransaction(employeeId, amount, paymentNote || undefined);
       Alert.alert(
         'Success',
-        `Payment of ${formatBDT(amount)} sent to ${employee.name}. Awaiting acceptance.`,
+        employee.role === UserRole.OWNER
+          ? `Payment of ${formatBDT(amount)} given to yourself. Auto-accepted.`
+          : `Payment of ${formatBDT(amount)} sent to ${employee.name}. Awaiting acceptance.`,
       );
       setPaymentAmount('');
       setPaymentNote('');
@@ -238,7 +240,9 @@ export default function EmployeeDetailScreen({route, navigation}: any): React.Re
             <Text style={styles.avatarText}>{employee.name.charAt(0).toUpperCase()}</Text>
           </View>
 
-          <Text style={styles.name}>{employee.name}</Text>
+          <Text style={styles.name}>
+            {employee.name} {employee.role === UserRole.OWNER ? '(Owner)' : ''}
+          </Text>
 
           <View
             style={[styles.statusBadge, {backgroundColor: getStatusColor(employee.status) + '20'}]}>
@@ -315,7 +319,9 @@ export default function EmployeeDetailScreen({route, navigation}: any): React.Re
             💰 Give Money to <Text style={{color: 'red'}}>{employee.name}</Text>
           </Text>
           <Text style={styles.paymentDescription}>
-            Employee will get a message and can accept or reject it.
+            {employee.role === UserRole.OWNER
+              ? 'This payout will be automatically accepted and added to your received payouts.'
+              : 'Employee will get a message and can accept or reject it.'}
           </Text>
 
           <View style={styles.paymentForm}>
@@ -399,76 +405,80 @@ export default function EmployeeDetailScreen({route, navigation}: any): React.Re
         </View>
 
         {/* Permissions Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitleper}>PERMISSIONS</Text>
+        {employee.role !== UserRole.OWNER && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitleper}>PERMISSIONS</Text>
 
-          <Text style={styles.permissionDescription}>
-            Control what this employee can do when you're not available
-          </Text>
+            <Text style={styles.permissionDescription}>
+              Control what this employee can do when you're not available
+            </Text>
 
-          {/* Grant Access Card */}
-          <View style={styles.permissionCard}>
-            {/* Header */}
-            <View style={styles.permissionHeader}>
-              <View style={{flex: 1}}>
-                <Text style={styles.permissionTitle}>Manager Access</Text>
+            {/* Grant Access Card */}
+            <View style={styles.permissionCard}>
+              {/* Header */}
+              <View style={styles.permissionHeader}>
+                <View style={{flex: 1}}>
+                  <Text style={styles.permissionTitle}>Manager Access</Text>
 
-                <Text style={styles.permissionSubtitle}>
-                  Can add entries and manage work logs for staff
-                </Text>
+                  <Text style={styles.permissionSubtitle}>
+                    Can add entries and manage work logs for staff
+                  </Text>
+                </View>
+
+                {/* Status Badge */}
+                <View
+                  style={[
+                    styles.statusBadge,
+                    employee.permissions?.includes(EmployeePermission.CAN_ADD_ENTRIES)
+                      ? styles.statusActive
+                      : styles.statusInactive,
+                  ]}>
+                  <Text style={styles.statusText}>
+                    {employee.permissions?.includes(EmployeePermission.CAN_ADD_ENTRIES)
+                      ? 'GRANTED'
+                      : 'OFF'}
+                  </Text>
+                </View>
               </View>
 
-              {/* Status Badge */}
-              <View
+              {/* Action Row */}
+              <TouchableOpacity
                 style={[
-                  styles.statusBadge,
+                  styles.grantButton,
                   employee.permissions?.includes(EmployeePermission.CAN_ADD_ENTRIES)
-                    ? styles.statusActive
-                    : styles.statusInactive,
-                ]}>
-                <Text style={styles.statusText}>
+                    ? styles.revokeButton
+                    : styles.enableButton,
+                ]}
+                onPress={() => handleTogglePermission(EmployeePermission.CAN_ADD_ENTRIES)}
+                disabled={saving}>
+                <Text style={styles.grantButtonText}>
                   {employee.permissions?.includes(EmployeePermission.CAN_ADD_ENTRIES)
-                    ? 'GRANTED'
-                    : 'OFF'}
+                    ? 'Remove Access'
+                    : 'Give Access'}
                 </Text>
-              </View>
+              </TouchableOpacity>
             </View>
-
-            {/* Action Row */}
-            <TouchableOpacity
-              style={[
-                styles.grantButton,
-                employee.permissions?.includes(EmployeePermission.CAN_ADD_ENTRIES)
-                  ? styles.revokeButton
-                  : styles.enableButton,
-              ]}
-              onPress={() => handleTogglePermission(EmployeePermission.CAN_ADD_ENTRIES)}
-              disabled={saving}>
-              <Text style={styles.grantButtonText}>
-                {employee.permissions?.includes(EmployeePermission.CAN_ADD_ENTRIES)
-                  ? 'Remove Access'
-                  : 'Give Access'}
-              </Text>
-            </TouchableOpacity>
           </View>
-        </View>
+        )}
 
         {/* Action Buttons */}
-        <View style={styles.section}>
-          <TouchableOpacity
-            style={[styles.deleteButton, saving && styles.buttonDisabled]}
-            onPress={handleDelete}
-            disabled={saving}>
-            {saving ? (
-              <ActivityIndicator color="#FFFFFF" />
-            ) : (
-              <>
-                <MaterialIcons name="delete-forever" style={styles.deleteButtonIcon} />
-                <Text style={styles.deleteButtonText}>Remove from Organization</Text>
-              </>
-            )}
-          </TouchableOpacity>
-        </View>
+        {employee.role !== UserRole.OWNER && (
+          <View style={styles.section}>
+            <TouchableOpacity
+              style={[styles.deleteButton, saving && styles.buttonDisabled]}
+              onPress={handleDelete}
+              disabled={saving}>
+              {saving ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <>
+                  <MaterialIcons name="delete-forever" style={styles.deleteButtonIcon} />
+                  <Text style={styles.deleteButtonText}>Remove from Organization</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );

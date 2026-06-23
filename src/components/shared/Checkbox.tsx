@@ -5,6 +5,7 @@
 
 import React from 'react';
 import {View, Text, TouchableOpacity, ViewStyle, StyleSheet} from 'react-native';
+import Theme from '@/constants/theme';
 
 // ============================================================================
 // TYPES
@@ -34,7 +35,7 @@ export default function Checkbox({
   disabled = false,
   error,
   size = 'medium',
-  color = '#2196F3',
+  color = Theme.colors.primary[500],
   style,
 }: CheckboxProps): React.ReactElement {
   const handlePress = () => {

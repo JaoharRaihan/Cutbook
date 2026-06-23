@@ -6,6 +6,8 @@
 import React, {useRef} from 'react';
 import {TouchableOpacity, Text, StyleSheet, Animated, ViewStyle} from 'react-native';
 
+import Theme from '@/constants/theme';
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -86,7 +88,7 @@ export default function FloatingActionButton({
 
 const styles = StyleSheet.create({
   fab: {
-    backgroundColor: '#2196F3',
+    backgroundColor: Theme.colors.primary[500],
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',

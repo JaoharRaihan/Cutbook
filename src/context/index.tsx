@@ -7,3 +7,4 @@ export {AuthProvider, useAuth} from './AuthContext';
 export {OrgProvider, useOrg} from './OrgContext';
 export {DataProvider, useData} from './DataContext';
 export {ThemeProvider, useTheme} from './ThemeContext';
+export {LanguageProvider, useLanguage, getLanguageName} from './LanguageContext';

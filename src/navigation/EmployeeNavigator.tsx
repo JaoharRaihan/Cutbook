@@ -6,7 +6,6 @@
 import React from 'react';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {createStackNavigator} from '@react-navigation/stack';
-import Theme from '@/constants/theme';
 import MaterialIcons from '@react-native-vector-icons/material-icons';
 
 // Employee screens
@@ -15,6 +14,7 @@ import HistoryScreen from '@/screens/employee/HistoryScreen';
 import ProfileScreen from '@/screens/employee/ProfileScreen';
 import AddWorkEntryScreen from '@/screens/employee/AddWorkEntryScreen';
 import EmployeeTransactionsScreen from '@/screens/employee/EmployeeTransactionsScreen';
+import NotificationScreen from '@/screens/employee/NotificationScreen';
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -24,6 +24,7 @@ export type HomeStackParamList = {
   HomeMain: undefined;
   AddEntry: undefined;
   EntryDetail: {entryId: string};
+  Notifications: undefined;
 };
 
 export type HistoryStackParamList = {
@@ -50,15 +51,24 @@ export type EmployeeTabParamList = {
 // STACK NAVIGATORS
 // ============================================================================
 
+import {useTheme, useLanguage} from '@/context';
+
 const HomeStack = createStackNavigator<HomeStackParamList>();
 const HomeNavigator = () => {
+  const {colors, isDarkMode} = useTheme();
+  const {t} = useLanguage();
+
   return (
     <HomeStack.Navigator
       screenOptions={{
         headerStyle: {
-          backgroundColor: Theme.colors.primary[600],
+          backgroundColor: isDarkMode ? colors.background.paper : colors.primary[600],
+          borderBottomWidth: isDarkMode ? 1 : 0,
+          borderBottomColor: colors.border.light,
+          elevation: 0,
+          shadowOpacity: 0,
         },
-        headerTintColor: '#FFFFFF',
+        headerTintColor: isDarkMode ? colors.text.primary : '#FFFFFF',
         headerTitleStyle: {
           fontWeight: '600',
         },
@@ -72,8 +82,14 @@ const HomeNavigator = () => {
         name="AddEntry"
         component={AddWorkEntryScreen}
         options={{
-          title: 'Add Work Entry',
-          headerShown: true,
+          title: t.dashboard.addWorkEntry,
+        }}
+      />
+      <HomeStack.Screen
+        name="Notifications"
+        component={NotificationScreen}
+        options={{
+          title: t.settings.notifications,
         }}
       />
     </HomeStack.Navigator>
@@ -82,13 +98,18 @@ const HomeNavigator = () => {
 
 const HistoryStack = createStackNavigator<HistoryStackParamList>();
 const HistoryNavigator = () => {
+  const {colors, isDarkMode} = useTheme();
   return (
     <HistoryStack.Navigator
       screenOptions={{
         headerStyle: {
-          backgroundColor: Theme.colors.primary[600],
+          backgroundColor: isDarkMode ? colors.background.paper : colors.primary[600],
+          borderBottomWidth: isDarkMode ? 1 : 0,
+          borderBottomColor: colors.border.light,
+          elevation: 0,
+          shadowOpacity: 0,
         },
-        headerTintColor: '#FFFFFF',
+        headerTintColor: isDarkMode ? colors.text.primary : '#FFFFFF',
         headerTitleStyle: {
           fontWeight: '600',
         },
@@ -104,13 +125,18 @@ const HistoryNavigator = () => {
 
 const ProfileStack = createStackNavigator<ProfileStackParamList>();
 const ProfileNavigator = () => {
+  const {colors, isDarkMode} = useTheme();
   return (
     <ProfileStack.Navigator
       screenOptions={{
         headerStyle: {
-          backgroundColor: Theme.colors.primary[600],
+          backgroundColor: isDarkMode ? colors.background.paper : colors.primary[600],
+          borderBottomWidth: isDarkMode ? 1 : 0,
+          borderBottomColor: colors.border.light,
+          elevation: 0,
+          shadowOpacity: 0,
         },
-        headerTintColor: '#FFFFFF',
+        headerTintColor: isDarkMode ? colors.text.primary : '#FFFFFF',
         headerTitleStyle: {
           fontWeight: '600',
         },
@@ -126,13 +152,18 @@ const ProfileNavigator = () => {
 
 const TransactionsStack = createStackNavigator<TransactionsStackParamList>();
 const TransactionsNavigator = () => {
+  const {colors, isDarkMode} = useTheme();
   return (
     <TransactionsStack.Navigator
       screenOptions={{
         headerStyle: {
-          backgroundColor: Theme.colors.primary[600],
+          backgroundColor: isDarkMode ? colors.background.paper : colors.primary[600],
+          borderBottomWidth: isDarkMode ? 1 : 0,
+          borderBottomColor: colors.border.light,
+          elevation: 0,
+          shadowOpacity: 0,
         },
-        headerTintColor: '#FFFFFF',
+        headerTintColor: isDarkMode ? colors.text.primary : '#FFFFFF',
         headerTitleStyle: {
           fontWeight: '600',
         },
@@ -153,16 +184,19 @@ const TransactionsNavigator = () => {
 const Tab = createBottomTabNavigator<EmployeeTabParamList>();
 
 const EmployeeNavigator: React.FC = () => {
+  const {colors, isDarkMode} = useTheme();
+  const {t} = useLanguage();
+
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#000000',
-        tabBarInactiveTintColor: Theme.colors.text.secondary,
+        tabBarActiveTintColor: isDarkMode ? colors.primary[400] : colors.primary[600],
+        tabBarInactiveTintColor: colors.text.secondary,
         tabBarStyle: {
-          backgroundColor: '#FFFFFF',
+          backgroundColor: colors.background.paper,
           borderTopWidth: 1,
-          borderTopColor: Theme.colors.neutral[200],
+          borderTopColor: colors.border.light,
           paddingBottom: 5,
           paddingTop: 5,
           height: 60,
@@ -176,7 +210,7 @@ const EmployeeNavigator: React.FC = () => {
         name="Home"
         component={HomeNavigator}
         options={{
-          tabBarLabel: 'Home',
+          tabBarLabel: t.tabs.home,
           tabBarIcon: ({color, size}) => <MaterialIcons name="home" size={size} color={color} />,
         }}
       />
@@ -184,7 +218,7 @@ const EmployeeNavigator: React.FC = () => {
         name="History"
         component={HistoryNavigator}
         options={{
-          tabBarLabel: 'History',
+          tabBarLabel: t.tabs.history,
           tabBarIcon: ({color, size}) => <MaterialIcons name="history" size={size} color={color} />,
         }}
       />
@@ -192,19 +226,21 @@ const EmployeeNavigator: React.FC = () => {
         name="Transactions"
         component={TransactionsNavigator}
         options={{
-          tabBarLabel: 'Payments',
+          tabBarLabel: t.tabs.payments,
           tabBarIcon: ({color, size}) => <MaterialIcons name="payment" size={size} color={color} />,
         }}
       />
+
       <Tab.Screen
         name="Profile"
         component={ProfileNavigator}
         options={{
-          tabBarLabel: 'Profile',
+          tabBarLabel: t.tabs.profile,
           tabBarIcon: ({color, size}) => <MaterialIcons name="person" size={size} color={color} />,
         }}
       />
     </Tab.Navigator>
   );
 };
+
 export default EmployeeNavigator;

@@ -396,6 +396,21 @@ export interface UpdateEmployeeTransactionPayload {
 }
 
 // ============================================
+// SALON EXPENSES
+// ============================================
+
+/**
+ * Salon Expense entity
+ */
+export interface Expense extends BaseEntity {
+  orgId: string;
+  name: string;
+  amount: number;
+  createdBy: string;
+  createdByName?: string;
+}
+
+// ============================================
 // EMPLOYEE STATS
 // ============================================
 
@@ -483,8 +498,13 @@ export type RootStackParamList = {
 export type AuthStackParamList = {
   Login: undefined;
   Register: undefined;
-  OTPVerification: {phone: string};
+  OTPVerification: {
+    phone: string;
+    flow: 'register' | 'reset_password';
+    registrationData?: RegistrationData;
+  };
   ForgotPassword: undefined;
+  ResetPassword: {phone: string};
 };
 
 /**
@@ -556,6 +576,10 @@ export interface AuthContextValue {
   register: (data: RegistrationData) => Promise<void>;
   logout: () => Promise<void>;
   updateUser: (data: Partial<User>) => Promise<void>;
+  sendPhoneOTP: (phone: string) => Promise<any>;
+  verifyPhoneOTPAndLink: (code: string, registrationData: RegistrationData) => Promise<void>;
+  verifyPhoneOTPForReset: (code: string) => Promise<void>;
+  updatePasswordAfterReset: (newPassword: string) => Promise<void>;
 }
 
 /**

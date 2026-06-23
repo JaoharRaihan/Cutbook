@@ -5,6 +5,7 @@
 
 import React, {useEffect, useRef} from 'react';
 import {Text, StyleSheet, Animated, TouchableOpacity} from 'react-native';
+import Theme from '@/constants/theme';
 
 // ============================================================================
 // TYPES
@@ -82,23 +83,23 @@ export default function Toast({
     switch (type) {
       case 'success':
         return {
-          backgroundColor: '#4CAF50',
+          backgroundColor: Theme.colors.success.main,
           icon: '✓',
         };
       case 'error':
         return {
-          backgroundColor: '#F44336',
+          backgroundColor: Theme.colors.error.main,
           icon: '✕',
         };
       case 'warning':
         return {
-          backgroundColor: '#FF9800',
+          backgroundColor: Theme.colors.warning.main,
           icon: '⚠',
         };
       case 'info':
       default:
         return {
-          backgroundColor: '#2196F3',
+          backgroundColor: Theme.colors.primary[500],
           icon: 'ℹ',
         };
     }

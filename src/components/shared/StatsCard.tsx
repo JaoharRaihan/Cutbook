@@ -5,6 +5,7 @@
 
 import React from 'react';
 import {View, Text, StyleSheet, ViewStyle} from 'react-native';
+import Theme from '@/constants/theme';
 
 // ============================================================================
 // TYPES
@@ -49,15 +50,15 @@ export default function StatsCard({
   const getValueColor = () => {
     switch (variant) {
       case 'primary':
-        return '#2196F3';
+        return Theme.colors.primary[500];
       case 'success':
-        return '#4CAF50';
+        return Theme.colors.success.main;
       case 'warning':
-        return '#FF9800';
+        return Theme.colors.warning.main;
       case 'error':
-        return '#F44336';
+        return Theme.colors.error.main;
       default:
-        return '#212121';
+        return Theme.colors.text.primary;
     }
   };
 
@@ -77,12 +78,12 @@ export default function StatsCard({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    backgroundColor: Theme.colors.background.paper,
+    borderRadius: Theme.borderRadius.card,
     padding: 20,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: Theme.colors.border.light,
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.05,
@@ -90,20 +91,20 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   cardPrimary: {
-    backgroundColor: '#E3F2FD',
-    borderColor: '#2196F3',
+    backgroundColor: Theme.colors.primary[50],
+    borderColor: Theme.colors.primary[500],
   },
   cardSuccess: {
     backgroundColor: '#E8F5E9',
-    borderColor: '#4CAF50',
+    borderColor: Theme.colors.success.main,
   },
   cardWarning: {
     backgroundColor: '#FFF3E0',
-    borderColor: '#FF9800',
+    borderColor: Theme.colors.warning.main,
   },
   cardError: {
     backgroundColor: '#FFEBEE',
-    borderColor: '#F44336',
+    borderColor: Theme.colors.error.main,
   },
   icon: {
     fontSize: 40,
@@ -111,7 +112,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 14,
-    color: '#757575',
+    color: Theme.colors.text.secondary,
     marginBottom: 8,
     textAlign: 'center',
   },
@@ -122,7 +123,7 @@ const styles = StyleSheet.create({
   },
   subtext: {
     fontSize: 12,
-    color: '#757575',
+    color: Theme.colors.text.hint,
     textAlign: 'center',
   },
 });

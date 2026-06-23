@@ -5,6 +5,7 @@
 
 import React from 'react';
 import {Text, StyleSheet, ScrollView, TouchableOpacity} from 'react-native';
+import Theme from '@/constants/theme';
 
 // ============================================================================
 // TYPES
@@ -71,19 +72,19 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   chip: {
-    backgroundColor: '#F5F5F5',
-    borderRadius: 20,
+    backgroundColor: Theme.colors.neutral[100],
+    borderRadius: Theme.borderRadius.chip,
     paddingHorizontal: 16,
     paddingVertical: 8,
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: Theme.colors.border.light,
     marginRight: 8,
   },
   chipSelected: {
-    backgroundColor: '#E3F2FD',
-    borderColor: '#2196F3',
+    backgroundColor: Theme.colors.primary[50],
+    borderColor: Theme.colors.primary[500],
   },
   chipIcon: {
     fontSize: 16,
@@ -92,10 +93,10 @@ const styles = StyleSheet.create({
   chipText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#616161',
+    color: Theme.colors.text.secondary,
   },
   chipTextSelected: {
-    color: '#2196F3',
+    color: Theme.colors.primary[500],
     fontWeight: '600',
   },
 });

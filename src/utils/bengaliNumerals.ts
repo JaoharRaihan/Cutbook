@@ -3,6 +3,8 @@
  * Bengali numeral conversion and formatting utilities
  */
 
+import {Language} from '@/constants/translations';
+
 // ============================================================================
 // BENGALI NUMERALS MAPPING
 // ============================================================================
@@ -74,7 +76,7 @@ export function formatBengaliNumber(num: number): string {
  */
 export function formatCurrency(
   amount: number,
-  language: 'en' | 'bn' = 'en',
+  language: Language = 'en',
   showSymbol: boolean = true,
 ): string {
   // Format with thousand separators
@@ -94,7 +96,7 @@ export function formatCurrency(
  * Format currency (short version)
  * Example: 1234567 -> "৳১২.৩L" or "৳12.3L"
  */
-export function formatCurrencyShort(amount: number, language: 'en' | 'bn' = 'en'): string {
+export function formatCurrencyShort(amount: number, language: Language = 'en'): string {
   let value: number;
   let suffix: string;
 
@@ -128,7 +130,7 @@ export function formatCurrencyShort(amount: number, language: 'en' | 'bn' = 'en'
  * Format date with Bengali numerals
  * Example: "12/01/2024" -> "১২/০১/২০২৪"
  */
-export function formatBengaliDate(date: Date, language: 'en' | 'bn' = 'en'): string {
+export function formatBengaliDate(date: Date, language: Language = 'en'): string {
   const day = date.getDate().toString().padStart(2, '0');
   const month = (date.getMonth() + 1).toString().padStart(2, '0');
   const year = date.getFullYear().toString();
@@ -174,7 +176,7 @@ const ENGLISH_MONTHS = [
  * Format date with month name
  * Example: "12 January 2024" or "১২ জানুয়ারি ২০২৪"
  */
-export function formatDateWithMonth(date: Date, language: 'en' | 'bn' = 'en'): string {
+export function formatDateWithMonth(date: Date, language: Language = 'en'): string {
   const day = date.getDate();
   const month = date.getMonth();
   const year = date.getFullYear();
@@ -194,7 +196,7 @@ export function formatDateWithMonth(date: Date, language: 'en' | 'bn' = 'en'): s
  * Format time with Bengali numerals
  * Example: "12:30 PM" -> "১২:৩০ PM"
  */
-export function formatTime(date: Date, language: 'en' | 'bn' = 'en'): string {
+export function formatTime(date: Date, language: Language = 'en'): string {
   const hours = date.getHours();
   const minutes = date.getMinutes();
   const ampm = hours >= 12 ? 'PM' : 'AM';
@@ -213,7 +215,7 @@ export function formatTime(date: Date, language: 'en' | 'bn' = 'en'): string {
  * Format percentage with language support
  * Example: 15 -> "15%" or "১৫%"
  */
-export function formatPercentage(value: number, language: 'en' | 'bn' = 'en'): string {
+export function formatPercentage(value: number, language: Language = 'en'): string {
   const formatted = value.toFixed(0);
   const displayValue = language === 'bn' ? toBengaliNumerals(formatted) : formatted;
   return `${displayValue}%`;
@@ -226,7 +228,7 @@ export function formatPercentage(value: number, language: 'en' | 'bn' = 'en'): s
 /**
  * Get ordinal suffix (1st, 2nd, 3rd, etc.)
  */
-export function getOrdinalSuffix(num: number, language: 'en' | 'bn' = 'en'): string {
+export function getOrdinalSuffix(num: number, language: Language = 'en'): string {
   if (language === 'bn') {
     // Bengali uses "তম" or "ম" suffix
     return toBengaliNumerals(num.toString()) + 'তম';
@@ -255,7 +257,7 @@ export function getOrdinalSuffix(num: number, language: 'en' | 'bn' = 'en'): str
  * Format phone number with Bengali numerals
  * Example: "+8801712345678" -> "+৮৮০১৭১২৩৪৫৬৭৮"
  */
-export function formatPhoneNumber(phone: string, language: 'en' | 'bn' = 'en'): string {
+export function formatPhoneNumber(phone: string, language: Language = 'en'): string {
   return language === 'bn' ? toBengaliNumerals(phone) : phone;
 }
 

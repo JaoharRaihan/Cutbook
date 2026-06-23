@@ -1,6 +1,17 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- Internet access -->
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Push notification permission (Android 13+, API 33+) -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- Vibrate when push notification arrives -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+
+    <!-- Wake the device for a high-priority push notification -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <application
       android:name=".MainApplication"
@@ -11,6 +22,25 @@
       android:theme="@style/AppTheme"
       android:usesCleartextTraffic="${usesCleartextTraffic}"
       android:supportsRtl="true">
+
+      <!-- FCM: Default notification channel (Android 8+) -->
+      <meta-data
+        android:name="com.google.firebase.messaging.default_notification_channel_id"
+        android:value="payout_channel"
+        tools:replace="android:value" />
+
+      <!-- FCM: Default notification icon -->
+      <meta-data
+        android:name="com.google.firebase.messaging.default_notification_icon"
+        android:resource="@mipmap/ic_launcher"
+        tools:replace="android:resource" />
+
+      <!-- FCM: Default notification color -->
+      <meta-data
+        android:name="com.google.firebase.messaging.default_notification_color"
+        android:resource="@color/white"
+        tools:replace="android:resource" />
+
       <activity
         android:name=".MainActivity"
         android:label="@string/app_name"

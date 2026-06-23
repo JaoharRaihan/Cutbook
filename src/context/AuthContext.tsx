@@ -4,15 +4,20 @@
  */
 
 import React, {createContext, useContext, useState, useEffect, useCallback} from 'react';
+import {Alert} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {FirebaseAuthTypes} from '@react-native-firebase/auth';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
+import messaging from '@react-native-firebase/messaging';
 import type {User, AuthCredentials, RegistrationData} from '@/types';
 import {UserRole, UserStatus} from '@/types';
 import {STORAGE_KEYS, ERROR_MESSAGES, SUCCESS_MESSAGES} from '@/constants';
 import {createLogger} from '@/utils/logger';
 import {setErrorReportingUser, clearErrorReportingUser} from '@/utils/error-reporting';
+import {saveFCMToken, clearFCMToken} from '@/services/fcmService';
+import * as smsService from '@/services/smsService';
+import {useLanguage} from './LanguageContext';
 
 const logger = createLogger('AuthContext');
 
@@ -52,6 +57,10 @@ interface AuthContextValue {
   logout: () => Promise<void>;
   updateUser: (data: Partial<User>) => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
+  sendPhoneOTP: (phone: string) => Promise<any>;
+  verifyPhoneOTPAndLink: (code: string, registrationData: RegistrationData) => Promise<void>;
+  verifyPhoneOTPForReset: (phone: string, code: string) => Promise<void>;
+  updatePasswordAfterReset: (phone: string, newPassword: string) => Promise<void>;
   clearError: () => void;
   clearSuccess: () => void;
 }
@@ -67,6 +76,7 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 // ============================================================================
 
 export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) => {
+  const {language} = useLanguage();
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -74,39 +84,8 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) 
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  // ============================================================================
-  // INITIALIZATION - Listen to Firebase Auth State
-  // ============================================================================
-
-  const handleAuthStateChange = useCallback(async (firebaseUser: FirebaseAuthTypes.User | null) => {
-    try {
-      if (firebaseUser) {
-        // User is signed in
-        const idToken = await firebaseUser.getIdToken();
-        setToken(idToken);
-        await fetchUserProfile(firebaseUser.uid);
-      } else {
-        // User is signed out
-        setUser(null);
-        setToken(null);
-        clearErrorReportingUser();
-        await AsyncStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
-        await AsyncStorage.removeItem(STORAGE_KEYS.USER_DATA);
-      }
-    } catch (err) {
-      logger.error('Error handling auth state change:', err);
-    } finally {
-      setInitializing(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    const unsubscribe = auth().onAuthStateChanged(handleAuthStateChange);
-    return () => unsubscribe();
-  }, [handleAuthStateChange]);
-
   // Fetch user profile from Firestore
-  const fetchUserProfile = async (uid: string) => {
+  const fetchUserProfile = useCallback(async (uid: string) => {
     try {
       logger.debug('Fetching user profile for:', uid);
       const userDoc = await firestore().collection('users').doc(uid).get();
@@ -143,6 +122,17 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) 
         // Set user context for error reporting
         setErrorReportingUser(userData.id, userData.email);
         logger.debug('User profile loaded:', userData.name);
+
+        // Save FCM token for this user so they can receive push notifications
+        try {
+          const fcmToken = await messaging().getToken();
+          if (fcmToken) {
+            await saveFCMToken(uid, fcmToken);
+            logger.debug('FCM token saved on login');
+          }
+        } catch (fcmErr) {
+          logger.warn('Could not save FCM token (non-fatal):', fcmErr);
+        }
       } else {
         logger.warn('User document does not exist for uid:', uid);
         // Fallback or handle incomplete registration?
@@ -150,7 +140,41 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) 
     } catch (err) {
       logger.error('Error fetching user profile:', err);
     }
-  };
+  }, []);
+
+  // ============================================================================
+  // INITIALIZATION - Listen to Firebase Auth State
+  // ============================================================================
+
+  const handleAuthStateChange = useCallback(
+    async (firebaseUser: FirebaseAuthTypes.User | null) => {
+      try {
+        if (firebaseUser) {
+          // User is signed in
+          const idToken = await firebaseUser.getIdToken();
+          setToken(idToken);
+          await fetchUserProfile(firebaseUser.uid);
+        } else {
+          // User is signed out
+          setUser(null);
+          setToken(null);
+          clearErrorReportingUser();
+          await AsyncStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+          await AsyncStorage.removeItem(STORAGE_KEYS.USER_DATA);
+        }
+      } catch (err) {
+        logger.error('Error handling auth state change:', err);
+      } finally {
+        setInitializing(false);
+      }
+    },
+    [fetchUserProfile],
+  );
+
+  useEffect(() => {
+    const unsubscribe = auth().onAuthStateChanged(handleAuthStateChange);
+    return () => unsubscribe();
+  }, [handleAuthStateChange]);
 
   // ============================================================================
   // LOGIN
@@ -299,6 +323,11 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) 
   const logout = useCallback(async () => {
     setLoading(true);
     try {
+      // Clear FCM token before signing out so this device stops receiving pushes
+      const currentUser = await auth().currentUser;
+      if (currentUser?.uid) {
+        await clearFCMToken(currentUser.uid).catch(() => {});
+      }
       await auth().signOut();
       // onAuthStateChanged handles state clearing
       logger.debug('Logout successful');
@@ -378,6 +407,240 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) 
     }
   }, []);
 
+  const sendPhoneOTP = useCallback(
+    async (phone: string) => {
+      setLoading(true);
+      setError(null);
+      try {
+        const cleanedPhone = phone.replace(/\D/g, '');
+        // Google Play / Test number bypass
+        const isTestNumber =
+          cleanedPhone === '01700000000' ||
+          cleanedPhone === '01800000000' ||
+          cleanedPhone === '01712345678';
+        const code = isTestNumber
+          ? '123456'
+          : Math.floor(100000 + Math.random() * 900000).toString();
+
+        const now = new Date();
+        const expiresAt = new Date(now.getTime() + 5 * 60 * 1000).toISOString(); // 5 mins expiration
+
+        logger.debug('Saving custom OTP in Firestore');
+        await firestore().collection('otps').add({
+          phone: cleanedPhone,
+          code,
+          createdAt: firestore.FieldValue.serverTimestamp(),
+          expiresAt,
+          verified: false,
+        });
+
+        const messageText =
+          language === 'bn'
+            ? `আপনার কাটবুক ওটিপি কোড হলো: ${code}। কোডটি ৫ মিনিটের জন্য কার্যকর থাকবে।`
+            : `Your Cutbook verification code is: ${code}. Valid for 5 minutes.`;
+
+        const isSimulation =
+          !smsService.SMS_GATEWAY_CONFIG.enabled ||
+          smsService.SMS_GATEWAY_CONFIG.token === 'YOUR_GREENWEB_API_TOKEN' ||
+          smsService.SMS_GATEWAY_CONFIG.token === 'YOUR_ALPHA_SMS_TOKEN' ||
+          !smsService.SMS_GATEWAY_CONFIG.token;
+
+        if (!isTestNumber && !isSimulation) {
+          logger.debug('Sending custom OTP via Bangladesh SMS Gateway API');
+          const smsRes = await smsService.sendSMS(cleanedPhone, messageText);
+          if (!smsRes.success) {
+            throw new Error(smsRes.error || 'Failed to dispatch SMS through gateway');
+          }
+        } else {
+          logger.debug('Skipping SMS dispatch (Simulation mode or Test Number)');
+        }
+
+        // Display dialog to client for testability/transparency
+        if (isSimulation) {
+          Alert.alert(
+            'OTP Sent',
+            `Verification code sent to +88${cleanedPhone}\n\n(For testing, code is: ${code})`,
+          );
+        } else {
+          Alert.alert('OTP Sent', `Verification code sent to +88${cleanedPhone}`);
+        }
+
+        return true;
+      } catch (err: any) {
+        logger.error('Error sending custom phone OTP:', err);
+        setError(err.message);
+        throw err;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [language],
+  );
+
+  const verifyPhoneOTPAndLink = useCallback(
+    async (code: string, registrationData: RegistrationData) => {
+      setLoading(true);
+      setError(null);
+      try {
+        const cleanedPhone = registrationData.phone.replace(/\D/g, '');
+        const now = new Date().toISOString();
+
+        logger.debug('Verifying custom OTP code in Firestore:', code);
+        const snapshot = await firestore()
+          .collection('otps')
+          .where('phone', '==', cleanedPhone)
+          .where('code', '==', code)
+          .where('verified', '==', false)
+          .get();
+
+        if (snapshot.empty) {
+          throw new Error('Invalid verification code');
+        }
+
+        let isValid = false;
+        let matchingDocId = '';
+
+        for (const doc of snapshot.docs) {
+          const data = doc.data();
+          if (data.expiresAt && data.expiresAt > now) {
+            isValid = true;
+            matchingDocId = doc.id;
+            break;
+          }
+        }
+
+        if (!isValid) {
+          throw new Error('Verification code has expired');
+        }
+
+        // Mark code as verified
+        await firestore().collection('otps').doc(matchingDocId).update({
+          verified: true,
+          verifiedAt: firestore.FieldValue.serverTimestamp(),
+        });
+
+        // OTP is verified! Now create Firebase Auth account
+        const email = registrationData.email || `auth_${cleanedPhone}@cutbook.app`;
+        const trimmedPassword = registrationData.password.trim();
+
+        logger.debug('Creating Firebase Auth user via Email/Password');
+        const userCredential = await auth().createUserWithEmailAndPassword(email, trimmedPassword);
+        const uid = userCredential.user.uid;
+
+        // Prepare User Model
+        const newUser: User = {
+          id: uid,
+          orgId: '',
+          role: registrationData.role || UserRole.EMPLOYEE,
+          name: registrationData.name,
+          phone: registrationData.phone,
+          email: email,
+          status: UserStatus.ACTIVE,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+
+        if (newUser.role === UserRole.EMPLOYEE) {
+          newUser.commissionPercentage = 10;
+        }
+
+        logger.debug('Creating user Firestore document');
+        await firestore().collection('users').doc(uid).set(newUser);
+
+        // Update display name
+        await userCredential.user.updateProfile({
+          displayName: registrationData.name,
+        });
+
+        // Load user profile
+        await fetchUserProfile(uid);
+        setSuccessMessage('Registration completed successfully!');
+      } catch (err: any) {
+        logger.error('Error verifying custom OTP and registering:', err);
+        setError(err.message);
+        throw err;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [fetchUserProfile],
+  );
+
+  const verifyPhoneOTPForReset = useCallback(async (phone: string, code: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const cleanedPhone = phone.replace(/\D/g, '');
+      const now = new Date().toISOString();
+
+      logger.debug('Verifying reset OTP code in Firestore:', code);
+      const snapshot = await firestore()
+        .collection('otps')
+        .where('phone', '==', cleanedPhone)
+        .where('code', '==', code)
+        .where('verified', '==', false)
+        .get();
+
+      if (snapshot.empty) {
+        throw new Error('Invalid verification code');
+      }
+
+      let isValid = false;
+      let matchingDocId = '';
+
+      for (const doc of snapshot.docs) {
+        const data = doc.data();
+        if (data.expiresAt && data.expiresAt > now) {
+          isValid = true;
+          matchingDocId = doc.id;
+          break;
+        }
+      }
+
+      if (!isValid) {
+        throw new Error('Verification code has expired');
+      }
+
+      // Mark code as verified
+      await firestore().collection('otps').doc(matchingDocId).update({
+        verified: true,
+        verifiedAt: firestore.FieldValue.serverTimestamp(),
+      });
+
+      setSuccessMessage('Phone verified successfully.');
+    } catch (err: any) {
+      logger.error('Error verifying custom OTP for reset:', err);
+      setError(err.message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const updatePasswordAfterReset = useCallback(async (phone: string, newPassword: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const cleanedPhone = phone.replace(/\D/g, '');
+      logger.debug('Submitting custom password reset request for:', cleanedPhone);
+
+      await firestore().collection('passwordResetRequests').add({
+        phone: cleanedPhone,
+        newPassword: newPassword.trim(),
+        createdAt: firestore.FieldValue.serverTimestamp(),
+        status: 'pending',
+      });
+
+      setSuccessMessage('Password reset request submitted successfully!');
+    } catch (err: any) {
+      logger.error('Error submitting password reset request:', err);
+      setError(err.message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   // ============================================================================
   // CLEAR ERROR & SUCCESS
   // ============================================================================
@@ -402,6 +665,10 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) 
     logout,
     updateUser,
     resetPassword,
+    sendPhoneOTP,
+    verifyPhoneOTPAndLink,
+    verifyPhoneOTPForReset,
+    updatePasswordAfterReset,
     clearError,
     clearSuccess,
   };

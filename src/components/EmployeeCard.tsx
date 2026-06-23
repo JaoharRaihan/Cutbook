@@ -60,7 +60,7 @@ export default function EmployeeCard({employee, onPress}: EmployeeCardProps): Re
         <View style={styles.info}>
           <View style={styles.nameRow}>
             <Text style={styles.name} numberOfLines={1}>
-              {employee.name}
+              {employee.name} {employee.role === 'owner' ? '(Owner)' : ''}
             </Text>
             <View
               style={[

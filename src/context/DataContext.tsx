@@ -6,7 +6,7 @@
 import React, {createContext, useContext, useState, useEffect, useCallback} from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import firestore from '@react-native-firebase/firestore';
-import type {WorkEntry, DailySummary, Service, EmployeeBreakdown, EditLog} from '@/types';
+import type {WorkEntry, DailySummary, Service, EmployeeBreakdown, EditLog, Expense} from '@/types';
 import {PaymentMethod} from '@/types';
 import {STORAGE_KEYS, ERROR_MESSAGES} from '@/constants';
 import {useAuth} from './AuthContext';
@@ -51,6 +51,7 @@ interface DataContextValue {
   // State
   workEntries: WorkEntry[];
   dailySummaries: DailySummary[];
+  expenses: Expense[];
   loading: boolean;
   error: string | null;
 
@@ -60,6 +61,8 @@ interface DataContextValue {
   deleteWorkEntry: (id: string) => Promise<void>;
   getWorkEntries: (filters?: WorkEntryFilters) => WorkEntry[];
   getDailySummary: (date: Date | string) => Promise<DailySummary>;
+  addExpense: (name: string, amount: number) => Promise<Expense>;
+  deleteExpense: (id: string) => Promise<void>;
   refreshData: () => Promise<void>;
   clearError: () => void;
 }
@@ -80,6 +83,7 @@ export const DataProvider: React.FC<{children: React.ReactNode}> = ({children}) 
 
   const [workEntries, setWorkEntries] = useState<WorkEntry[]>([]);
   const [dailySummaries, setDailySummaries] = useState<DailySummary[]>([]);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -90,13 +94,12 @@ export const DataProvider: React.FC<{children: React.ReactNode}> = ({children}) 
   useEffect(() => {
     let entriesUnsubscribe: () => void;
     let summariesUnsubscribe: () => void;
+    let expensesUnsubscribe: () => void;
 
     if (currentOrg) {
       setLoading(true);
 
       // 1. Listen to Work Entries for this Org
-      // Optimization: Limit to last 30 days? For now, all entries to keep it simple as expected by UI logic
-      // Note: Removed orderBy from query to avoid composite index requirement - sort in memory instead
       entriesUnsubscribe = firestore()
         .collection('workEntries')
         .where('orgId', '==', currentOrg.id)
@@ -123,7 +126,6 @@ export const DataProvider: React.FC<{children: React.ReactNode}> = ({children}) 
               }
               entries.push(data);
             });
-            // Sort by createdAt in descending order (most recent first)
             entries.sort(
               (a, b) => (b.createdAt as Date).getTime() - (a.createdAt as Date).getTime(),
             );
@@ -136,6 +138,7 @@ export const DataProvider: React.FC<{children: React.ReactNode}> = ({children}) 
           },
         );
 
+      // 2. Listen to Daily Summaries
       summariesUnsubscribe = firestore()
         .collection('dailySummaries')
         .where('orgId', '==', currentOrg.id)
@@ -165,15 +168,46 @@ export const DataProvider: React.FC<{children: React.ReactNode}> = ({children}) 
           },
         );
 
+      // 3. Listen to Expenses
+      expensesUnsubscribe = firestore()
+        .collection('expenses')
+        .where('orgId', '==', currentOrg.id)
+        .onSnapshot(
+          (querySnapshot: any) => {
+            const tempExpenses: Expense[] = [];
+            querySnapshot.forEach((docSnap: any) => {
+              const data = docSnap.data() as Expense;
+              data.id = docSnap.id;
+              if (data.createdAt && 'toDate' in (data.createdAt as any)) {
+                data.createdAt = (data.createdAt as any).toDate();
+              }
+              if (data.updatedAt && 'toDate' in (data.updatedAt as any)) {
+                data.updatedAt = (data.updatedAt as any).toDate();
+              }
+              tempExpenses.push(data);
+            });
+            tempExpenses.sort(
+              (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+            );
+            setExpenses(tempExpenses);
+          },
+          (err: any) => {
+            logger.error('Error syncing expenses', err);
+            setError('Failed to sync salon expenses');
+          },
+        );
+
       setLoading(false);
     } else {
       setWorkEntries([]);
       setDailySummaries([]);
+      setExpenses([]);
     }
 
     return () => {
       if (entriesUnsubscribe) entriesUnsubscribe();
       if (summariesUnsubscribe) summariesUnsubscribe();
+      if (expensesUnsubscribe) expensesUnsubscribe();
     };
   }, [currentOrg]);
 
@@ -554,6 +588,57 @@ export const DataProvider: React.FC<{children: React.ReactNode}> = ({children}) 
     [currentOrg, dailySummaries, getWorkEntries, orgUsers],
   );
 
+  const addExpense = useCallback(
+    async (name: string, amount: number): Promise<Expense> => {
+      if (!user || !currentOrg) {
+        throw new Error('Must be logged in with an organization');
+      }
+
+      setLoading(true);
+      setError(null);
+
+      try {
+        const newExpenseRef = firestore().collection('expenses').doc();
+        const newExpense: Expense = {
+          id: newExpenseRef.id,
+          orgId: currentOrg.id,
+          name: name.trim(),
+          amount: amount,
+          createdBy: user.id,
+          createdByName: user.name,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+
+        await newExpenseRef.set(newExpense);
+        return newExpense;
+      } catch (err: any) {
+        const errorMessage = err.message || 'Failed to add expense';
+        setError(errorMessage);
+        throw new Error(errorMessage);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [user, currentOrg],
+  );
+
+  const deleteExpense = useCallback(async (id: string) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      await firestore().collection('expenses').doc(id).delete();
+      logger.debug('Expense deleted');
+    } catch (err: any) {
+      const errorMessage = err.message || 'Failed to delete expense';
+      setError(errorMessage);
+      throw new Error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   const refreshData = useCallback(async () => {
     // No-op with realtime
     logger.debug('Data refresh triggered');
@@ -564,6 +649,7 @@ export const DataProvider: React.FC<{children: React.ReactNode}> = ({children}) 
   const value: DataContextValue = {
     workEntries,
     dailySummaries,
+    expenses,
     loading,
     error,
     addWorkEntry,
@@ -571,6 +657,8 @@ export const DataProvider: React.FC<{children: React.ReactNode}> = ({children}) 
     deleteWorkEntry,
     getWorkEntries,
     getDailySummary,
+    addExpense,
+    deleteExpense,
     refreshData,
     clearError,
   };

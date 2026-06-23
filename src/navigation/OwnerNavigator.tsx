@@ -6,7 +6,6 @@
 import React from 'react';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {createStackNavigator} from '@react-navigation/stack';
-import Theme from '@/constants/theme';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 
 // Screens
@@ -21,8 +20,10 @@ import WorkEntriesScreen from '@/screens/owner/WorkEntriesScreen';
 import AddWorkEntryScreen from '@/screens/owner/AddWorkEntryScreen';
 import WorkEntryDetailScreen from '@/screens/owner/WorkEntryDetailScreen';
 import ReportsScreen from '@/screens/owner/ReportsScreen';
+import ExpensesScreen from '@/screens/owner/ExpensesScreen';
 import SettingsScreen from '@/screens/owner/SettingsScreen';
 import OrganizationSettingsScreen from '@/screens/owner/OrganizationSettingsScreen';
+import NotificationScreen from '@/screens/owner/NotificationScreen';
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -34,6 +35,8 @@ export type DashboardStackParamList = {
   AddWorkEntry: undefined;
   WorkEntryDetail: {entryId: string};
   Reports: undefined;
+  Notifications: undefined;
+  Expenses: undefined;
 };
 
 export type EmployeesStackParamList = {
@@ -64,15 +67,24 @@ export type OwnerTabParamList = {
 // STACK NAVIGATORS
 // ============================================================================
 
+import {useTheme, useLanguage} from '@/context';
+
 const DashboardStack = createStackNavigator<DashboardStackParamList>();
 const DashboardNavigator = () => {
+  const {colors, isDarkMode} = useTheme();
+  const {t} = useLanguage();
+
   return (
     <DashboardStack.Navigator
       screenOptions={{
         headerStyle: {
-          backgroundColor: Theme.colors.primary[600],
+          backgroundColor: isDarkMode ? colors.background.paper : colors.primary[600],
+          borderBottomWidth: isDarkMode ? 1 : 0,
+          borderBottomColor: colors.border.light,
+          elevation: 0,
+          shadowOpacity: 0,
         },
-        headerTintColor: '#FFFFFF',
+        headerTintColor: isDarkMode ? colors.text.primary : '#FFFFFF',
         headerTitleStyle: {
           fontWeight: '600',
         },
@@ -91,18 +103,14 @@ const DashboardNavigator = () => {
         name="AddWorkEntry"
         component={AddWorkEntryScreen}
         options={{
-          title: 'Add Work Entry',
-          headerStyle: {backgroundColor: '#FFFFFF'},
-          headerTintColor: '#212121',
+          title: t.dashboard.addWorkEntry,
         }}
       />
       <DashboardStack.Screen
         name="WorkEntryDetail"
         component={WorkEntryDetailScreen}
         options={{
-          title: 'Entry Details',
-          headerStyle: {backgroundColor: '#FFFFFF'},
-          headerTintColor: '#212121',
+          title: t.workEntries.entryDetails,
         }}
       />
       <DashboardStack.Screen
@@ -110,19 +118,40 @@ const DashboardNavigator = () => {
         component={ReportsScreen}
         options={{headerShown: false}}
       />
+      <DashboardStack.Screen
+        name="Notifications"
+        component={NotificationScreen}
+        options={{
+          title: t.settings.notifications,
+        }}
+      />
+      <DashboardStack.Screen
+        name="Expenses"
+        component={ExpensesScreen}
+        options={{
+          title: t.expenses.title,
+        }}
+      />
     </DashboardStack.Navigator>
   );
 };
 
 const EmployeesStack = createStackNavigator<EmployeesStackParamList>();
 const EmployeesNavigator = () => {
+  const {colors, isDarkMode} = useTheme();
+  const {t} = useLanguage();
+
   return (
     <EmployeesStack.Navigator
       screenOptions={{
         headerStyle: {
-          backgroundColor: Theme.colors.primary[600],
+          backgroundColor: isDarkMode ? colors.background.paper : colors.primary[600],
+          borderBottomWidth: isDarkMode ? 1 : 0,
+          borderBottomColor: colors.border.light,
+          elevation: 0,
+          shadowOpacity: 0,
         },
-        headerTintColor: '#FFFFFF',
+        headerTintColor: isDarkMode ? colors.text.primary : '#FFFFFF',
         headerTitleStyle: {
           fontWeight: '600',
         },
@@ -136,18 +165,14 @@ const EmployeesNavigator = () => {
         name="AddEmployee"
         component={AddEmployeeScreen}
         options={{
-          title: 'Add Employee',
-          headerStyle: {backgroundColor: '#FFFFFF'},
-          headerTintColor: '#212121',
+          title: t.employees.addEmployee,
         }}
       />
       <EmployeesStack.Screen
         name="EmployeeDetail"
         component={EmployeeDetailScreen}
         options={{
-          title: 'Employee Details',
-          headerStyle: {backgroundColor: '#FFFFFF'},
-          headerTintColor: '#212121',
+          title: t.employees.employeeDetails,
         }}
       />
     </EmployeesStack.Navigator>
@@ -156,13 +181,20 @@ const EmployeesNavigator = () => {
 
 const ServicesStack = createStackNavigator<ServicesStackParamList>();
 const ServicesNavigator = () => {
+  const {colors, isDarkMode} = useTheme();
+  const {t} = useLanguage();
+
   return (
     <ServicesStack.Navigator
       screenOptions={{
         headerStyle: {
-          backgroundColor: Theme.colors.primary[600],
+          backgroundColor: isDarkMode ? colors.background.paper : colors.primary[600],
+          borderBottomWidth: isDarkMode ? 1 : 0,
+          borderBottomColor: colors.border.light,
+          elevation: 0,
+          shadowOpacity: 0,
         },
-        headerTintColor: '#FFFFFF',
+        headerTintColor: isDarkMode ? colors.text.primary : '#FFFFFF',
         headerTitleStyle: {
           fontWeight: '600',
         },
@@ -176,18 +208,14 @@ const ServicesNavigator = () => {
         name="AddService"
         component={AddServiceScreen}
         options={{
-          title: 'Add Service',
-          headerStyle: {backgroundColor: '#FFFFFF'},
-          headerTintColor: '#212121',
+          title: t.services.addService,
         }}
       />
       <ServicesStack.Screen
         name="EditService"
         component={EditServiceScreen}
         options={{
-          title: 'Edit Service',
-          headerStyle: {backgroundColor: '#FFFFFF'},
-          headerTintColor: '#212121',
+          title: t.services.editService,
         }}
       />
     </ServicesStack.Navigator>
@@ -196,13 +224,19 @@ const ServicesNavigator = () => {
 
 const SettingsStack = createStackNavigator<SettingsStackParamList>();
 const SettingsNavigator = () => {
+  const {colors, isDarkMode} = useTheme();
+
   return (
     <SettingsStack.Navigator
       screenOptions={{
         headerStyle: {
-          backgroundColor: Theme.colors.primary[600],
+          backgroundColor: isDarkMode ? colors.background.paper : colors.primary[600],
+          borderBottomWidth: isDarkMode ? 1 : 0,
+          borderBottomColor: colors.border.light,
+          elevation: 0,
+          shadowOpacity: 0,
         },
-        headerTintColor: '#FFFFFF',
+        headerTintColor: isDarkMode ? colors.text.primary : '#FFFFFF',
         headerTitleStyle: {
           fontWeight: '600',
         },
@@ -228,16 +262,19 @@ const SettingsNavigator = () => {
 const Tab = createBottomTabNavigator<OwnerTabParamList>();
 
 const OwnerNavigator: React.FC = () => {
+  const {colors, isDarkMode} = useTheme();
+  const {t} = useLanguage();
+
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#000000',
-        tabBarInactiveTintColor: Theme.colors.text.secondary,
+        tabBarActiveTintColor: isDarkMode ? colors.primary[400] : colors.primary[600],
+        tabBarInactiveTintColor: colors.text.secondary,
         tabBarStyle: {
-          backgroundColor: '#FFFFFF',
+          backgroundColor: colors.background.paper,
           borderTopWidth: 1,
-          borderTopColor: Theme.colors.neutral[200],
+          borderTopColor: colors.border.light,
           paddingBottom: 5,
           paddingTop: 5,
           height: 60,
@@ -251,7 +288,7 @@ const OwnerNavigator: React.FC = () => {
         name="Dashboard"
         component={DashboardNavigator}
         options={{
-          tabBarLabel: 'Dashboard',
+          tabBarLabel: t.tabs.dashboard,
           tabBarIcon: ({color, size}) => (
             <MaterialIcons name="dashboard-customize" size={size} color={color} />
           ),
@@ -261,7 +298,7 @@ const OwnerNavigator: React.FC = () => {
         name="Employees"
         component={EmployeesNavigator}
         options={{
-          tabBarLabel: 'Employees',
+          tabBarLabel: t.tabs.employees,
           tabBarIcon: ({color, size}) => (
             <MaterialIcons name="people-alt" size={size} color={color} />
           ),
@@ -271,17 +308,18 @@ const OwnerNavigator: React.FC = () => {
         name="Services"
         component={ServicesNavigator}
         options={{
-          tabBarLabel: 'Services',
+          tabBarLabel: t.tabs.services,
           tabBarIcon: ({color, size}) => (
             <MaterialIcons name="content-cut" size={size} color={color} />
           ),
         }}
       />
+
       <Tab.Screen
         name="Settings"
         component={SettingsNavigator}
         options={{
-          tabBarLabel: 'Profile',
+          tabBarLabel: t.tabs.profile,
           tabBarIcon: ({color, size}) => <MaterialIcons name="person" size={size} color={color} />,
         }}
       />

@@ -6,6 +6,7 @@
 import React from 'react';
 import {View, Text, StyleSheet, ViewStyle} from 'react-native';
 import {PaymentMethod} from '@/types';
+import Theme from '@/constants/theme';
 
 // ============================================================================
 // TYPES
@@ -32,31 +33,31 @@ export default function PaymentMethodBadge({
         return {
           label: 'Cash',
           icon: '💵',
-          color: '#4CAF50',
+          color: Theme.colors.payment.cash,
         };
       case PaymentMethod.BKASH:
         return {
           label: 'bKash',
           icon: '📱',
-          color: '#E91E63',
+          color: Theme.colors.payment.bkash,
         };
       case PaymentMethod.CARD:
         return {
           label: 'Card',
           icon: '💳',
-          color: '#2196F3',
+          color: Theme.colors.payment.card,
         };
       case PaymentMethod.NAGAD:
         return {
           label: 'Nagad',
           icon: '📱',
-          color: '#FF9800',
+          color: Theme.colors.payment.nagad,
         };
       default:
         return {
           label: method,
           icon: '💰',
-          color: '#757575',
+          color: Theme.colors.payment.other,
         };
     }
   };

@@ -4,6 +4,7 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {Language} from '@/constants/translations';
 
 // ============================================================================
 // STORAGE KEYS
@@ -30,6 +31,7 @@ export const STORAGE_KEYS = {
   // Settings
   APP_LANGUAGE: '@cutbook:app_language',
   THEME_MODE: '@cutbook:theme_mode',
+  NOTIFICATIONS_ENABLED: '@cutbook:notifications_enabled',
 } as const;
 
 // ============================================================================
@@ -202,12 +204,12 @@ export async function loadSyncStatus(): Promise<'synced' | 'syncing' | 'offline'
 // SETTINGS STORAGE
 // ============================================================================
 
-export async function saveAppLanguage(language: 'en' | 'bn'): Promise<void> {
+export async function saveAppLanguage(language: Language): Promise<void> {
   return saveToStorage(STORAGE_KEYS.APP_LANGUAGE, language);
 }
 
-export async function loadAppLanguage(): Promise<'en' | 'bn'> {
-  const language = await loadFromStorage<'en' | 'bn'>(STORAGE_KEYS.APP_LANGUAGE);
+export async function loadAppLanguage(): Promise<Language> {
+  const language = await loadFromStorage<Language>(STORAGE_KEYS.APP_LANGUAGE);
   return language || 'en';
 }
 
@@ -218,6 +220,15 @@ export async function saveThemeMode(mode: 'light' | 'dark'): Promise<void> {
 export async function loadThemeMode(): Promise<'light' | 'dark'> {
   const mode = await loadFromStorage<'light' | 'dark'>(STORAGE_KEYS.THEME_MODE);
   return mode || 'light';
+}
+
+export async function saveNotificationsEnabled(enabled: boolean): Promise<void> {
+  return saveToStorage(STORAGE_KEYS.NOTIFICATIONS_ENABLED, enabled);
+}
+
+export async function loadNotificationsEnabled(): Promise<boolean> {
+  const enabled = await loadFromStorage<boolean>(STORAGE_KEYS.NOTIFICATIONS_ENABLED);
+  return enabled !== null ? enabled : true;
 }
 
 // ============================================================================
