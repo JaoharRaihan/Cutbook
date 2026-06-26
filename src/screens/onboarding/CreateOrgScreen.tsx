@@ -1,6 +1,6 @@
 /**
  * Create Organization Screen
- * First-time owner setup -  salon organization
+ * First-time owner setup - salon organization
  */
 
 import React, {useState} from 'react';
@@ -17,10 +17,19 @@ import {
   Alert,
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
-import {useOrg} from '@/context';
-import Theme from '@/constants/theme';
+import {useOrg, useTheme, useLanguage} from '@/context';
+import Theme, {ThemeColors} from '@/constants/theme';
 import {CommissionMode} from '@/types';
 import MaterialIcons from '@react-native-vector-icons/material-icons';
+import {useThemedStyles} from '@/hooks/useThemedStyles';
+
+export const Palette = {
+  inkBlack: '#04151f',
+  darkSlateGrey: '#183a37',
+  wheat: '#efd6ac',
+  burntOrange: '#c44900',
+  midnightViolet: '#432534',
+};
 
 // ============================================================================
 // CREATE ORGANIZATION SCREEN
@@ -29,6 +38,9 @@ import MaterialIcons from '@react-native-vector-icons/material-icons';
 const CreateOrgScreen: React.FC = () => {
   useNavigation();
   const {createOrg, loading} = useOrg();
+  const {colors} = useTheme();
+  const {language} = useLanguage();
+  const styles = useThemedStyles(getStyles);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -52,10 +64,13 @@ const CreateOrgScreen: React.FC = () => {
     let isValid = true;
 
     if (!formData.name.trim()) {
-      newErrors.name = 'Organization name is required';
+      newErrors.name = language === 'bn' ? 'সেলুনের নাম আবশ্যক' : 'Organization name is required';
       isValid = false;
     } else if (formData.name.trim().length < 3) {
-      newErrors.name = 'Name must be at least 3 characters';
+      newErrors.name =
+        language === 'bn'
+          ? 'নাম অবশ্যই কমপক্ষে ৩ অক্ষরের হতে হবে'
+          : 'Name must be at least 3 characters';
       isValid = false;
     }
 
@@ -85,10 +100,15 @@ const CreateOrgScreen: React.FC = () => {
       });
 
       await createOrg(orgData);
-      Alert.alert('Success', 'Organization created successfully!');
-      // Navigation will be handled automatically by RootNavigator
+      Alert.alert(
+        language === 'bn' ? 'সফল' : 'Success',
+        language === 'bn' ? 'সেলুন সফলভাবে তৈরি করা হয়েছে!' : 'Organization created successfully!',
+      );
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to create organization');
+      Alert.alert(
+        language === 'bn' ? 'ত্রুটি' : 'Error',
+        error.message || 'Failed to create organization',
+      );
     }
   };
 
@@ -100,50 +120,49 @@ const CreateOrgScreen: React.FC = () => {
         {/* Header */}
         <View style={styles.header}>
           <MaterialIcons name="domain-add" style={styles.headerIcon} />
-          <Text style={styles.title}>Create Your Salon</Text>
-          <Text style={styles.subtitle}>Let's set up your salon organization</Text>
+          <Text style={styles.title}>
+            {language === 'bn' ? 'আপনার সেলুন তৈরি করুন' : 'Create Your Salon'}
+          </Text>
+          <Text style={styles.subtitle}>
+            {language === 'bn'
+              ? 'আসুন আপনার সেলুন এস্টাবলিশমেন্ট সেট আপ করি'
+              : "Let's set up your salon organization"}
+          </Text>
         </View>
 
         {/* Form */}
         <View style={styles.form}>
           {/* Organization Name */}
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Salon Name *</Text>
+            <Text style={styles.label}>{language === 'bn' ? 'সেলুনের নাম *' : 'Salon Name *'}</Text>
             <TextInput
               style={[styles.input, errors.name ? styles.inputError : null]}
-              placeholder="e.g., Mayer Dua Hair Salon"
+              placeholder={
+                language === 'bn' ? 'যেমন: মায়ের দোয়া হেয়ার সেলুন' : 'e.g., Mayer Dua Hair Salon'
+              }
+              placeholderTextColor={colors.text.hint}
               value={formData.name}
               onChangeText={text => updateField('name', text)}
               editable={!loading}
               autoCapitalize="words"
             />
             {errors.name ? <Text style={styles.errorText}>{errors.name}</Text> : null}
-            <Text style={styles.hint}>This will be visible to your employees</Text>
+            <Text style={styles.hint}>
+              {language === 'bn'
+                ? 'এটি আপনার কর্মীদের কাছে দৃশ্যমান হবে'
+                : 'This will be visible to your employees'}
+            </Text>
           </View>
-
-          {/* Timezone */}
-          {/* <View style={styles.inputContainer}>
-            <Text style={styles.label}>Timezone</Text>
-            <View style={styles.readonlyInput}>
-              <Text style={styles.readonlyText}>🌍 Asia/Dhaka (GMT+6)</Text>
-            </View>
-            <Text style={styles.hint}>Bangladesh Standard Time</Text>
-          </View> */}
-
-          {/* Currency */}
-          {/* <View style={styles.inputContainer}>
-            <Text style={styles.label}>Currency</Text>
-            <View style={styles.readonlyInput}>
-              <Text style={styles.readonlyText}>৳ Bangladeshi Taka (BDT)</Text>
-            </View>
-            <Text style={styles.hint}>All amounts will be in BDT</Text>
-          </View> */}
 
           {/* Commission Mode */}
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Default Commission Mode</Text>
+            <Text style={styles.label}>
+              {language === 'bn' ? 'ডিফল্ট কমিশন মোড' : 'Default Commission Mode'}
+            </Text>
             <Text style={styles.description}>
-              Choose how employee commissions will be calculated by default
+              {language === 'bn'
+                ? 'কর্মীদের কমিশন ডিফল্টভাবে কীভাবে গণনা করা হবে তা চয়ন করুন'
+                : 'Choose how employee commissions will be calculated by default'}
             </Text>
             <View style={styles.radioGroup}>
               <TouchableOpacity
@@ -161,8 +180,14 @@ const CreateOrgScreen: React.FC = () => {
                   ) : null}
                 </View>
                 <View style={styles.radioContent}>
-                  <Text style={styles.radioTitle}>Percentage</Text>
-                  <Text style={styles.radioDescription}>Employee gets a % of service price</Text>
+                  <Text style={styles.radioTitle}>
+                    {language === 'bn' ? 'শতকরা (পার্সেন্টেজ)' : 'Percentage'}
+                  </Text>
+                  <Text style={styles.radioDescription}>
+                    {language === 'bn'
+                      ? 'কর্মী সেবার মূল্যের একটি % পায়'
+                      : 'Employee gets a % of service price'}
+                  </Text>
                 </View>
               </TouchableOpacity>
 
@@ -181,14 +206,22 @@ const CreateOrgScreen: React.FC = () => {
                   ) : null}
                 </View>
                 <View style={styles.radioContent}>
-                  <Text style={styles.radioTitle}>Fixed Amount</Text>
+                  <Text style={styles.radioTitle}>
+                    {language === 'bn' ? 'নির্দিষ্ট পরিমাণ (ফিক্সড)' : 'Fixed Amount'}
+                  </Text>
                   <Text style={styles.radioDescription}>
-                    Employee gets fixed amount per service
+                    {language === 'bn'
+                      ? 'কর্মী প্রতি সেবায় নির্দিষ্ট পরিমাণ টাকা পায়'
+                      : 'Employee gets fixed amount per service'}
                   </Text>
                 </View>
               </TouchableOpacity>
             </View>
-            <Text style={styles.hint}>You can change this later in settings</Text>
+            <Text style={styles.hint}>
+              {language === 'bn'
+                ? 'আপনি এটি পরে সেটিংসে পরিবর্তন করতে পারেন'
+                : 'You can change this later in settings'}
+            </Text>
           </View>
 
           {/* Create Button */}
@@ -199,7 +232,9 @@ const CreateOrgScreen: React.FC = () => {
             {loading ? (
               <ActivityIndicator color="#FFFFFF" />
             ) : (
-              <Text style={styles.createButtonText}>Create Organization</Text>
+              <Text style={styles.createButtonText}>
+                {language === 'bn' ? 'সেলুন তৈরি করুন' : 'Create Organization'}
+              </Text>
             )}
           </TouchableOpacity>
 
@@ -207,11 +242,27 @@ const CreateOrgScreen: React.FC = () => {
           <View style={styles.infoBox}>
             <MaterialIcons name="lightbulb" style={styles.infoIcon} />
             <View style={styles.infoContent}>
-              <Text style={styles.infoTitle}>What's Next?</Text>
-              <Text style={styles.infoText}>After creating your organization, you can:</Text>
-              <Text style={styles.infoText}>• Add services to your menu</Text>
-              <Text style={styles.infoText}>• Invite employees to join</Text>
-              <Text style={styles.infoText}>• Start tracking work entries</Text>
+              <Text style={styles.infoTitle}>
+                {language === 'bn' ? 'পরবর্তী ধাপ কি?' : "What's Next?"}
+              </Text>
+              <Text style={styles.infoText}>
+                {language === 'bn'
+                  ? 'আপনার সেলুন তৈরি করার পরে, আপনি করতে পারেন:'
+                  : 'After creating your organization, you can:'}
+              </Text>
+              <Text style={styles.infoText}>
+                {language === 'bn' ? '• আপনার মেনুতে সেবা যোগ করুন' : '• Add services to your menu'}
+              </Text>
+              <Text style={styles.infoText}>
+                {language === 'bn'
+                  ? '• যোগদানের জন্য কর্মীদের আমন্ত্রণ জানান'
+                  : '• Invite employees to join'}
+              </Text>
+              <Text style={styles.infoText}>
+                {language === 'bn'
+                  ? '• কাজের এন্ট্রি ট্র্যাক করা শুরু করুন'
+                  : '• Start tracking work entries'}
+              </Text>
             </View>
           </View>
         </View>
@@ -224,179 +275,171 @@ const CreateOrgScreen: React.FC = () => {
 // STYLES
 // ============================================================================
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-  scrollContent: {
-    flexGrow: 1,
-  },
-  header: {
-    alignItems: 'center',
-    paddingTop: 60,
-    paddingBottom: 32,
-    paddingHorizontal: 24,
-  },
-  headerIcon: {
-    fontSize: 64,
-    marginBottom: 16,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: Theme.colors.text.primary,
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  subtitle: {
-    fontSize: 16,
-    color: Theme.colors.text.secondary,
-    textAlign: 'center',
-  },
-  form: {
-    paddingHorizontal: 24,
-    paddingBottom: 32,
-  },
-  inputContainer: {
-    marginBottom: 24,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: Theme.colors.text.primary,
-    marginBottom: 8,
-  },
-  input: {
-    fontSize: 16,
-    color: Theme.colors.text.primary,
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    borderWidth: 1,
-    borderColor: Theme.colors.neutral[300],
-    borderRadius: Theme.borderRadius.md,
-    backgroundColor: '#FFFFFF',
-  },
-  inputError: {
-    borderColor: Theme.colors.error.main,
-  },
-  errorText: {
-    fontSize: 12,
-    color: Theme.colors.error.main,
-    marginTop: 4,
-  },
-  hint: {
-    fontSize: 12,
-    color: Theme.colors.text.hint,
-    marginTop: 4,
-  },
-  description: {
-    fontSize: 14,
-    color: Theme.colors.text.secondary,
-    marginBottom: 12,
-  },
-  readonlyInput: {
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    borderWidth: 1,
-    borderColor: Theme.colors.neutral[200],
-    borderRadius: Theme.borderRadius.md,
-    backgroundColor: Theme.colors.neutral[50],
-  },
-  readonlyText: {
-    fontSize: 16,
-    color: Theme.colors.text.primary,
-  },
-  radioGroup: {
-    gap: 12,
-  },
-  radioButton: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    padding: 16,
-    borderWidth: 2,
-    borderColor: Theme.colors.neutral[300],
-    borderRadius: Theme.borderRadius.md,
-    backgroundColor: '#FFFFFF',
-  },
-  radioButtonActive: {
-    borderColor: Theme.colors.primary[600],
-    backgroundColor: Theme.colors.primary[50],
-  },
-  radioCircle: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: Theme.colors.neutral[400],
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-    marginTop: 2,
-  },
-  radioCircleInner: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: Theme.colors.primary[600],
-  },
-  radioContent: {
-    flex: 1,
-  },
-  radioTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Theme.colors.text.primary,
-    marginBottom: 4,
-  },
-  radioDescription: {
-    fontSize: 14,
-    color: Theme.colors.text.secondary,
-  },
-  createButton: {
-    backgroundColor: '#000000',
-    paddingVertical: 16,
-    borderRadius: Theme.borderRadius.md,
-    alignItems: 'center',
-    marginTop: 8,
-    ...Theme.shadows.md,
-  },
-  createButtonDisabled: {
-    opacity: 0.6,
-  },
-  createButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  infoBox: {
-    flexDirection: 'row',
-    marginTop: 24,
-    padding: 16,
-    backgroundColor: '#000000',
-    borderRadius: Theme.borderRadius.md,
-    borderWidth: 1,
-    borderColor: '#000000',
-  },
-  infoIcon: {
-    fontSize: 24,
-    marginRight: 12,
-    color: '#ffffff',
-  },
-  infoContent: {
-    flex: 1,
-  },
-  infoTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#ffffff',
-    marginBottom: 8,
-  },
-  infoText: {
-    fontSize: 13,
-    color: '#ffffff',
-    marginBottom: 4,
-  },
-});
+const getStyles = (colors: ThemeColors, isDarkMode: boolean) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: isDarkMode ? Palette.inkBlack : '#FAFBFB',
+    },
+    scrollContent: {
+      flexGrow: 1,
+    },
+    header: {
+      alignItems: 'center',
+      paddingTop: 40,
+      paddingBottom: 24,
+      paddingHorizontal: 24,
+    },
+    headerIcon: {
+      fontSize: 64,
+      color: Palette.burntOrange,
+      marginBottom: 16,
+    },
+    title: {
+      fontSize: 28,
+      fontWeight: 'bold',
+      color: colors.text.primary,
+      marginBottom: 8,
+      textAlign: 'center',
+    },
+    subtitle: {
+      fontSize: 16,
+      color: colors.text.secondary,
+      textAlign: 'center',
+    },
+    form: {
+      paddingHorizontal: 24,
+      paddingBottom: 32,
+    },
+    inputContainer: {
+      marginBottom: 24,
+    },
+    label: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: colors.text.primary,
+      marginBottom: 8,
+    },
+    input: {
+      fontSize: 16,
+      color: colors.text.primary,
+      paddingHorizontal: 16,
+      paddingVertical: 16,
+      borderWidth: 1,
+      borderColor: colors.border.main,
+      borderRadius: Theme.borderRadius.md,
+      backgroundColor: colors.background.paper,
+    },
+    inputError: {
+      borderColor: colors.error.main,
+    },
+    errorText: {
+      fontSize: 12,
+      color: colors.error.main,
+      marginTop: 4,
+    },
+    hint: {
+      fontSize: 12,
+      color: colors.text.hint,
+      marginTop: 4,
+    },
+    description: {
+      fontSize: 14,
+      color: colors.text.secondary,
+      marginBottom: 12,
+    },
+    radioGroup: {
+      gap: 12,
+    },
+    radioButton: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      padding: 16,
+      borderWidth: 1.5,
+      borderColor: colors.border.light,
+      borderRadius: Theme.borderRadius.md,
+      backgroundColor: colors.background.paper,
+    },
+    radioButtonActive: {
+      borderColor: Palette.darkSlateGrey,
+      backgroundColor: isDarkMode ? Palette.midnightViolet : colors.primary[50] + '15',
+    },
+    radioCircle: {
+      width: 24,
+      height: 24,
+      borderRadius: 12,
+      borderWidth: 2,
+      borderColor: isDarkMode ? Palette.darkSlateGrey : colors.border.main,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: 12,
+      marginTop: 2,
+    },
+    radioCircleInner: {
+      width: 12,
+      height: 12,
+      borderRadius: 6,
+      backgroundColor: Palette.darkSlateGrey,
+    },
+    radioContent: {
+      flex: 1,
+    },
+    radioTitle: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: colors.text.primary,
+      marginBottom: 4,
+    },
+    radioDescription: {
+      fontSize: 14,
+      color: colors.text.secondary,
+    },
+    createButton: {
+      backgroundColor: Palette.darkSlateGrey,
+      paddingVertical: 16,
+      borderRadius: Theme.borderRadius.md,
+      alignItems: 'center',
+      marginTop: 8,
+      borderWidth: 1,
+      borderColor: isDarkMode ? Palette.wheat : 'transparent',
+      ...Theme.shadows.md,
+    },
+    createButtonDisabled: {
+      opacity: 0.6,
+    },
+    createButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: '#FFFFFF',
+    },
+    infoBox: {
+      flexDirection: 'row',
+      marginTop: 24,
+      padding: 16,
+      backgroundColor: isDarkMode ? Palette.midnightViolet : colors.primary[50] + '10',
+      borderRadius: Theme.borderRadius.md,
+      borderWidth: 1,
+      borderColor: isDarkMode ? Palette.darkSlateGrey : colors.border.light,
+    },
+    infoIcon: {
+      fontSize: 24,
+      marginRight: 12,
+      color: Palette.burntOrange,
+    },
+    infoContent: {
+      flex: 1,
+    },
+    infoTitle: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: colors.text.primary,
+      marginBottom: 8,
+    },
+    infoText: {
+      fontSize: 13,
+      color: colors.text.secondary,
+      marginBottom: 4,
+    },
+  });
 
 export default CreateOrgScreen;

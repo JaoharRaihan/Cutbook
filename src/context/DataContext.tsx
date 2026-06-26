@@ -487,8 +487,33 @@ export const DataProvider: React.FC<{children: React.ReactNode}> = ({children}) 
         }
 
         if (existingSummary) {
-          // TODO: check if it's stale? For now, return existing.
-          return existingSummary;
+          // ── Staleness check ──────────────────────────────────────────────
+          // The cached summary might be outdated if entries were added, edited,
+          // or deleted since it was last generated. We compare entry count and
+          // total income from the live workEntries state against the stored values.
+          // If they differ, we regenerate and upsert the summary to Firestore.
+          const dayEntriesToCheck = getWorkEntries({
+            startDate: targetDate,
+            endDate: targetDate,
+          });
+
+          const liveCount = dayEntriesToCheck.length;
+          const liveIncome = dayEntriesToCheck.reduce(
+            (sum, e) => sum + e.price + (e.tip || 0),
+            0,
+          );
+
+          const isFresh =
+            existingSummary.totalEntries === liveCount &&
+            Math.abs(existingSummary.totalIncome + existingSummary.totalTips - liveIncome) < 0.01;
+
+          if (isFresh) {
+            return existingSummary;
+          }
+          // Falls through to regenerate the summary below
+          logger.debug(
+            `Daily summary for ${dateStr} is stale (stored: ${existingSummary.totalEntries} entries, live: ${liveCount}). Regenerating.`,
+          );
         }
 
         // GENERATE NEW SUMMARY
@@ -554,9 +579,13 @@ export const DataProvider: React.FC<{children: React.ReactNode}> = ({children}) 
           }
         });
 
-        const newSummaryRef = firestore().collection('dailySummaries').doc();
+        // Upsert: update if a stale summary already existed, create new otherwise
+        const summaryDocRef = existingSummary
+          ? firestore().collection('dailySummaries').doc(existingSummary.id)
+          : firestore().collection('dailySummaries').doc();
+
         const newSummary: DailySummary = {
-          id: newSummaryRef.id,
+          id: summaryDocRef.id,
           date: dateStr,
           orgId: currentOrg.id,
           totalIncome,
@@ -570,11 +599,12 @@ export const DataProvider: React.FC<{children: React.ReactNode}> = ({children}) 
           totalCommission: totalCommissionTotal,
           employeeBreakdown: Array.from(employeeMap.values()),
           generatedAt: new Date(),
-          createdAt: new Date(),
+          createdAt: existingSummary?.createdAt ?? new Date(),
           updatedAt: new Date(),
         };
 
-        await newSummaryRef.set(newSummary);
+        // Use set with merge so it creates or overwrites cleanly
+        await summaryDocRef.set(newSummary, {merge: false});
 
         return newSummary;
       } catch (err: any) {

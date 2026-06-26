@@ -2,9 +2,13 @@
  * useDailySummary Hook
  * Custom hook for fetching and managing daily summary data
  * Supports time period filtering: today, weekly, monthly, yearly
+ *
+ * REACTIVE: Summary is derived synchronously from the live `workEntries` state
+ * via useMemo, so it always reflects the latest data without any loading delay
+ * or stale-cache risk.
  */
 
-import {useState, useEffect, useCallback} from 'react';
+import {useState, useMemo, useCallback} from 'react';
 import {useOrg, useData} from '@/context';
 import {formatDateISO} from '@/utils/date';
 import {WorkEntry, PaymentMethod, TimePeriod} from '@/types';
@@ -126,150 +130,126 @@ const useDailySummary = (
 ): UseDailySummaryResult => {
   const {currentOrg, orgUsers} = useOrg();
   const {workEntries} = useData();
-  const [summary, setSummary] = useState<DailySummaryData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [timePeriod, setTimePeriod] = useState<TimePeriod>(initialPeriod);
 
-  // Calculate summary from work entries
-  const calculateSummary = useCallback(
-    async (
-      date: Date = new Date(),
-      period: TimePeriod = TimePeriod.TODAY,
-    ): Promise<DailySummaryData> => {
-      const {start, end} = getDateRange(period, date);
+  // ---------------------------------------------------------------------------
+  // Derive summary synchronously from live workEntries (always fresh, no async)
+  // Every time workEntries, timePeriod, selectedDate, currentOrg, or orgUsers
+  // change, this recalculates instantly — no stale cache, no loading spinner.
+  // ---------------------------------------------------------------------------
+  const summary = useMemo<DailySummaryData | null>(() => {
+    if (!currentOrg) return null;
 
-      // Filter entries for the organization and date range from real Firebase data
-      const entries = workEntries.filter((entry: WorkEntry) => {
-        const entryDate = new Date(entry.createdAt);
-        return entry.orgId === currentOrg?.id && entryDate >= start && entryDate <= end;
-      });
+    const baseDate = selectedDate || new Date();
+    const {start, end} = getDateRange(timePeriod, baseDate);
 
-      // Calculate totals
-      let totalIncome = 0;
-      let totalTips = 0;
-      let totalCommission = 0;
-      let totalCash = 0;
-      let totalBkash = 0;
-      let totalNagad = 0;
-      let totalCard = 0;
-      let totalOther = 0;
+    // Filter entries for this org and the selected period
+    const entries = workEntries.filter((entry: WorkEntry) => {
+      const entryDate = new Date(entry.createdAt);
+      return entry.orgId === currentOrg.id && entryDate >= start && entryDate <= end;
+    });
 
-      // Track employee stats
-      const employeeStatsMap = new Map<string, EmployeeStats>();
+    let totalIncome = 0;
+    let totalTips = 0;
+    let totalCommission = 0;
+    let totalCash = 0;
+    let totalBkash = 0;
+    let totalNagad = 0;
+    let totalCard = 0;
+    let totalOther = 0;
 
-      entries.forEach((entry: WorkEntry) => {
-        const amount = entry.price;
-        const tip = entry.tip || 0;
-        totalIncome += amount;
-        totalTips += tip;
+    const employeeStatsMap = new Map<string, EmployeeStats>();
 
-        // Calculate commission
-        const employee = orgUsers.find(u => u.id === entry.employeeId);
-        let entryCommission = 0;
-        if (employee && currentOrg) {
-          entryCommission = calculateEmployeeCommission(
-            amount,
-            currentOrg,
-            employee.commissionPercentage,
-          );
-          totalCommission += entryCommission;
-        }
+    entries.forEach((entry: WorkEntry) => {
+      const amount = entry.price;
+      const tip = entry.tip || 0;
+      totalIncome += amount;
+      totalTips += tip;
 
-        // Sum by payment method (including tips)
-        const totalAmount = amount + tip;
-        switch (entry.paymentMethod) {
-          case PaymentMethod.CASH:
-            totalCash += totalAmount;
-            break;
-          case PaymentMethod.BKASH:
-            totalBkash += totalAmount;
-            break;
-          case PaymentMethod.NAGAD:
-            totalNagad += totalAmount;
-            break;
-          case PaymentMethod.CARD:
-            totalCard += totalAmount;
-            break;
-          case PaymentMethod.OTHER:
-            totalOther += totalAmount;
-            break;
-        }
+      // Commission
+      const employee = orgUsers.find(u => u.id === entry.employeeId);
+      let entryCommission = 0;
+      if (employee && currentOrg) {
+        entryCommission = calculateEmployeeCommission(
+          amount,
+          currentOrg,
+          employee.commissionPercentage,
+        );
+        totalCommission += entryCommission;
+      }
 
-        // Update employee stats
-        const existing = employeeStatsMap.get(entry.employeeId);
-        if (existing) {
-          existing.totalIncome += amount;
-          existing.totalTips += tip;
-          existing.serviceCount += 1;
-          existing.commission += entryCommission;
-        } else {
-          employeeStatsMap.set(entry.employeeId, {
-            employeeId: entry.employeeId,
-            employeeName: entry.employeeName,
-            totalIncome: amount,
-            totalTips: tip,
-            serviceCount: 1,
-            commission: entryCommission,
-          });
-        }
-      });
-      // Get top employees
-      const topEmployees = Array.from(employeeStatsMap.values()).sort(
-        (a, b) => b.totalIncome - a.totalIncome,
-      );
+      // Payment method totals (price + tip together)
+      const totalAmount = amount + tip;
+      switch (entry.paymentMethod) {
+        case PaymentMethod.CASH:
+          totalCash += totalAmount;
+          break;
+        case PaymentMethod.BKASH:
+          totalBkash += totalAmount;
+          break;
+        case PaymentMethod.NAGAD:
+          totalNagad += totalAmount;
+          break;
+        case PaymentMethod.CARD:
+          totalCard += totalAmount;
+          break;
+        case PaymentMethod.OTHER:
+          totalOther += totalAmount;
+          break;
+      }
 
-      return {
-        date: getPeriodLabel(period, date),
-        totalIncome,
-        totalTips,
-        totalCommission,
-        totalCash,
-        totalBkash,
-        totalNagad,
-        totalCard,
-        totalOther,
-        entryCount: entries.length,
-        topEmployees,
-      };
-    },
-    [currentOrg, workEntries, orgUsers],
-  );
+      // Employee stats
+      const existing = employeeStatsMap.get(entry.employeeId);
+      if (existing) {
+        existing.totalIncome += amount;
+        existing.totalTips += tip;
+        existing.serviceCount += 1;
+        existing.commission += entryCommission;
+      } else {
+        employeeStatsMap.set(entry.employeeId, {
+          employeeId: entry.employeeId,
+          employeeName: entry.employeeName,
+          totalIncome: amount,
+          totalTips: tip,
+          serviceCount: 1,
+          commission: entryCommission,
+        });
+      }
+    });
 
-  // Fetch summary data
-  const fetchSummary = useCallback(async () => {
-    if (!currentOrg) {
-      setError('No organization selected');
-      setLoading(false);
-      return;
-    }
+    const topEmployees = Array.from(employeeStatsMap.values()).sort(
+      (a, b) => b.totalIncome - a.totalIncome,
+    );
 
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await calculateSummary(selectedDate || new Date(), timePeriod);
-      setSummary(data);
-    } catch (err: any) {
-      setError(err.message || 'Failed to fetch summary');
-    } finally {
-      setLoading(false);
-    }
-  }, [currentOrg, selectedDate, timePeriod, calculateSummary]);
+    return {
+      date: getPeriodLabel(timePeriod, baseDate),
+      totalIncome,
+      totalTips,
+      totalCommission,
+      totalCash,
+      totalBkash,
+      totalNagad,
+      totalCard,
+      totalOther,
+      entryCount: entries.length,
+      topEmployees,
+    };
+  }, [currentOrg, workEntries, orgUsers, selectedDate, timePeriod]);
 
-  // Refresh function
+  // ---------------------------------------------------------------------------
+  // refresh() kept for API compatibility with pull-to-refresh in screens.
+  // The memo recalculates automatically, so this is a deliberate no-op.
+  // ---------------------------------------------------------------------------
   const refresh = useCallback(async () => {
-    await fetchSummary();
-  }, [fetchSummary]);
-
-  // Initial fetch
-  useEffect(() => {
-    fetchSummary();
-  }, [fetchSummary]);
+    // workEntries are kept live by the Firestore onSnapshot listener in
+    // DataContext. The useMemo above re-runs on every workEntries change,
+    // so there is nothing to do here.
+  }, []);
 
   return {
     summary,
-    loading,
-    error,
+    loading: false, // always synchronous — no async loading state
+    error: null,
     refresh,
     timePeriod,
     setTimePeriod,

@@ -6,11 +6,20 @@
 import React from 'react';
 import {createStackNavigator} from '@react-navigation/stack';
 import {CreateOrgScreen, JoinOrgScreen} from '@/screens/onboarding';
-import Theme from '@/constants/theme';
-import {useAuth} from '@/context';
+import Theme, {ThemeColors} from '@/constants/theme';
+import {useAuth, useTheme} from '@/context';
 import {UserRole} from '@/types';
 import {View, Text, TouchableOpacity, StyleSheet} from 'react-native';
 import MaterialIcons from '@react-native-vector-icons/material-icons';
+import {useThemedStyles} from '@/hooks/useThemedStyles';
+
+export const Palette = {
+  inkBlack: '#04151f',
+  darkSlateGrey: '#183a37',
+  wheat: '#efd6ac',
+  burntOrange: '#c44900',
+  midnightViolet: '#432534',
+};
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -28,6 +37,7 @@ export type OnboardingStackParamList = {
 
 const OnboardingChoiceScreen: React.FC<{navigation: any}> = ({navigation}) => {
   const {user} = useAuth();
+  const styles = useThemedStyles(getStyles);
 
   // If employee, skip choice and go straight to join
   React.useEffect(() => {
@@ -86,15 +96,24 @@ const OnboardingChoiceScreen: React.FC<{navigation: any}> = ({navigation}) => {
 const Stack = createStackNavigator<OnboardingStackParamList>();
 
 const OnboardingNavigator: React.FC = () => {
+  const {colors, isDarkMode} = useTheme();
+
   return (
     <Stack.Navigator
       screenOptions={{
         headerStyle: {
-          backgroundColor: Theme.colors.primary[600],
+          backgroundColor: isDarkMode ? Palette.inkBlack : colors.primary[500],
+          borderBottomWidth: 1,
+          borderBottomColor: isDarkMode ? Palette.darkSlateGrey : Palette.wheat,
+          shadowColor: 'transparent',
+          elevation: 0,
         },
         headerTintColor: '#FFFFFF',
         headerTitleStyle: {
           fontWeight: '600',
+        },
+        cardStyle: {
+          backgroundColor: colors.background.default,
         },
       }}>
       <Stack.Screen
@@ -128,87 +147,91 @@ const OnboardingNavigator: React.FC = () => {
 // STYLES
 // ============================================================================
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-  content: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-  },
-  emoji: {
-    fontSize: 80,
-    marginBottom: 24,
-    color: '#9269fc',
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#9269fc',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#3a80c1',
-    marginBottom: 48,
-    textAlign: 'center',
-  },
-  buttonContainer: {
-    width: '100%',
-    gap: 16,
-  },
-  primaryButton: {
-    backgroundColor: '#008000',
-    paddingVertical: 20,
-    paddingHorizontal: 24,
-    borderRadius: Theme.borderRadius.lg,
-    alignItems: 'center',
-    ...Theme.shadows.md,
-  },
-  primaryButtonIcon: {
-    fontSize: 32,
-    marginBottom: 8,
-    color: '#ffffff',
-  },
-  primaryButtonText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    marginBottom: 4,
-  },
-  primaryButtonSubtext: {
-    fontSize: 14,
-    color: '#FFFFFF',
-    opacity: 0.9,
-  },
-  secondaryButton: {
-    backgroundColor: '#c38fd2',
-    paddingVertical: 20,
-    paddingHorizontal: 24,
-    borderRadius: Theme.borderRadius.lg,
-    borderWidth: 2,
-    borderColor: '#fa070700',
-    alignItems: 'center',
-  },
-  secondaryButtonIcon: {
-    fontSize: 32,
-    marginBottom: 8,
-    color: '#ffffff',
-  },
-  secondaryButtonText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#ffffff',
-    marginBottom: 4,
-  },
-  secondaryButtonSubtext: {
-    fontSize: 14,
-    color: '#ffffff',
-  },
-});
+const getStyles = (colors: ThemeColors, isDarkMode: boolean) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: isDarkMode ? Palette.inkBlack : '#FAFBFB',
+    },
+    content: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: 24,
+    },
+    emoji: {
+      fontSize: 80,
+      marginBottom: 24,
+      color: Palette.burntOrange,
+    },
+    title: {
+      fontSize: 28,
+      fontWeight: 'bold',
+      color: colors.text.primary,
+      marginBottom: 8,
+      textAlign: 'center',
+    },
+    subtitle: {
+      fontSize: 16,
+      color: colors.text.secondary,
+      marginBottom: 48,
+      textAlign: 'center',
+    },
+    buttonContainer: {
+      width: '100%',
+      gap: 16,
+    },
+    primaryButton: {
+      backgroundColor: Palette.darkSlateGrey,
+      paddingVertical: 20,
+      paddingHorizontal: 24,
+      borderRadius: Theme.borderRadius.lg,
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: isDarkMode ? Palette.wheat : 'transparent',
+      ...Theme.shadows.md,
+    },
+    primaryButtonIcon: {
+      fontSize: 32,
+      marginBottom: 8,
+      color: '#ffffff',
+    },
+    primaryButtonText: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: '#FFFFFF',
+      marginBottom: 4,
+    },
+    primaryButtonSubtext: {
+      fontSize: 14,
+      color: '#FFFFFF',
+      opacity: 0.9,
+    },
+    secondaryButton: {
+      backgroundColor: isDarkMode ? Palette.midnightViolet : '#FFFFFF',
+      paddingVertical: 20,
+      paddingHorizontal: 24,
+      borderRadius: Theme.borderRadius.lg,
+      borderWidth: 1,
+      borderColor: isDarkMode ? Palette.darkSlateGrey : Palette.wheat,
+      alignItems: 'center',
+      ...Theme.shadows.sm,
+    },
+    secondaryButtonIcon: {
+      fontSize: 32,
+      marginBottom: 8,
+      color: isDarkMode ? Palette.wheat : Palette.darkSlateGrey,
+    },
+    secondaryButtonText: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: colors.text.primary,
+      marginBottom: 4,
+    },
+    secondaryButtonSubtext: {
+      fontSize: 14,
+      color: colors.text.secondary,
+    },
+  });
 
 export default OnboardingNavigator;

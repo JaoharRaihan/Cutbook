@@ -176,7 +176,7 @@ export default function EmployeeHomeScreen({navigation}: any): React.ReactElemen
   }, [timePeriod, language]);
 
   // Localized earnings subtext
-  const subtextText = useMemo(() => {
+  /* const subtextText = useMemo(() => {
     const commissionVal = todayStats.commission;
     const tipsVal = todayStats.totalTips;
     const earningsVal = todayStats.employeeEarnings;
@@ -193,7 +193,7 @@ export default function EmployeeHomeScreen({navigation}: any): React.ReactElemen
     } else {
       return `आपका हिस्सा (${pctStr} + टिप): ৳${earningsVal} (कमीशन: ৳${commissionVal}, टिप: ৳${tipsVal})`;
     }
-  }, [todayStats, currentOrg, currentUser?.commissionPercentage, language]);
+  }, [todayStats, currentOrg, currentUser?.commissionPercentage, language]); */
 
   // Localized services count message
   const servicesSubtext = useMemo(() => {
@@ -568,7 +568,7 @@ export default function EmployeeHomeScreen({navigation}: any): React.ReactElemen
                 color={isDarkMode ? colors.success.light : colors.success.dark}
               />
             }
-            subtitle={currentUser?.commissionPercentage ? subtextText : undefined}
+            // subtitle={currentUser?.commissionPercentage ? subtextText : undefined}
             color="success"
           />
 
@@ -797,7 +797,7 @@ export default function EmployeeHomeScreen({navigation}: any): React.ReactElemen
               <Text style={styles.infoLabel}>{t.auth.phone}</Text>
               <Text style={styles.infoValue}>{currentUser?.phone}</Text>
             </View>
-            {currentUser?.email ? (
+            {/* {currentUser?.email ? (
               <>
                 <View style={styles.infoDivider} />
                 <View style={styles.infoRow}>
@@ -805,7 +805,7 @@ export default function EmployeeHomeScreen({navigation}: any): React.ReactElemen
                   <Text style={styles.infoValue}>{currentUser.email}</Text>
                 </View>
               </>
-            ) : null}
+            ) : null} */}
           </View>
         </View>
 

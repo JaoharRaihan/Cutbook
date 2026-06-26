@@ -111,7 +111,7 @@ async function sendPush(options: SendPushOptions): Promise<void> {
       body: JSON.stringify(payload),
     });
 
-    const result = await response.json();
+    const result = (await response.json()) as any;
     if (result.failure > 0) {
       logger.warn('FCM delivery failure:', result);
     } else {

@@ -14,6 +14,8 @@ import ForgotPasswordScreen from '@/screens/auth/ForgotPasswordScreen';
 import OTPVerificationScreen from '@/screens/auth/OTPVerificationScreen';
 import ResetPasswordScreen from '@/screens/auth/ResetPasswordScreen';
 
+import {useTheme} from '@/context';
+
 // ============================================================================
 // AUTH STACK TYPES
 // ============================================================================
@@ -37,12 +39,14 @@ const Stack = createStackNavigator<AuthStackParamList>();
 // ============================================================================
 
 const AuthNavigator: React.FC = () => {
+  const {colors} = useTheme();
+
   return (
     <Stack.Navigator
       initialRouteName="Login"
       screenOptions={{
         headerShown: false,
-        cardStyle: {backgroundColor: '#FFFFFF'},
+        cardStyle: {backgroundColor: colors.background.default},
         animation: 'slide_from_right',
       }}>
       <Stack.Screen

@@ -239,7 +239,7 @@ const RegisterScreen: React.FC = () => {
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         {/* Header */}
         <View style={styles.header}>
-          <Image style={styles.applogo} source={require('../../assets/loginlogo.png')} />
+          <Image style={styles.applogo} source={require('../../assets/CutBook_logo.png')} />
           <Text style={styles.tagline}>
             {language === 'en'
               ? 'Professional Salon Management'

@@ -9,6 +9,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {FirebaseAuthTypes} from '@react-native-firebase/auth';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
+import functions from '@react-native-firebase/functions';
 import messaging from '@react-native-firebase/messaging';
 import type {User, AuthCredentials, RegistrationData} from '@/types';
 import {UserRole, UserStatus} from '@/types';
@@ -622,20 +623,20 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) 
     setError(null);
     try {
       const cleanedPhone = phone.replace(/\D/g, '');
-      logger.debug('Submitting custom password reset request for:', cleanedPhone);
+      logger.debug('Calling resetPassword Cloud Function for:', cleanedPhone);
 
-      await firestore().collection('passwordResetRequests').add({
-        phone: cleanedPhone,
-        newPassword: newPassword.trim(),
-        createdAt: firestore.FieldValue.serverTimestamp(),
-        status: 'pending',
-      });
+      // Call the Firebase Cloud Function — it uses the Admin SDK to update
+      // the Firebase Auth password after confirming a verified OTP exists.
+      const resetFn = functions().httpsCallable('resetPassword');
+      await resetFn({phone: cleanedPhone, newPassword: newPassword.trim()});
 
-      setSuccessMessage('Password reset request submitted successfully!');
+      setSuccessMessage('Password reset successfully!');
     } catch (err: any) {
-      logger.error('Error submitting password reset request:', err);
-      setError(err.message);
-      throw err;
+      logger.error('Error calling resetPassword Cloud Function:', err);
+      // Firebase Functions errors surface as err.message from the function
+      const message = err?.details?.message || err?.message || 'Failed to reset password.';
+      setError(message);
+      throw new Error(message);
     } finally {
       setLoading(false);
     }

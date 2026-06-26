@@ -69,7 +69,7 @@ export const sendSMS = async (phone: string, text: string): Promise<SMSSendResul
 
     console.log(`[SMS] Sending request to ${SMS_GATEWAY_CONFIG.provider} for: ${recipient}`);
     const response = await fetch(url);
-    const data = await response.json();
+    const data = (await response.json()) as any;
 
     if (SMS_GATEWAY_CONFIG.provider === 'greenweb') {
       // Greenweb returns JSON array with status or message details
