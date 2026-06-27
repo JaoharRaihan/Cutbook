@@ -103,6 +103,7 @@ module.exports = async (req, res) => {
     // 4. Look up the Firebase Auth user by standard email
     const targetEmail = `auth_${cleanedPhone}@cutbook.app`;
     let uid;
+    let matchedDocData = null;
 
     try {
       const userRecord = await authAdmin.getUserByEmail(targetEmail);
@@ -120,16 +121,30 @@ module.exports = async (req, res) => {
       const standardDoc = userSnap.docs.find(d => d.data().phone === cleanedPhone);
       const matchedDoc = standardDoc || userSnap.docs[0];
       uid = matchedDoc.id;
+      matchedDocData = matchedDoc.data();
     }
 
-    // 5. Update user password in Firebase Auth and standardize email
+    // 5. Update user password in Firebase Auth and standardize email (self-healing if Auth is missing)
     const updateData = {password: newPassword.trim()};
-    const authUser = await authAdmin.getUser(uid);
-    if (authUser.email !== targetEmail) {
-      updateData.email = targetEmail;
+    try {
+      const authUser = await authAdmin.getUser(uid);
+      if (authUser.email !== targetEmail) {
+        updateData.email = targetEmail;
+      }
+      await authAdmin.updateUser(uid, updateData);
+    } catch (err) {
+      if (err.code === 'auth/user-not-found') {
+        // Recreate missing Auth account with existing UID and details
+        await authAdmin.createUser({
+          uid: uid,
+          email: targetEmail,
+          password: newPassword.trim(),
+          displayName: matchedDocData ? matchedDocData.name : 'Salon User',
+        });
+      } else {
+        throw err;
+      }
     }
-
-    await authAdmin.updateUser(uid, updateData);
 
     // 6. Update user phone/email in Firestore
     await db.collection('users').doc(uid).update({

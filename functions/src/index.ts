@@ -109,6 +109,7 @@ export const resetPassword = onCall(
     // ── 3. Look up the Firebase Auth user by the phone-derived email ───────
     const targetEmail = `auth_${cleanedPhone}@cutbook.app`;
     let uid: string;
+    let matchedDocData: any = null;
 
     try {
       const userRecord = await authAdmin.getUserByEmail(targetEmail);
@@ -125,20 +126,34 @@ export const resetPassword = onCall(
       const standardDoc = userSnap.docs.find(d => d.data().phone === cleanedPhone);
       const matchedDoc = standardDoc || userSnap.docs[0];
       uid = matchedDoc.id;
+      matchedDocData = matchedDoc.data();
     }
 
     // ── 4. Update the password via Admin SDK (and self-heal formatting if needed) ───
     try {
       const updateData: any = {password: newPassword.trim()};
 
-      // Look up Firebase Auth user record to see if email needs updating
-      const authUser = await authAdmin.getUser(uid);
-      if (authUser.email !== targetEmail) {
-        updateData.email = targetEmail;
-        logger.log(`Updating Firebase Auth email for ${uid} to standard: ${targetEmail}`);
+      try {
+        // Look up Firebase Auth user record to see if email needs updating
+        const authUser = await authAdmin.getUser(uid);
+        if (authUser.email !== targetEmail) {
+          updateData.email = targetEmail;
+          logger.log(`Updating Firebase Auth email for ${uid} to standard: ${targetEmail}`);
+        }
+        await authAdmin.updateUser(uid, updateData);
+      } catch (err: any) {
+        if (err.code === 'auth/user-not-found') {
+          // Self-heal: Recreate the missing Auth account
+          await authAdmin.createUser({
+            uid: uid,
+            email: targetEmail,
+            password: newPassword.trim(),
+            displayName: matchedDocData ? matchedDocData.name : 'Salon User',
+          });
+        } else {
+          throw err;
+        }
       }
-
-      await authAdmin.updateUser(uid, updateData);
 
       // Self-heal Firestore record
       await db.collection('users').doc(uid).update({
