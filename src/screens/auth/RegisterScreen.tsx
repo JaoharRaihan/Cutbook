@@ -19,7 +19,7 @@ import {useNavigation} from '@react-navigation/native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import MaterialIcons from '@react-native-vector-icons/material-icons';
 import type {StackNavigationProp} from '@react-navigation/stack';
-import {useAuth, useTheme, useLanguage} from '@/context';
+import {useAuth, useTheme, useLanguage, getPhoneFormats, normalizePhone} from '@/context';
 import type {AuthStackParamList} from '@/navigation/AuthNavigator';
 import {UserRole} from '@/types';
 import firestore from '@react-native-firebase/firestore';
@@ -188,10 +188,10 @@ const RegisterScreen: React.FC = () => {
         throw new Error('Password cannot be empty');
       }
 
-      // Check if phone number is already registered in Firestore
+      // Check if phone number is already registered in Firestore (handling format variants)
       const phoneCheckSnap = await firestore()
         .collection('users')
-        .where('phone', '==', formData.phone)
+        .where('phone', 'in', getPhoneFormats(formData.phone))
         .get();
       if (!phoneCheckSnap.empty) {
         throw new Error(
@@ -206,15 +206,16 @@ const RegisterScreen: React.FC = () => {
       }
 
       // Send OTP
-      await sendPhoneOTP(formData.phone);
+      const normalizedPhone = normalizePhone(formData.phone);
+      await sendPhoneOTP(normalizedPhone);
 
       // Navigate to OTP verification screen
       navigation.navigate('OTPVerification', {
-        phone: formData.phone,
+        phone: normalizedPhone,
         flow: 'register',
         registrationData: {
           name: formData.name.trim(),
-          phone: formData.phone,
+          phone: normalizedPhone,
           email: formData.email.trim() || undefined,
           password: trimmedPassword,
           role: formData.role,

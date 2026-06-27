@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /**
  * smsService.ts
  * Service to send SMS via Bangladesh SMS Gateways (e.g. Greenweb, SSL Wireless, MimSMS)

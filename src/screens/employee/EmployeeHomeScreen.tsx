@@ -410,7 +410,7 @@ export default function EmployeeHomeScreen({navigation}: any): React.ReactElemen
         }>
         {/* Header */}
         <View style={styles.header}>
-          <View style={{flexDirection: 'row', alignItems: 'center', flex: 1}}>
+          <View style={styles.headerLeftView}>
             <View style={styles.avatar}>
               <Text style={styles.avatarText}>
                 {currentUser?.name ? currentUser.name.charAt(0).toUpperCase() : 'E'}
@@ -595,7 +595,7 @@ export default function EmployeeHomeScreen({navigation}: any): React.ReactElemen
                   }
                   subtitle={servicesSubtext}
                   color="primary"
-                  style={{flex: 1, minHeight: 160, justifyContent: 'space-between'}}
+                  style={styles.gridItemCard}
                 />
               </View>
 
@@ -620,7 +620,7 @@ export default function EmployeeHomeScreen({navigation}: any): React.ReactElemen
                   }
                   subtitle={tipsSubtext}
                   color="warning"
-                  style={{flex: 1, minHeight: 160, justifyContent: 'space-between'}}
+                  style={styles.gridItemCard}
                 />
               </View>
             </View>
@@ -657,7 +657,7 @@ export default function EmployeeHomeScreen({navigation}: any): React.ReactElemen
                       : `${currentUser?.commissionPercentage || 0}% rate`
                   }
                   color="info"
-                  style={{flex: 1, minHeight: 160, justifyContent: 'space-between'}}
+                  style={styles.gridItemCard}
                 />
               </View>
 
@@ -690,7 +690,7 @@ export default function EmployeeHomeScreen({navigation}: any): React.ReactElemen
                           : 'सैलून से'
                   }
                   color="error"
-                  style={{flex: 1, minHeight: 160, justifyContent: 'space-between'}}
+                  style={styles.gridItemCard}
                 />
               </View>
             </View>
@@ -853,6 +853,16 @@ export default function EmployeeHomeScreen({navigation}: any): React.ReactElemen
 
 const getStyles = (colors: ThemeColors, isDarkMode: boolean) =>
   StyleSheet.create({
+    headerLeftView: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1,
+    },
+    gridItemCard: {
+      flex: 1,
+      minHeight: 160,
+      justifyContent: 'space-between',
+    },
     container: {
       flex: 1,
       backgroundColor: isDarkMode ? Palette.inkBlack : '#FAFBFB',

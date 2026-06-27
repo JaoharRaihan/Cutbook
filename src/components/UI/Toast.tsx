@@ -3,7 +3,7 @@
  * Toast notification system for success/error messages
  */
 
-import React, {useEffect, useRef} from 'react';
+import React, {useEffect, useRef, useCallback} from 'react';
 import {Text, StyleSheet, Animated, TouchableOpacity} from 'react-native';
 import Theme from '@/constants/theme';
 
@@ -35,6 +35,23 @@ export default function Toast({
   const translateY = useRef(new Animated.Value(-100)).current;
   const opacity = useRef(new Animated.Value(0)).current;
 
+  const hideToast = useCallback(() => {
+    Animated.parallel([
+      Animated.timing(translateY, {
+        toValue: -100,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacity, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      onHide();
+    });
+  }, [onHide, translateY, opacity]);
+
   useEffect(() => {
     if (visible) {
       // Slide in
@@ -60,24 +77,7 @@ export default function Toast({
     } else {
       hideToast();
     }
-  }, [visible, duration]);
-
-  const hideToast = () => {
-    Animated.parallel([
-      Animated.timing(translateY, {
-        toValue: -100,
-        duration: 300,
-        useNativeDriver: true,
-      }),
-      Animated.timing(opacity, {
-        toValue: 0,
-        duration: 300,
-        useNativeDriver: true,
-      }),
-    ]).start(() => {
-      onHide();
-    });
-  };
+  }, [visible, duration, hideToast]);
 
   const getToastStyle = () => {
     switch (type) {

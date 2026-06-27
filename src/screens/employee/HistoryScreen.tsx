@@ -379,12 +379,7 @@ export default function HistoryScreen(): React.ReactElement {
       <TouchableOpacity activeOpacity={0.7} onPress={handlePress} style={styles.customTxnCard}>
         <View style={styles.txnLeft}>
           <View
-            style={[
-              styles.txnIconBg,
-              {
-                backgroundColor: isEntry ? 'rgba(76, 175, 80, 0.1)' : 'rgba(156, 39, 176, 0.1)',
-              },
-            ]}>
+            style={[styles.txnIconBg, isEntry ? styles.txnIconBgEntry : styles.txnIconBgPayout]}>
             <MaterialIcons name={iconName as any} size={24} color={iconColor} />
           </View>
           <View style={styles.txnTextContainer}>
@@ -996,6 +991,12 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) =>
       alignItems: 'center',
       justifyContent: 'center',
       marginRight: 12,
+    },
+    txnIconBgEntry: {
+      backgroundColor: 'rgba(76, 175, 80, 0.1)',
+    },
+    txnIconBgPayout: {
+      backgroundColor: 'rgba(156, 39, 176, 0.1)',
     },
     txnTextContainer: {
       flex: 1,

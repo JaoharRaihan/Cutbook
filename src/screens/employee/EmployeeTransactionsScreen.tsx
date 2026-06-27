@@ -311,7 +311,7 @@ export default function EmployeeTransactionsScreen(): React.ReactElement {
         {localTransactions.length > 0 && (
           <View style={styles.statsContainer}>
             <View style={styles.statCard}>
-              <View style={[styles.statIconWrapper, {backgroundColor: 'rgba(76, 175, 80, 0.1)'}]}>
+              <View style={styles.statIconWrapperSuccess}>
                 <MaterialIcons name="monetization-on" size={20} color={colors.success.main} />
               </View>
               <View style={styles.statTextContainer}>
@@ -329,7 +329,7 @@ export default function EmployeeTransactionsScreen(): React.ReactElement {
             </View>
 
             <View style={styles.statCard}>
-              <View style={[styles.statIconWrapper, {backgroundColor: 'rgba(255, 152, 0, 0.1)'}]}>
+              <View style={styles.statIconWrapperWarning}>
                 <MaterialIcons name="hourglass-empty" size={20} color={colors.warning.main} />
               </View>
               <View style={styles.statTextContainer}>
@@ -599,12 +599,21 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) =>
       borderWidth: 1,
       borderColor: colors.border.light,
     },
-    statIconWrapper: {
+    statIconWrapperSuccess: {
       width: 36,
       height: 36,
       borderRadius: 18,
       alignItems: 'center',
       justifyContent: 'center',
+      backgroundColor: 'rgba(76, 175, 80, 0.1)',
+    },
+    statIconWrapperWarning: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: 'rgba(255, 152, 0, 0.1)',
     },
     statTextContainer: {
       flex: 1,

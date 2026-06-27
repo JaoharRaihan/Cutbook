@@ -14,7 +14,8 @@
  */
 
 import * as admin from 'firebase-admin';
-import { onCall, HttpsError } from 'firebase-functions/v2/https';
+import {onCall, HttpsError} from 'firebase-functions/v2/https';
+import * as logger from 'firebase-functions/logger';
 
 admin.initializeApp();
 
@@ -25,10 +26,16 @@ const authAdmin = admin.auth();
 // Helpers
 // ---------------------------------------------------------------------------
 
-/** Convert a BD phone number to the Firebase email alias used by this app. */
-const phoneToEmail = (phone: string): string => {
-  const digits = phone.replace(/\D/g, '');
-  return `auth_${digits}@cutbook.app`;
+/** Clean a phone number to standard 11 digits format. */
+const normalizePhone = (phone: string): string => {
+  const cleaned = phone.replace(/\D/g, '');
+  if (cleaned.length === 13 && cleaned.startsWith('8801')) {
+    return cleaned.slice(2);
+  }
+  if (cleaned.length === 10 && cleaned.startsWith('1')) {
+    return '0' + cleaned;
+  }
+  return cleaned;
 };
 
 // ---------------------------------------------------------------------------
@@ -48,8 +55,8 @@ export const resetPassword = onCall(
     // Keep the function in the same region as your Firestore.
     region: 'us-central1',
   },
-  async (request) => {
-    const { phone, newPassword } = request.data as {
+  async request => {
+    const {phone, newPassword} = request.data as {
       phone?: string;
       newPassword?: string;
     };
@@ -62,13 +69,10 @@ export const resetPassword = onCall(
       throw new HttpsError('invalid-argument', 'New password is required.');
     }
     if (newPassword.trim().length < 6) {
-      throw new HttpsError(
-        'invalid-argument',
-        'Password must be at least 6 characters.'
-      );
+      throw new HttpsError('invalid-argument', 'Password must be at least 6 characters.');
     }
 
-    const cleanedPhone = phone.replace(/\D/g, '');
+    const cleanedPhone = normalizePhone(phone);
 
     // ── 2. Confirm a verified OTP exists for this phone (max 10 min old) ───
     const tenMinutesAgo = Date.now() - 10 * 60 * 1000;
@@ -84,7 +88,7 @@ export const resetPassword = onCall(
     if (otpSnap.empty) {
       throw new HttpsError(
         'failed-precondition',
-        'No verified OTP found. Please complete phone verification first.'
+        'No verified OTP found. Please complete phone verification first.',
       );
     }
 
@@ -93,47 +97,57 @@ export const resetPassword = onCall(
 
     // verifiedAt is a Firestore Timestamp or server-set value
     const verifiedAt: number =
-      otpData.verifiedAt && otpData.verifiedAt.toMillis
-        ? otpData.verifiedAt.toMillis()
-        : 0;
+      otpData.verifiedAt && otpData.verifiedAt.toMillis ? otpData.verifiedAt.toMillis() : 0;
 
     if (verifiedAt < tenMinutesAgo) {
       throw new HttpsError(
         'failed-precondition',
-        'OTP verification has expired. Please start over.'
+        'OTP verification has expired. Please start over.',
       );
     }
 
     // ── 3. Look up the Firebase Auth user by the phone-derived email ───────
-    const email = phoneToEmail(cleanedPhone);
+    const targetEmail = `auth_${cleanedPhone}@cutbook.app`;
     let uid: string;
 
     try {
-      const userRecord = await authAdmin.getUserByEmail(email);
+      const userRecord = await authAdmin.getUserByEmail(targetEmail);
       uid = userRecord.uid;
     } catch {
-      // Fallback: query Firestore users collection by phone
-      const userSnap = await db
-        .collection('users')
-        .where('phone', '==', cleanedPhone)
-        .limit(1)
-        .get();
+      // Fallback: query Firestore users collection by phone formats
+      const formats = [cleanedPhone, `88${cleanedPhone}`, `+88${cleanedPhone}`];
+      const userSnap = await db.collection('users').where('phone', 'in', formats).get();
 
       if (userSnap.empty) {
-        throw new HttpsError(
-          'not-found',
-          'No account found for this phone number.'
-        );
+        throw new HttpsError('not-found', 'No account found for this phone number.');
       }
-      uid = userSnap.docs[0].id;
+
+      const standardDoc = userSnap.docs.find(d => d.data().phone === cleanedPhone);
+      const matchedDoc = standardDoc || userSnap.docs[0];
+      uid = matchedDoc.id;
     }
 
-    // ── 4. Update the password via Admin SDK ───────────────────────────────
+    // ── 4. Update the password via Admin SDK (and self-heal formatting if needed) ───
     try {
-      await authAdmin.updateUser(uid, { password: newPassword.trim() });
+      const updateData: any = {password: newPassword.trim()};
+
+      // Look up Firebase Auth user record to see if email needs updating
+      const authUser = await authAdmin.getUser(uid);
+      if (authUser.email !== targetEmail) {
+        updateData.email = targetEmail;
+        logger.log(`Updating Firebase Auth email for ${uid} to standard: ${targetEmail}`);
+      }
+
+      await authAdmin.updateUser(uid, updateData);
+
+      // Self-heal Firestore record
+      await db.collection('users').doc(uid).update({
+        phone: cleanedPhone, // standardized 11 digits
+        email: targetEmail, // standardized email
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
     } catch (err: unknown) {
-      const msg =
-        err instanceof Error ? err.message : 'Failed to update password.';
+      const msg = err instanceof Error ? err.message : 'Failed to update password.';
       throw new HttpsError('internal', msg);
     }
 
@@ -142,7 +156,7 @@ export const resetPassword = onCall(
       await otpDoc.ref.delete();
     } catch {
       // Non-fatal — log but don't fail the response
-      console.warn('Could not delete used OTP doc:', otpDoc.id);
+      logger.warn('Could not delete used OTP doc:', otpDoc.id);
     }
 
     // ── 6. Clean up any leftover passwordResetRequests docs for this phone ─
@@ -152,13 +166,13 @@ export const resetPassword = onCall(
         .where('phone', '==', cleanedPhone)
         .get();
       const batch = db.batch();
-      reqSnap.docs.forEach((d) => batch.delete(d.ref));
+      reqSnap.docs.forEach(d => batch.delete(d.ref));
       if (!reqSnap.empty) await batch.commit();
     } catch {
       // Non-fatal
     }
 
-    console.log(`Password reset successful for uid=${uid}`);
-    return { success: true };
-  }
+    logger.log(`Password reset successful for uid=${uid}`);
+    return {success: true};
+  },
 );

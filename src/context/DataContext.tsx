@@ -498,10 +498,7 @@ export const DataProvider: React.FC<{children: React.ReactNode}> = ({children}) 
           });
 
           const liveCount = dayEntriesToCheck.length;
-          const liveIncome = dayEntriesToCheck.reduce(
-            (sum, e) => sum + e.price + (e.tip || 0),
-            0,
-          );
+          const liveIncome = dayEntriesToCheck.reduce((sum, e) => sum + e.price + (e.tip || 0), 0);
 
           const isFresh =
             existingSummary.totalEntries === liveCount &&

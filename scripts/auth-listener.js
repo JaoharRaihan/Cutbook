@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /**
  * auth-listener.js
  * A lightweight background listener script that handles password resets for synthetic accounts.

@@ -79,6 +79,7 @@ export default function Checkbox({
         <View
           style={[
             styles.checkboxBox,
+            // eslint-disable-next-line react-native/no-inline-styles
             {
               width: boxSize,
               height: boxSize,

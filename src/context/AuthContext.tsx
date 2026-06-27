@@ -23,8 +23,47 @@ import {useLanguage} from './LanguageContext';
 const logger = createLogger('AuthContext');
 
 // ============================================================================
+// CONFIGURATION FOR FREE PLAN FALLBACK
+// ============================================================================
+// If you do not have a credit card for the Firebase Blaze plan, you can host
+// a free serverless function on Netlify/Vercel (which are 100% free) and put its URL here.
+// Set enabled: true to use the free external API instead of Firebase Cloud Functions.
+export const FREE_PLAN_RESET_CONFIG = {
+  enabled: true, // Set to true to use a free Netlify function instead of Firebase Cloud Functions
+  apiUrl: 'https://cutbook.netlify.app/.netlify/functions/reset-password', // Change this to your Netlify site URL once deployed
+};
+
+// ============================================================================
 // HELPERS
 // ============================================================================
+
+/**
+ * Clean phone number to 11 digits format (e.g. 01712345678)
+ * @param phone - Phone number string
+ * @returns 11-digit normalized string
+ */
+export const normalizePhone = (phone: string): string => {
+  if (!phone) return '';
+  const cleaned = phone.replace(/\D/g, '');
+  if (cleaned.length === 13 && cleaned.startsWith('8801')) {
+    return cleaned.slice(2);
+  }
+  if (cleaned.length === 10 && cleaned.startsWith('1')) {
+    return '0' + cleaned;
+  }
+  return cleaned;
+};
+
+/**
+ * Get all possible formats of a phone number for DB query compatibility
+ * @param phone - Phone number string
+ * @returns Array of possible formats
+ */
+export const getPhoneFormats = (phone: string): string[] => {
+  const normalized = normalizePhone(phone);
+  if (!normalized) return [];
+  return [normalized, `88${normalized}`, `+88${normalized}`];
+};
 
 /**
  * Convert phone number to valid Firebase email format
@@ -33,9 +72,8 @@ const logger = createLogger('AuthContext');
  * @returns Valid email for Firebase Auth (e.g., 'auth_8801712345678@cutbook.app')
  */
 const phoneToFirebaseEmail = (phone: string): string => {
-  // Remove + and any non-digit characters except the country code
-  const digitsOnly = phone.replace(/\D/g, '');
-  return `auth_${digitsOnly}@cutbook.app`;
+  const normalized = normalizePhone(phone);
+  return `auth_${normalized}@cutbook.app`;
 };
 
 // ============================================================================
@@ -196,7 +234,21 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) 
       let emailToUse = credentials.email;
 
       if (!emailToUse && credentials.phone) {
-        emailToUse = phoneToFirebaseEmail(credentials.phone);
+        // Query Firestore users collection by phone formats to get the actual email
+        const formats = getPhoneFormats(credentials.phone);
+        const userCheckSnap = await firestore()
+          .collection('users')
+          .where('phone', 'in', formats)
+          .get();
+
+        if (!userCheckSnap.empty) {
+          const normalized = normalizePhone(credentials.phone);
+          const standardDoc = userCheckSnap.docs.find(d => d.data().phone === normalized);
+          const matchedDoc = standardDoc || userCheckSnap.docs[0];
+          emailToUse = matchedDoc.data().email;
+        } else {
+          emailToUse = phoneToFirebaseEmail(credentials.phone);
+        }
       }
 
       if (!emailToUse) {
@@ -251,11 +303,12 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) 
 
       // Convert phone to valid Firebase email format if email not provided
       const email = data.email || phoneToFirebaseEmail(data.phone);
+      const cleanedPhone = normalizePhone(data.phone);
 
       // check if phone is already used in Firestore (since Auth doesn't check custom fields)
       const phoneCheckSnap = await firestore()
         .collection('users')
-        .where('phone', '==', data.phone)
+        .where('phone', 'in', getPhoneFormats(data.phone))
         .get();
       if (!phoneCheckSnap.empty) {
         throw new Error(ERROR_MESSAGES.phoneExists);
@@ -272,7 +325,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) 
         orgId: '',
         role: data.role || UserRole.EMPLOYEE, // Ensure role is set, default to EMPLOYEE if missing
         name: data.name,
-        phone: data.phone,
+        phone: cleanedPhone,
         email: email,
         status: UserStatus.ACTIVE,
         createdAt: new Date(),
@@ -413,7 +466,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) 
       setLoading(true);
       setError(null);
       try {
-        const cleanedPhone = phone.replace(/\D/g, '');
+        const cleanedPhone = normalizePhone(phone);
         // Google Play / Test number bypass
         const isTestNumber =
           cleanedPhone === '01700000000' ||
@@ -483,7 +536,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) 
       setLoading(true);
       setError(null);
       try {
-        const cleanedPhone = registrationData.phone.replace(/\D/g, '');
+        const cleanedPhone = normalizePhone(registrationData.phone);
         const now = new Date().toISOString();
 
         logger.debug('Verifying custom OTP code in Firestore:', code);
@@ -534,7 +587,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) 
           orgId: '',
           role: registrationData.role || UserRole.EMPLOYEE,
           name: registrationData.name,
-          phone: registrationData.phone,
+          phone: cleanedPhone,
           email: email,
           status: UserStatus.ACTIVE,
           createdAt: new Date(),
@@ -571,7 +624,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) 
     setLoading(true);
     setError(null);
     try {
-      const cleanedPhone = phone.replace(/\D/g, '');
+      const cleanedPhone = normalizePhone(phone);
       const now = new Date().toISOString();
 
       logger.debug('Verifying reset OTP code in Firestore:', code);
@@ -622,19 +675,49 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) 
     setLoading(true);
     setError(null);
     try {
-      const cleanedPhone = phone.replace(/\D/g, '');
-      logger.debug('Calling resetPassword Cloud Function for:', cleanedPhone);
+      const cleanedPhone = normalizePhone(phone);
 
-      // Call the Firebase Cloud Function — it uses the Admin SDK to update
-      // the Firebase Auth password after confirming a verified OTP exists.
-      const resetFn = functions().httpsCallable('resetPassword');
-      await resetFn({phone: cleanedPhone, newPassword: newPassword.trim()});
+      if (FREE_PLAN_RESET_CONFIG.enabled) {
+        logger.debug('Calling external reset-password API for:', cleanedPhone);
+        const response = await fetch(FREE_PLAN_RESET_CONFIG.apiUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            phone: cleanedPhone,
+            newPassword: newPassword.trim(),
+          }),
+        });
+
+        const resData = (await response.json().catch(() => ({}))) as any;
+        if (!response.ok || !resData.success) {
+          throw new Error(resData.error || 'Failed to reset password via external API.');
+        }
+      } else {
+        logger.debug('Calling resetPassword Cloud Function for:', cleanedPhone);
+
+        // Call the Firebase Cloud Function — it uses the Admin SDK to update
+        // the Firebase Auth password after confirming a verified OTP exists.
+        const resetFn = functions().httpsCallable('resetPassword');
+        await resetFn({phone: cleanedPhone, newPassword: newPassword.trim()});
+      }
 
       setSuccessMessage('Password reset successfully!');
     } catch (err: any) {
-      logger.error('Error calling resetPassword Cloud Function:', err);
+      logger.error('Error in updatePasswordAfterReset:', err);
       // Firebase Functions errors surface as err.message from the function
-      const message = err?.details?.message || err?.message || 'Failed to reset password.';
+      let message = err?.details?.message || err?.message || 'Failed to reset password.';
+      if (
+        !FREE_PLAN_RESET_CONFIG.enabled &&
+        (err.code === 'functions/not-found' ||
+          err.code === 'not-found' ||
+          message === 'NOT_FOUND' ||
+          message.includes('not-found'))
+      ) {
+        message =
+          'The password reset service was not found on Firebase. Please ensure you have deployed Cloud Functions to your project by running: cd functions && npm run build && firebase deploy --only functions';
+      }
       setError(message);
       throw new Error(message);
     } finally {

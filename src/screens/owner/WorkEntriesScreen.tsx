@@ -619,13 +619,11 @@ export default function WorkEntriesScreen({navigation}: any): React.ReactElement
                 <View
                   style={[
                     styles.txnIconBg,
-                    {
-                      backgroundColor: isEntry
-                        ? 'rgba(76, 175, 80, 0.1)'
-                        : isExpense
-                          ? 'rgba(244, 67, 54, 0.1)'
-                          : 'rgba(255, 152, 0, 0.1)',
-                    },
+                    isEntry
+                      ? styles.txnIconBgEntry
+                      : isExpense
+                        ? styles.txnIconBgExpense
+                        : styles.txnIconBgPayout,
                   ]}>
                   <MaterialIcons name={iconName as any} size={24} color={iconColor} />
                 </View>
@@ -1017,5 +1015,14 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) =>
     txnDateText: {
       fontSize: 10,
       color: colors.text.secondary,
+    },
+    txnIconBgEntry: {
+      backgroundColor: 'rgba(76, 175, 80, 0.1)',
+    },
+    txnIconBgExpense: {
+      backgroundColor: 'rgba(244, 67, 54, 0.1)',
+    },
+    txnIconBgPayout: {
+      backgroundColor: 'rgba(255, 152, 0, 0.1)',
     },
   });

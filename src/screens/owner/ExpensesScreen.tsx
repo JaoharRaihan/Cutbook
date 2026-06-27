@@ -349,7 +349,7 @@ export default function ExpensesScreen(): React.ReactElement {
               ))
             )}
           </View>
-          <View style={{height: 40}} />
+          <View style={styles.spacer} />
         </ScrollView>
       ) : (
         <ScrollView style={styles.tabContent} keyboardShouldPersistTaps="handled">
@@ -498,7 +498,7 @@ export default function ExpensesScreen(): React.ReactElement {
               ))
             )}
           </View>
-          <View style={{height: 40}} />
+          <View style={styles.spacer} />
         </ScrollView>
       )}
 
@@ -849,5 +849,8 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) =>
       fontSize: 12,
       color: colors.text.secondary,
       marginTop: 2,
+    },
+    spacer: {
+      height: 40,
     },
   });

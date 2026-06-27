@@ -469,7 +469,7 @@ function NotificationCard({
       {isPendingRequest ? (
         <View style={styles.actionRow}>
           {isResponding ? (
-            <ActivityIndicator color={colors.primary[500]} style={{marginTop: 10}} />
+            <ActivityIndicator color={colors.primary[500]} style={styles.loadingIndicator} />
           ) : (
             <>
               <TouchableOpacity style={styles.acceptButton} onPress={onAccept} activeOpacity={0.8}>
@@ -695,5 +695,8 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) =>
       color: colors.error.dark,
       fontWeight: '600',
       fontSize: 13,
+    },
+    loadingIndicator: {
+      marginTop: 10,
     },
   });

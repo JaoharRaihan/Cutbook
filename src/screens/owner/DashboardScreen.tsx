@@ -129,34 +129,15 @@ export default function DashboardScreen({navigation}: any): React.ReactElement {
             {isToday(selectedDate) ? t.common.today : formatDateISO(selectedDate)}
           </Text>
         </View>
-        <View style={{flexDirection: 'row', alignItems: 'center', gap: 12}}>
+        <View style={styles.headerRight}>
           <TouchableOpacity
             onPress={() => navigation.navigate('Notifications')}
             activeOpacity={0.7}
-            style={{position: 'relative', marginRight: 4}}>
+            style={styles.notificationBtn}>
             <MaterialIcons name="notifications" size={26} color={colors.text.primary} />
             {unreadCount > 0 && (
-              <View
-                style={{
-                  position: 'absolute',
-                  top: -4,
-                  right: -4,
-                  backgroundColor: colors.error.main,
-                  borderRadius: 9,
-                  minWidth: 18,
-                  height: 18,
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  paddingHorizontal: 3,
-                }}>
-                <Text
-                  style={{
-                    color: '#FFFFFF',
-                    fontSize: 10,
-                    fontWeight: '700',
-                  }}>
-                  {unreadCount > 99 ? '99+' : unreadCount}
-                </Text>
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
               </View>
             )}
           </TouchableOpacity>
@@ -318,7 +299,7 @@ export default function DashboardScreen({navigation}: any): React.ReactElement {
                       />
                     }
                     color="primary"
-                    style={{flex: 1, minHeight: 160, justifyContent: 'space-between'}}
+                    style={styles.gridItemCard}
                   />
                 </View>
                 <View style={styles.gridItem}>
@@ -341,7 +322,7 @@ export default function DashboardScreen({navigation}: any): React.ReactElement {
                       />
                     }
                     color="warning"
-                    style={{flex: 1, minHeight: 160, justifyContent: 'space-between'}}
+                    style={styles.gridItemCard}
                   />
                 </View>
               </View>
@@ -369,7 +350,7 @@ export default function DashboardScreen({navigation}: any): React.ReactElement {
                     }
                     // subtitle={`${t.tabs.expenses}: ${formatBDT(totalExpensesAmount)}`}
                     color="info"
-                    style={{flex: 1, minHeight: 160, justifyContent: 'space-between'}}
+                    style={styles.gridItemCard}
                   />
                 </View>
                 <View style={styles.gridItem}>
@@ -384,7 +365,7 @@ export default function DashboardScreen({navigation}: any): React.ReactElement {
                       />
                     }
                     color="error"
-                    style={{flex: 1, minHeight: 160, justifyContent: 'space-between'}}
+                    style={styles.gridItemCard}
                   />
                 </View>
               </View>
@@ -409,7 +390,7 @@ export default function DashboardScreen({navigation}: any): React.ReactElement {
                       />
                     }
                     color="primary"
-                    style={{flex: 1, minHeight: 160, justifyContent: 'space-between'}}
+                    style={styles.gridItemCard}
                   />
                 </View>
 
@@ -456,7 +437,7 @@ export default function DashboardScreen({navigation}: any): React.ReactElement {
                 <TouchableOpacity
                   style={styles.emptyStateButton}
                   onPress={() => navigation.navigate('AddWorkEntry')}>
-                  <View style={{alignItems: 'center', justifyContent: 'center'}}>
+                  <View style={styles.emptyStateContent}>
                     <MaterialIcons name="note-add" size={50} color="#ffffff" />
                     <Text style={styles.emptyStateButtonText}>
                       {language === 'en'
@@ -603,13 +584,11 @@ export default function DashboardScreen({navigation}: any): React.ReactElement {
                           <View
                             style={[
                               styles.txnIconWrapper,
-                              {
-                                backgroundColor: isEntry
-                                  ? 'rgba(76, 175, 80, 0.1)'
-                                  : isExpense
-                                    ? 'rgba(244, 67, 54, 0.1)'
-                                    : 'rgba(255, 152, 0, 0.1)',
-                              },
+                              isEntry
+                                ? styles.txnIconWrapperEntry
+                                : isExpense
+                                  ? styles.txnIconWrapperExpense
+                                  : styles.txnIconWrapperPayout,
                             ]}>
                             <MaterialIcons name={iconName} size={18} color={iconColor} />
                           </View>
@@ -1097,5 +1076,49 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) =>
       fontSize: 13,
       fontWeight: '600',
       color: isDarkMode ? Palette.wheat : Palette.burntOrange,
+    },
+    headerRight: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+    },
+    notificationBtn: {
+      position: 'relative',
+      marginRight: 4,
+    },
+    badge: {
+      position: 'absolute',
+      top: -4,
+      right: -4,
+      backgroundColor: colors.error.main,
+      borderRadius: 9,
+      minWidth: 18,
+      height: 18,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: 3,
+    },
+    badgeText: {
+      color: '#FFFFFF',
+      fontSize: 10,
+      fontWeight: '700',
+    },
+    gridItemCard: {
+      flex: 1,
+      minHeight: 160,
+      justifyContent: 'space-between',
+    },
+    emptyStateContent: {
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    txnIconWrapperEntry: {
+      backgroundColor: 'rgba(76, 175, 80, 0.1)',
+    },
+    txnIconWrapperExpense: {
+      backgroundColor: 'rgba(244, 67, 54, 0.1)',
+    },
+    txnIconWrapperPayout: {
+      backgroundColor: 'rgba(255, 152, 0, 0.1)',
     },
   });

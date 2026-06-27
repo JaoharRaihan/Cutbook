@@ -257,7 +257,7 @@ export default function EmployeeDetailScreen({route, navigation}: any): React.Re
             <Text style={styles.infoText}>{employee.phone}</Text>
           </View>
 
-          {employee.email && (
+          {employee.email && !employee.email.endsWith('@cutbook.app') && (
             <View style={styles.infoRow}>
               <MaterialIcons name="mail-outline" style={styles.infoIcon} />
               <Text style={styles.infoText}>{employee.email}</Text>
@@ -316,7 +316,7 @@ export default function EmployeeDetailScreen({route, navigation}: any): React.Re
         {/* Payment Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            💰 Give Money to <Text style={{color: 'red'}}>{employee.name}</Text>
+            💰 Give Money to <Text style={styles.redText}>{employee.name}</Text>
           </Text>
           <Text style={styles.paymentDescription}>
             {employee.role === UserRole.OWNER
@@ -417,7 +417,7 @@ export default function EmployeeDetailScreen({route, navigation}: any): React.Re
             <View style={styles.permissionCard}>
               {/* Header */}
               <View style={styles.permissionHeader}>
-                <View style={{flex: 1}}>
+                <View style={styles.permissionTextContainer}>
                   <Text style={styles.permissionTitle}>Manager Access</Text>
 
                   <Text style={styles.permissionSubtitle}>
@@ -795,6 +795,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#F44336',
+  },
+  redText: {
+    color: 'red',
+  },
+  permissionTextContainer: {
+    flex: 1,
   },
 
   // Payment Styles

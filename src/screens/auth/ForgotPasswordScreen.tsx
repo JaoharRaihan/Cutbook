@@ -19,7 +19,7 @@ import {
 import {useNavigation} from '@react-navigation/native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import type {StackNavigationProp} from '@react-navigation/stack';
-import {useTheme, useLanguage, useAuth} from '@/context';
+import {useTheme, useLanguage, useAuth, getPhoneFormats, normalizePhone} from '@/context';
 import type {AuthStackParamList} from '@/navigation/AuthNavigator';
 import MaterialIcons from '@react-native-vector-icons/material-icons';
 import {useThemedStyles} from '@/hooks/useThemedStyles';
@@ -87,19 +87,32 @@ const ForgotPasswordScreen: React.FC = () => {
 
     setLoading(true);
     try {
-      // 1. Verify user exists in Firestore
-      const userCheckSnap = await firestore().collection('users').where('phone', '==', phone).get();
+      // 1. Verify user exists in Firestore (handling format variants)
+      const formats = getPhoneFormats(phone);
+      const userCheckSnap = await firestore()
+        .collection('users')
+        .where('phone', 'in', formats)
+        .get();
 
       if (userCheckSnap.empty) {
         throw new Error(t.auth.phoneNotFound);
       }
 
+      // Use the actual format stored in DB (prioritize standard 11-digit format)
+      const normalized = normalizePhone ? normalizePhone(phone) : phone.replace(/\D/g, '');
+      const standardDoc = userCheckSnap.docs.find(d => {
+        const dPhone = d.data().phone || '';
+        return dPhone.replace(/\D/g, '') === normalized;
+      });
+      const matchedDoc = standardDoc || userCheckSnap.docs[0];
+      const matchedUserPhone = matchedDoc.data().phone || phone;
+
       // 2. Send OTP
-      await sendPhoneOTP(phone);
+      await sendPhoneOTP(matchedUserPhone);
 
       // 3. Go to OTP screen
       navigation.navigate('OTPVerification', {
-        phone,
+        phone: matchedUserPhone,
         flow: 'reset_password',
       });
     } catch (err: any) {

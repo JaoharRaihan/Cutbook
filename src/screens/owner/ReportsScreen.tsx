@@ -470,14 +470,7 @@ export default function ReportsScreen({navigation: _navigation}: any): React.Rea
           </View>
 
           <View style={styles.summaryRow}>
-            <View
-              style={[
-                styles.summaryCard,
-                {
-                  borderColor: colors.error.main,
-                  backgroundColor: isDarkMode ? 'rgba(244, 67, 54, 0.08)' : '#FFEBEE',
-                },
-              ]}>
+            <View style={[styles.summaryCard, styles.summaryCardExpense]}>
               <View style={styles.summaryCardHeader}>
                 <Text style={[styles.summaryLabel, {color: colors.error.main}]}>
                   {language === 'en'
@@ -494,14 +487,7 @@ export default function ReportsScreen({navigation: _navigation}: any): React.Rea
                 {formatBDT(totalExpensesAmount)}
               </Text>
             </View>
-            <View
-              style={[
-                styles.summaryCard,
-                {
-                  borderColor: colors.success.main,
-                  backgroundColor: isDarkMode ? 'rgba(76, 175, 80, 0.08)' : '#E8F5E9',
-                },
-              ]}>
+            <View style={[styles.summaryCard, styles.summaryCardNet]}>
               <View style={styles.summaryCardHeader}>
                 <Text style={[styles.summaryLabel, {color: colors.success.main}]}>
                   {language === 'en'
@@ -932,5 +918,13 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) =>
       color: colors.text.hint,
       textAlign: 'center',
       paddingVertical: 20,
+    },
+    summaryCardExpense: {
+      borderColor: colors.error.main,
+      backgroundColor: isDarkMode ? 'rgba(244, 67, 54, 0.08)' : '#FFEBEE',
+    },
+    summaryCardNet: {
+      borderColor: colors.success.main,
+      backgroundColor: isDarkMode ? 'rgba(76, 175, 80, 0.08)' : '#E8F5E9',
     },
   });
