@@ -29,8 +29,8 @@ const logger = createLogger('AuthContext');
 // a free serverless function on Netlify/Vercel (which are 100% free) and put its URL here.
 // Set enabled: true to use the free external API instead of Firebase Cloud Functions.
 export const FREE_PLAN_RESET_CONFIG = {
-  enabled: true, // Set to true to use a free Netlify function instead of Firebase Cloud Functions
-  apiUrl: 'https://cutbook.netlify.app/.netlify/functions/reset-password', // Change this to your Netlify site URL once deployed
+  enabled: true, // Set to true to use a free Vercel/Netlify function instead of Firebase Cloud Functions
+  apiUrl: 'https://cutbook.vercel.app/api/reset-password', // Change this to your Vercel or Netlify site URL once deployed
 };
 
 // ============================================================================
