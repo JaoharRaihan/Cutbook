@@ -2,6 +2,9 @@
   publish = "dist"
   command = "npm run build:web"
 
+[functions]
+  directory = "netlify/functions"
+
 [[redirects]]
   from = "/*"
   to = "/index.html"
