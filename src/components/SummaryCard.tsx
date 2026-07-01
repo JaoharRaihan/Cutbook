@@ -148,7 +148,13 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
       ) : null}
 
       <Text style={[styles.title, {color: cardColors.title}]}>{title}</Text>
-      <Text style={[styles.value, {color: cardColors.value}]}>{value}</Text>
+      <Text
+        style={[styles.value, {color: cardColors.value}]}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.5}>
+        {value}
+      </Text>
 
       {subtitle ? (
         <Text style={[styles.subtitle, {color: cardColors.subtitle}]}>{subtitle}</Text>

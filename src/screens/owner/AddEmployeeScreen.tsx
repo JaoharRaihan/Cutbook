@@ -52,7 +52,9 @@ export default function AddEmployeeScreen({navigation}: any): React.ReactElement
   const [employeeName, setEmployeeName] = useState('');
   const [employeePhone, setEmployeePhone] = useState('');
   const [employeePassword, setEmployeePassword] = useState('');
-  const [commissionPercentage, setCommissionPercentage] = useState('30');
+  const [commissionPercentage, setCommissionPercentage] = useState(
+    currentOrg?.defaultCommissionMode === 'salary' ? '15000' : '30',
+  );
   const [loading, setLoading] = useState(false);
 
   // ============================================================================
@@ -98,15 +100,29 @@ export default function AddEmployeeScreen({navigation}: any): React.ReactElement
             : 'पासवर्ड कम से कम 6 अक्षरों का होना चाहिए';
     }
 
-    const commission = parseFloat(commissionPercentage);
-    if (isNaN(commission) || commission < 0 || commission > 100) {
-      return language === 'en'
-        ? 'Commission must be between 0 and 100'
-        : language === 'bn'
-          ? 'কমিশন ০ থেকে ১০০ এর মধ্যে হতে হবে'
-          : language === 'es'
-            ? 'La comisión debe estar entre 0 y 100'
-            : 'कमीशन 0 और 100 के बीच होना चाहिए';
+    const isSalaryMode = currentOrg?.defaultCommissionMode === 'salary';
+    if (isSalaryMode) {
+      const salary = parseFloat(commissionPercentage);
+      if (isNaN(salary) || salary < 0) {
+        return language === 'en'
+          ? 'Salary must be a valid positive number'
+          : language === 'bn'
+            ? 'বেতন অবশ্যই একটি সঠিক ধনাত্মক সংখ্যা হতে হবে'
+            : language === 'es'
+              ? 'El salario debe ser un número positivo válido'
+              : 'वेतन एक मान्य सकारात्मक संख्या होना चाहिए';
+      }
+    } else {
+      const commission = parseFloat(commissionPercentage);
+      if (isNaN(commission) || commission < 0 || commission > 100) {
+        return language === 'en'
+          ? 'Commission must be between 0 and 100'
+          : language === 'bn'
+            ? 'কমিশন ০ থেকে ১০০ এর মধ্যে হতে হবে'
+            : language === 'es'
+              ? 'La comisión debe estar entre 0 y 100'
+              : 'कमीशन 0 और 100 के बीच होना चाहिए';
+      }
     }
 
     return null;
@@ -151,7 +167,9 @@ export default function AddEmployeeScreen({navigation}: any): React.ReactElement
     try {
       const email = phoneToFirebaseEmail(employeePhone);
       const password = employeePassword.trim();
-      const commission = parseFloat(commissionPercentage);
+      const isSalaryMode = currentOrg.defaultCommissionMode === 'salary';
+      const commission = isSalaryMode ? 0 : parseFloat(commissionPercentage);
+      const monthlySalary = isSalaryMode ? parseFloat(commissionPercentage) : 0;
 
       // Step 1: Create Firebase Auth account on a secondary Firebase app to prevent logging out the current owner
       const existingApp = firebase.apps.find(app => app.name === 'SecondaryApp');
@@ -179,6 +197,7 @@ export default function AddEmployeeScreen({navigation}: any): React.ReactElement
         role: UserRole.EMPLOYEE,
         status: UserStatus.ACTIVE,
         commissionPercentage: commission,
+        monthlySalary: monthlySalary,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -337,39 +356,76 @@ export default function AddEmployeeScreen({navigation}: any): React.ReactElement
               />
             </View>
 
-            {/* Commission Input */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>
-                {language === 'en'
-                  ? 'Commission Percentage'
-                  : language === 'bn'
-                    ? 'কমিশনের হার'
-                    : language === 'es'
-                      ? 'Porcentaje de Comisión'
-                      : 'कमीशन प्रतिशत'}{' '}
-                <Text style={styles.required}>*</Text>
-              </Text>
-              <View style={styles.percentageInputContainer}>
-                <TextInput
-                  style={styles.percentageInput}
-                  placeholder="30"
-                  placeholderTextColor={colors.text.hint}
-                  value={commissionPercentage}
-                  onChangeText={setCommissionPercentage}
-                  keyboardType="numeric"
-                  editable={!loading}
-                />
-                <Text style={styles.percentageSymbol}>%</Text>
-              </View>
-              <Text style={styles.hint}>
-                {language === 'en'
-                  ? 'Default commission percentage for this employee'
-                  : language === 'bn'
-                    ? 'এই কর্মীর জন্য ডিফল্ট কমিশন শতাংশ'
-                    : language === 'es'
-                      ? 'Porcentaje de comisión predeterminado para este empleado'
-                      : 'इस कर्मचारी के लिए डिफ़ॉल्ट कमीशन प्रतिशत'}
-              </Text>
+              {currentOrg?.defaultCommissionMode === 'salary' ? (
+                <>
+                  <Text style={styles.label}>
+                    {language === 'en'
+                      ? 'Monthly Salary'
+                      : language === 'bn'
+                        ? 'মাসিক বেতন'
+                        : language === 'es'
+                          ? 'Salario Mensual'
+                          : 'मासिक वेतन'}{' '}
+                    <Text style={styles.required}>*</Text>
+                  </Text>
+                  <View style={styles.percentageInputContainer}>
+                    <TextInput
+                      style={styles.percentageInput}
+                      placeholder="15000"
+                      placeholderTextColor={colors.text.hint}
+                      value={commissionPercentage}
+                      onChangeText={setCommissionPercentage}
+                      keyboardType="numeric"
+                      editable={!loading}
+                    />
+                    <Text style={styles.percentageSymbol}>৳</Text>
+                  </View>
+                  <Text style={styles.hint}>
+                    {language === 'en'
+                      ? 'Default monthly base salary for this employee'
+                      : language === 'bn'
+                        ? 'এই কর্মীর জন্য ডিফল্ট মাসিক মূল বেতন'
+                        : language === 'es'
+                          ? 'Salario base mensual predeterminado para este empleado'
+                          : 'इस कर्मचारी के लिए डिफ़ॉल्ट मासिक मूल वेतन'}
+                  </Text>
+                </>
+              ) : (
+                <>
+                  <Text style={styles.label}>
+                    {language === 'en'
+                      ? 'Commission Percentage'
+                      : language === 'bn'
+                        ? 'কমিশনের হার'
+                        : language === 'es'
+                          ? 'Porcentaje de Comisión'
+                          : 'कमीशन प्रतिशत'}{' '}
+                    <Text style={styles.required}>*</Text>
+                  </Text>
+                  <View style={styles.percentageInputContainer}>
+                    <TextInput
+                      style={styles.percentageInput}
+                      placeholder="30"
+                      placeholderTextColor={colors.text.hint}
+                      value={commissionPercentage}
+                      onChangeText={setCommissionPercentage}
+                      keyboardType="numeric"
+                      editable={!loading}
+                    />
+                    <Text style={styles.percentageSymbol}>%</Text>
+                  </View>
+                  <Text style={styles.hint}>
+                    {language === 'en'
+                      ? 'Default commission percentage for this employee'
+                      : language === 'bn'
+                        ? 'এই কর্মীর জন্য ডিফল্ট কমিশন শতাংশ'
+                        : language === 'es'
+                          ? 'Porcentaje de comisión predeterminado para este empleado'
+                          : 'इस कर्मचारी के लिए डिफ़ॉल्ट कमीशन प्रतिशत'}
+                  </Text>
+                </>
+              )}
             </View>
           </View>
 

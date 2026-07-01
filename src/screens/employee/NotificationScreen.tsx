@@ -24,7 +24,6 @@ import {useThemedStyles} from '@/hooks/useThemedStyles';
 import {ThemeColors} from '@/constants/theme';
 import {TransactionStatus} from '@/types';
 import {createNotification} from '@/services/notificationService';
-import {sendPayoutResponsePush} from '@/services/fcmService';
 
 export default function NotificationScreen({_navigation}: any): React.ReactElement {
   const {notifications, unreadCount, loading, error, actions} = useNotifications();
@@ -187,21 +186,6 @@ export default function NotificationScreen({_navigation}: any): React.ReactEleme
                 message: `${user.name || 'Employee'} ${actionText} your payment request.`,
                 relatedRequestId: notification.relatedRequestId,
                 isRead: false,
-              }).catch(() => {});
-
-              // Find actual amount from employeeTransactions
-              const txn = employeeTransactions.find(
-                item => item.id === notification.relatedRequestId,
-              );
-              const actualAmount = txn ? txn.amount : 0;
-
-              // Device push notification to owner
-              await sendPayoutResponsePush({
-                ownerId: notification.senderId,
-                employeeName: user.name || 'Employee',
-                amount: actualAmount,
-                accepted,
-                transactionId: notification.relatedRequestId,
               }).catch(() => {});
             }
 

@@ -15,6 +15,7 @@
 
 import * as admin from 'firebase-admin';
 import {onCall, HttpsError} from 'firebase-functions/v2/https';
+import {onDocumentCreated} from 'firebase-functions/v2/firestore';
 import * as logger from 'firebase-functions/logger';
 
 admin.initializeApp();
@@ -189,5 +190,72 @@ export const resetPassword = onCall(
 
     logger.log(`Password reset successful for uid=${uid}`);
     return {success: true};
+  },
+);
+
+// ── sendNotificationPush ──────────────────────────────────────────────────
+// Automatically triggers on any new notification document creation.
+// Fetches the recipient's registered device FCM token and dispatches the
+// push notification securely using the Firebase Admin Messaging SDK.
+export const sendNotificationPush = onDocumentCreated(
+  {
+    document: 'notifications/{notificationId}',
+    region: 'us-central1',
+  },
+  async event => {
+    const snapshot = event.data;
+    if (!snapshot) {
+      logger.info('No data associated with the event');
+      return;
+    }
+    const data = snapshot.data();
+    const recipientId = data.recipientId;
+    if (!recipientId) return;
+
+    // Get recipient's FCM token from users collection
+    const userDoc = await db.collection('users').doc(recipientId).get();
+    if (!userDoc.exists) {
+      logger.warn(`Recipient user ${recipientId} not found`);
+      return;
+    }
+    const userData = userDoc.data();
+    const fcmToken = userData?.fcmToken;
+    if (!fcmToken) {
+      logger.info(`No FCM token registered for recipient ${recipientId}`);
+      return;
+    }
+
+    const payload: admin.messaging.Message = {
+      token: fcmToken,
+      notification: {
+        title: data.title || 'Notification',
+        body: data.message || '',
+      },
+      data: {
+        type: data.type || '',
+        relatedRequestId: data.relatedRequestId || '',
+      },
+      android: {
+        priority: 'high',
+        notification: {
+          sound: 'default',
+          channelId: 'payout_channel',
+        },
+      },
+      apns: {
+        payload: {
+          aps: {
+            sound: 'default',
+          },
+        },
+      },
+    };
+
+    try {
+      const response = await admin.messaging().send(payload);
+      logger.log('Push notification sent successfully:', response);
+    } catch (error) {
+      logger.error('Failed to send push notification via FCM:', error);
+    }
   },
 );

@@ -223,7 +223,7 @@ const TERMS_DETAILS: Record<string, Array<{title: string; text: string}>> = {
 // ============================================================================
 
 export default function SettingsScreen({navigation}: any): React.ReactElement {
-  const {user, logout} = useAuth();
+  const {user, logout, deleteAccount} = useAuth();
   const {currentOrg} = useOrg();
   const {isDarkMode, toggleDarkMode, colors} = useTheme();
   const {language, setLanguage, t} = useLanguage();
@@ -318,6 +318,54 @@ export default function SettingsScreen({navigation}: any): React.ReactElement {
           style: 'destructive',
           onPress: async () => {
             await logout();
+          },
+        },
+      ],
+    );
+  };
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      language === 'en'
+        ? 'Delete Account Permanently'
+        : language === 'bn'
+          ? 'অ্যাকাউন্ট চিরতরে মুছে ফেলুন'
+          : language === 'es'
+            ? 'Eliminar cuenta permanentemente'
+            : 'अकाउंट हमेशा के लिए हटाएं',
+      language === 'en'
+        ? 'WARNING: This will permanently delete your account, your salon settings, and all associated operational records. This action cannot be undone. Are you sure?'
+        : language === 'bn'
+          ? 'সতর্কতা: এটি আপনার অ্যাকাউন্ট, সেলুন সেটিংস এবং সমস্ত সংশ্লিষ্ট রেকর্ড চিরতরে মুছে ফেলবে। এই কাজটি আর ফিরিয়ে আনা সম্ভব নয়। আপনি কি নিশ্চিত?'
+          : language === 'es'
+            ? 'ADVERTENCIA: Esto eliminará de forma permanente su cuenta, la configuración de la pelুকেরী এবং সমস্ত সংশ্লিষ্ট রেকর্ড। Esta acción no se puede deshacer. ¿Está seguro?'
+            : 'चेतावनी: यह आपके अकाउंट, सैलून सेटिंग्स और सभी जुड़े परिचालन रिकॉर्ड को हमेशा के लिए हटा देगा। यह क्रिया पूर्ववत नहीं की जा सकती। क्या आप सुनिश्चित हैं?',
+      [
+        {text: t.common.cancel, style: 'cancel'},
+        {
+          text:
+            language === 'en'
+              ? 'Delete Account'
+              : language === 'bn'
+                ? 'মুছে ফেলুন'
+                : language === 'es'
+                  ? 'Eliminar cuenta'
+                  : 'অ্যাকাউন্ট हटाएं',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteAccount();
+              Alert.alert(
+                t.common.success || 'Success',
+                language === 'en'
+                  ? 'Your account has been deleted successfully.'
+                  : language === 'bn'
+                    ? 'আপনার অ্যাকাউন্টটি সফলভাবে মুছে ফেলা হয়েছে।'
+                    : 'Su cuenta ha sido eliminada exitosamente.',
+              );
+            } catch (err: any) {
+              Alert.alert(t.common.error || 'Error', err.message || 'Failed to delete account');
+            }
           },
         },
       ],
@@ -581,7 +629,7 @@ export default function SettingsScreen({navigation}: any): React.ReactElement {
           </TouchableOpacity>
         </View>
 
-        {/* Logout Button */}
+        {/* Logout & Deletion Section */}
         <View style={styles.section}>
           <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
             <MaterialIcons
@@ -591,6 +639,24 @@ export default function SettingsScreen({navigation}: any): React.ReactElement {
               style={styles.logoutButtonIcon}
             />
             <Text style={styles.logoutButtonText}>{t.auth.logout}</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.deleteAccountButton} onPress={handleDeleteAccount}>
+            <MaterialIcons
+              name="delete-forever"
+              size={20}
+              color={colors.error.main}
+              style={{marginRight: 4}}
+            />
+            <Text style={styles.deleteAccountButtonText}>
+              {language === 'en'
+                ? 'Delete Account Permanently'
+                : language === 'bn'
+                  ? 'অ্যাকাউন্ট স্থায়ীভাবে মুছে ফেলুন'
+                  : language === 'es'
+                    ? 'Eliminar cuenta permanentemente'
+                    : 'अकाउंट हमेशा के लिए हटाएं'}
+            </Text>
           </TouchableOpacity>
         </View>
 
@@ -1123,6 +1189,18 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) =>
       fontSize: 18,
       fontWeight: '600',
       color: '#FFFFFF',
+    },
+    deleteAccountButton: {
+      marginTop: 16,
+      paddingVertical: 12,
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    deleteAccountButtonText: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: colors.error.main,
     },
     footer: {
       alignItems: 'center',

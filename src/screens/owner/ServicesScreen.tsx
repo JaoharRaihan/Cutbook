@@ -18,7 +18,7 @@ import MaterialIcons from '@react-native-vector-icons/material-icons';
 import {useThemedStyles} from '@/hooks/useThemedStyles';
 import {ThemeColors} from '@/constants/theme';
 
-export default function ServicesScreen({navigation}: any): React.ReactElement {
+export default function ServicesScreen({navigation, embedded = false}: any): React.ReactElement {
   const {orgServices, loading, fetchOrgData} = useOrg();
   const {isDarkMode, colors} = useTheme();
   const {language, t} = useLanguage();
@@ -152,24 +152,25 @@ export default function ServicesScreen({navigation}: any): React.ReactElement {
         backgroundColor={colors.background.paper}
       />
 
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>{t.services.title}</Text>
-        <Text style={styles.headerSubtitle}>
-          {orgServices.length}{' '}
-          {language === 'en'
-            ? orgServices.length === 1
-              ? 'service'
-              : 'services'
-            : language === 'bn'
-              ? 'টি সেবা'
-              : language === 'es'
-                ? orgServices.length === 1
-                  ? 'servicio'
-                  : 'servicios'
-                : 'सेवाएं'}
-        </Text>
-      </View>
+      {!embedded && (
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>{t.services.title}</Text>
+          <Text style={styles.headerSubtitle}>
+            {orgServices.length}{' '}
+            {language === 'en'
+              ? orgServices.length === 1
+                ? 'service'
+                : 'services'
+              : language === 'bn'
+                ? 'টি সেবা'
+                : language === 'es'
+                  ? orgServices.length === 1
+                    ? 'servicio'
+                    : 'servicios'
+                  : 'सेवाएं'}
+          </Text>
+        </View>
+      )}
 
       {/* Initial Loading State */}
       {loading && orgServices.length === 0 && !refreshing ? (

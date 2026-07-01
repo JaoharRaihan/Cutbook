@@ -102,18 +102,48 @@ export default function EmployeeHomeScreen({navigation}: any): React.ReactElemen
 
     // Employee's earnings: commission on service price + 100% of tips
     const commissionPercentage = currentUser?.commissionPercentage || 0;
+    const monthlySalary = currentUser?.monthlySalary || 0;
+    // Effective mode: per-employee override takes priority over org default
+    const effectiveMode =
+      currentUser?.commissionMode ?? currentOrg?.defaultCommissionMode ?? 'percentage';
 
     let commission = 0;
     if (currentOrg) {
-      todayEntries.forEach(entry => {
-        commission += calculateEmployeeCommission(entry.price, currentOrg, commissionPercentage);
-      });
+      if (effectiveMode === 'salary') {
+        let proRatedSalary = 0;
+        if (timePeriod === TimePeriod.TODAY) {
+          proRatedSalary = monthlySalary / 30;
+        } else if (timePeriod === TimePeriod.WEEKLY) {
+          proRatedSalary = (monthlySalary * 7) / 30;
+        } else if (timePeriod === TimePeriod.MONTHLY) {
+          proRatedSalary = monthlySalary;
+        } else if (timePeriod === TimePeriod.YEARLY) {
+          proRatedSalary = monthlySalary * 12;
+        }
+        commission = proRatedSalary;
+      } else {
+        todayEntries.forEach(entry => {
+          commission += calculateEmployeeCommission(
+            entry.price,
+            currentOrg,
+            commissionPercentage,
+            currentUser?.commissionMode, // per-employee mode override
+          );
+        });
+      }
     }
     commission = Math.round(commission);
     const employeeEarnings = commission + totalTips;
 
     return {totalServices, totalIncome, serviceRevenue, totalTips, commission, employeeEarnings};
-  }, [todayEntries, currentOrg, currentUser?.commissionPercentage]);
+  }, [
+    todayEntries,
+    currentOrg,
+    currentUser?.commissionMode,
+    currentUser?.commissionPercentage,
+    currentUser?.monthlySalary,
+    timePeriod,
+  ]);
 
   const periodPayouts = useMemo(() => {
     if (!currentUser?.id || !employeeTransactions) return [];
@@ -629,13 +659,21 @@ export default function EmployeeHomeScreen({navigation}: any): React.ReactElemen
               <View style={styles.gridItem}>
                 <SummaryCard
                   title={
-                    language === 'en'
-                      ? 'Commission'
-                      : language === 'bn'
-                        ? 'কমিশন'
-                        : language === 'es'
-                          ? 'Comisión'
-                          : 'कमीशन'
+                    currentOrg?.defaultCommissionMode === 'salary'
+                      ? language === 'en'
+                        ? 'Salary'
+                        : language === 'bn'
+                          ? 'বেতন'
+                          : language === 'es'
+                            ? 'Salario'
+                            : 'वेतन'
+                      : language === 'en'
+                        ? 'Commission'
+                        : language === 'bn'
+                          ? 'কমিশন'
+                          : language === 'es'
+                            ? 'Comisión'
+                            : 'कमीशन'
                   }
                   value={formatBDT(todayStats.commission)}
                   icon={
@@ -646,15 +684,23 @@ export default function EmployeeHomeScreen({navigation}: any): React.ReactElemen
                     />
                   }
                   subtitle={
-                    currentOrg?.defaultCommissionMode === 'fixed'
+                    currentOrg?.defaultCommissionMode === 'salary'
                       ? language === 'en'
-                        ? 'Fixed per service'
+                        ? 'Base salary'
                         : language === 'bn'
-                          ? 'প্রতি সেবায় নির্দিষ্ট'
+                          ? 'মূল বেতন'
                           : language === 'es'
-                            ? 'Fija por servicio'
-                            : 'प्रति सेवा निश्चित'
-                      : `${currentUser?.commissionPercentage || 0}% rate`
+                            ? 'Salario base'
+                            : 'मूल वेतन'
+                      : currentOrg?.defaultCommissionMode === 'fixed'
+                        ? language === 'en'
+                          ? 'Fixed per service'
+                          : language === 'bn'
+                            ? 'প্রতি সেবায় নির্দিষ্ট'
+                            : language === 'es'
+                              ? 'Fija por servicio'
+                              : 'प्रति सेवा निश्चित'
+                        : `${currentUser?.commissionPercentage || 0}% rate`
                   }
                   color="info"
                   style={styles.gridItemCard}
@@ -778,18 +824,28 @@ export default function EmployeeHomeScreen({navigation}: any): React.ReactElemen
           <View style={styles.infoCard}>
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>
-                {language === 'en'
-                  ? 'Commission Rate'
-                  : language === 'bn'
-                    ? 'কমিশন হার'
-                    : language === 'es'
-                      ? 'Tasa de Comisión'
-                      : 'कमीशन दर'}
+                {currentOrg?.defaultCommissionMode === 'salary'
+                  ? language === 'en'
+                    ? 'Base Salary'
+                    : language === 'bn'
+                      ? 'মূল বেতন'
+                      : language === 'es'
+                        ? 'Salario Base'
+                        : 'मूल वेतन'
+                  : language === 'en'
+                    ? 'Commission Rate'
+                    : language === 'bn'
+                      ? 'কমিশন হার'
+                      : language === 'es'
+                        ? 'Tasa de Comisión'
+                        : 'कमीशन दर'}
               </Text>
               <Text style={styles.infoValue}>
-                {currentOrg?.defaultCommissionMode === 'fixed'
-                  ? formatBDT(currentUser?.commissionPercentage || 0, true, 0)
-                  : `${currentUser?.commissionPercentage || 0}%`}
+                {currentOrg?.defaultCommissionMode === 'salary'
+                  ? formatBDT(currentUser?.monthlySalary || 0, true, 0)
+                  : currentOrg?.defaultCommissionMode === 'fixed'
+                    ? formatBDT(currentUser?.commissionPercentage || 0, true, 0)
+                    : `${currentUser?.commissionPercentage || 0}%`}
               </Text>
             </View>
             <View style={styles.infoDivider} />

@@ -40,6 +40,9 @@ export const calculateCommission = (
     case 'fixed':
       return roundAmount(commissionValue);
 
+    case 'salary':
+      return 0;
+
     case 'manual':
       return 0; // Manual mode requires explicit input
 
@@ -49,18 +52,24 @@ export const calculateCommission = (
 };
 
 /**
- * Calculate commission for employee based on organization settings
+ * Calculate commission for employee based on organization settings.
+ * If the employee has a per-employee commissionMode override it is used
+ * in place of the organization default.
+ *
  * @param price - Service price
  * @param organization - Organization with commission settings
- * @param employeeCommissionPercentage - Employee-specific commission %
+ * @param employeeCommissionPercentage - Employee-specific rate (% or fixed ৳)
+ * @param employeeCommissionMode - Per-employee mode override (optional)
  * @returns Calculated commission
  */
 export const calculateEmployeeCommission = (
   price: number,
   organization: Organization,
   employeeCommissionPercentage?: number,
+  employeeCommissionMode?: CommissionMode,
 ): number => {
-  const mode = organization.defaultCommissionMode;
+  // Per-employee mode takes priority; fall back to org default
+  const mode = employeeCommissionMode ?? organization.defaultCommissionMode;
   const value = employeeCommissionPercentage ?? organization.defaultCommissionValue;
 
   return calculateCommission(price, mode, value);
@@ -140,6 +149,8 @@ export const calculatePaymentBreakdown = (entries: WorkEntry[]): Record<PaymentM
     [PaymentMethod.BKASH]: calculateTotalByPaymentMethod(entries, PaymentMethod.BKASH),
     [PaymentMethod.NAGAD]: calculateTotalByPaymentMethod(entries, PaymentMethod.NAGAD),
     [PaymentMethod.CARD]: calculateTotalByPaymentMethod(entries, PaymentMethod.CARD),
+    [PaymentMethod.BANGLA_QR]: calculateTotalByPaymentMethod(entries, PaymentMethod.BANGLA_QR),
+    [PaymentMethod.ROCKET]: calculateTotalByPaymentMethod(entries, PaymentMethod.ROCKET),
     [PaymentMethod.OTHER]: calculateTotalByPaymentMethod(entries, PaymentMethod.OTHER),
   };
 };
@@ -379,6 +390,8 @@ export const findMostUsedPaymentMethod = (entries: WorkEntry[]): PaymentMethod |
     [PaymentMethod.BKASH]: 0,
     [PaymentMethod.NAGAD]: 0,
     [PaymentMethod.CARD]: 0,
+    [PaymentMethod.BANGLA_QR]: 0,
+    [PaymentMethod.ROCKET]: 0,
     [PaymentMethod.OTHER]: 0,
   };
 

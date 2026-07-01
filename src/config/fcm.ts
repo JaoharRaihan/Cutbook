@@ -20,17 +20,3 @@
 
 /** Firebase Project ID (e.g. "cutbook-12345") */
 export const FCM_PROJECT_ID = 'cutbook-15e20';
-
-/**
- * FCM Server Key (Legacy) — available in Firebase Console →
- * Project Settings → Cloud Messaging → Server Key
- * Keep this secret — do not commit to public repos.
- */
-export const FCM_SERVER_KEY = 'YOUR_FCM_SERVER_KEY_HERE';
-
-// ============================================================================
-// FCM API URLS
-// ============================================================================
-
-/** FCM Legacy HTTP API endpoint (works without OAuth) */
-export const FCM_LEGACY_API_URL = 'https://fcm.googleapis.com/fcm/send';

@@ -94,6 +94,7 @@ interface AuthContextValue {
   login: (credentials: AuthCredentials) => Promise<void>;
   register: (data: RegistrationData) => Promise<void>;
   logout: () => Promise<void>;
+  deleteAccount: () => Promise<void>;
   updateUser: (data: Partial<User>) => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   sendPhoneOTP: (phone: string) => Promise<any>;
@@ -391,6 +392,54 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) 
       setLoading(false);
     }
   }, []);
+
+  // ============================================================================
+  // DELETE ACCOUNT
+  // ============================================================================
+
+  const deleteAccount = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const currentUser = auth().currentUser;
+      if (!currentUser) {
+        throw new Error('No authenticated user found');
+      }
+
+      const uid = currentUser.uid;
+
+      // 1. Delete user document in Firestore
+      await firestore().collection('users').doc(uid).delete();
+
+      // 2. Clear FCM token from Firestore (handled inside clearFCMToken)
+      await clearFCMToken(uid).catch(() => {});
+
+      // 3. Delete Firebase Auth user account
+      await currentUser.delete();
+
+      // 4. Reset local state
+      setUser(null);
+      setToken(null);
+      clearErrorReportingUser();
+      await AsyncStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+      await AsyncStorage.removeItem(STORAGE_KEYS.USER_DATA);
+
+      logger.debug('Account deleted successfully');
+    } catch (err: any) {
+      let errorMessage = err.message || 'Failed to delete account';
+      if (err.code === 'auth/requires-recent-login') {
+        errorMessage =
+          language === 'bn'
+            ? 'এই কাজটি সম্পন্ন করতে আপনাকে পুনরায় লগইন করতে হবে। অনুগ্রহ করে লগআউট করে আবার লগইন করুন এবং চেষ্টা করুন।'
+            : 'This action requires recent authentication. Please log out, log back in, and try again.';
+      }
+      setError(errorMessage);
+      logger.error('Error during account deletion:', err);
+      throw new Error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  }, [language]);
 
   // ============================================================================
   // UPDATE USER
@@ -747,6 +796,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) 
     login,
     register,
     logout,
+    deleteAccount,
     updateUser,
     resetPassword,
     sendPhoneOTP,

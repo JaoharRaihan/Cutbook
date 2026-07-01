@@ -10,10 +10,9 @@ import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 
 // Screens
 import DashboardScreen from '@/screens/owner/DashboardScreen';
-import EmployeesScreen from '@/screens/owner/EmployeesScreen';
+import TeamServicesScreen from '@/screens/owner/TeamServicesScreen';
 import AddEmployeeScreen from '@/screens/owner/AddEmployeeScreen';
 import EmployeeDetailScreen from '@/screens/owner/EmployeeDetailScreen';
-import ServicesScreen from '@/screens/owner/ServicesScreen';
 import AddServiceScreen from '@/screens/owner/AddServiceScreen';
 import EditServiceScreen from '@/screens/owner/EditServiceScreen';
 import WorkEntriesScreen from '@/screens/owner/WorkEntriesScreen';
@@ -39,14 +38,10 @@ export type DashboardStackParamList = {
   Expenses: undefined;
 };
 
-export type EmployeesStackParamList = {
-  EmployeeList: undefined;
+export type TeamServicesStackParamList = {
+  TeamServicesMain: undefined;
   AddEmployee: undefined;
   EmployeeDetail: {employeeId: string};
-};
-
-export type ServicesStackParamList = {
-  ServiceList: undefined;
   AddService: undefined;
   EditService: {serviceId: string};
 };
@@ -58,8 +53,8 @@ export type SettingsStackParamList = {
 
 export type OwnerTabParamList = {
   Dashboard: undefined;
-  Employees: undefined;
-  Services: undefined;
+  TeamServices: undefined;
+  Expenses: undefined;
   Settings: undefined;
 };
 
@@ -136,13 +131,13 @@ const DashboardNavigator = () => {
   );
 };
 
-const EmployeesStack = createStackNavigator<EmployeesStackParamList>();
-const EmployeesNavigator = () => {
+const TeamServicesStack = createStackNavigator<TeamServicesStackParamList>();
+const TeamServicesNavigator = () => {
   const {colors, isDarkMode} = useTheme();
   const {t} = useLanguage();
 
   return (
-    <EmployeesStack.Navigator
+    <TeamServicesStack.Navigator
       screenOptions={{
         headerStyle: {
           backgroundColor: isDarkMode ? colors.background.paper : colors.primary[600],
@@ -156,69 +151,40 @@ const EmployeesNavigator = () => {
           fontWeight: '600',
         },
       }}>
-      <EmployeesStack.Screen
-        name="EmployeeList"
-        component={EmployeesScreen}
+      <TeamServicesStack.Screen
+        name="TeamServicesMain"
+        component={TeamServicesScreen}
         options={{headerShown: false}}
       />
-      <EmployeesStack.Screen
+      <TeamServicesStack.Screen
         name="AddEmployee"
         component={AddEmployeeScreen}
         options={{
           title: t.employees.addEmployee,
         }}
       />
-      <EmployeesStack.Screen
+      <TeamServicesStack.Screen
         name="EmployeeDetail"
         component={EmployeeDetailScreen}
         options={{
           title: t.employees.employeeDetails,
         }}
       />
-    </EmployeesStack.Navigator>
-  );
-};
-
-const ServicesStack = createStackNavigator<ServicesStackParamList>();
-const ServicesNavigator = () => {
-  const {colors, isDarkMode} = useTheme();
-  const {t} = useLanguage();
-
-  return (
-    <ServicesStack.Navigator
-      screenOptions={{
-        headerStyle: {
-          backgroundColor: isDarkMode ? colors.background.paper : colors.primary[600],
-          borderBottomWidth: isDarkMode ? 1 : 0,
-          borderBottomColor: colors.border.light,
-          elevation: 0,
-          shadowOpacity: 0,
-        },
-        headerTintColor: isDarkMode ? colors.text.primary : '#FFFFFF',
-        headerTitleStyle: {
-          fontWeight: '600',
-        },
-      }}>
-      <ServicesStack.Screen
-        name="ServiceList"
-        component={ServicesScreen}
-        options={{headerShown: false}}
-      />
-      <ServicesStack.Screen
+      <TeamServicesStack.Screen
         name="AddService"
         component={AddServiceScreen}
         options={{
           title: t.services.addService,
         }}
       />
-      <ServicesStack.Screen
+      <TeamServicesStack.Screen
         name="EditService"
         component={EditServiceScreen}
         options={{
           title: t.services.editService,
         }}
       />
-    </ServicesStack.Navigator>
+    </TeamServicesStack.Navigator>
   );
 };
 
@@ -295,22 +261,22 @@ const OwnerNavigator: React.FC = () => {
         }}
       />
       <Tab.Screen
-        name="Employees"
-        component={EmployeesNavigator}
+        name="Expenses"
+        component={ExpensesScreen}
         options={{
-          tabBarLabel: t.tabs.employees,
+          tabBarLabel: t.tabs.expenses,
           tabBarIcon: ({color, size}) => (
-            <MaterialIcons name="people-alt" size={size} color={color} />
+            <MaterialIcons name="shopping-bag" size={size} color={color} />
           ),
         }}
       />
       <Tab.Screen
-        name="Services"
-        component={ServicesNavigator}
+        name="TeamServices"
+        component={TeamServicesNavigator}
         options={{
-          tabBarLabel: t.tabs.services,
+          tabBarLabel: 'Team',
           tabBarIcon: ({color, size}) => (
-            <MaterialIcons name="content-cut" size={size} color={color} />
+            <MaterialIcons name="groups" size={size} color={color} />
           ),
         }}
       />

@@ -32,6 +32,8 @@ export enum PaymentMethod {
   BKASH = 'bkash',
   CARD = 'card',
   NAGAD = 'nagad',
+  BANGLA_QR = 'bangla_qr',
+  ROCKET = 'rocket',
   OTHER = 'other',
 }
 
@@ -42,6 +44,7 @@ export enum CommissionMode {
   PERCENTAGE = 'percentage',
   MANUAL = 'manual',
   FIXED = 'fixed',
+  SALARY = 'salary',
 }
 
 /**
@@ -109,6 +112,8 @@ export interface User extends BaseEntity {
   phone: string;
   email?: string;
   commissionPercentage?: number;
+  monthlySalary?: number;
+  commissionMode?: CommissionMode; // Per-employee override (falls back to org default if unset)
   status: UserStatus;
   avatar?: string;
   address?: string;

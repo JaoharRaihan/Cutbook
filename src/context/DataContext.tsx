@@ -563,13 +563,14 @@ export const DataProvider: React.FC<{children: React.ReactNode}> = ({children}) 
           breakdown.totalIncome += entry.price;
           breakdown.totalTips += entry.tip || 0;
 
-          // Calculate commission for this entry if role and settings match
+          // Calculate commission — use per-employee mode override if set
           const employee = orgUsers.find(u => u.id === entry.employeeId);
           if (employee && currentOrg) {
             const entryCommission = calculateEmployeeCommission(
               entry.price,
               currentOrg,
               employee.commissionPercentage,
+              employee.commissionMode, // per-employee mode override
             );
             breakdown.commission = (breakdown.commission || 0) + entryCommission;
             totalCommissionTotal += entryCommission;

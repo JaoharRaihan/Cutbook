@@ -6,7 +6,7 @@
 import React from 'react';
 import {View, Text, StyleSheet, TouchableOpacity} from 'react-native';
 import Theme from '@/constants/theme';
-import {User, UserStatus} from '@/types';
+import {User, UserStatus, CommissionMode} from '@/types';
 
 // ============================================================================
 // TYPES
@@ -14,14 +14,50 @@ import {User, UserStatus} from '@/types';
 
 interface EmployeeCardProps {
   employee: User;
+  orgDefaultMode?: CommissionMode;
   onPress?: () => void;
+}
+
+// ============================================================================
+// HELPERS
+// ============================================================================
+
+function getModeBadge(employee: User, orgDefaultMode?: CommissionMode) {
+  const effectiveMode = employee.commissionMode ?? orgDefaultMode ?? CommissionMode.PERCENTAGE;
+  switch (effectiveMode) {
+    case CommissionMode.SALARY:
+      return {
+        label: `৳${employee.monthlySalary || 0}/mo`,
+        color: '#432534',
+        bg: '#FDF4F8',
+        icon: '💜',
+      };
+    case CommissionMode.FIXED:
+      return {
+        label: `৳${employee.commissionPercentage || 0} fixed`,
+        color: '#C44900',
+        bg: '#FFF8F0',
+        icon: '💰',
+      };
+    default: // PERCENTAGE
+      return {
+        label: `${employee.commissionPercentage || 0}%`,
+        color: '#183A37',
+        bg: '#E8F0EE',
+        icon: '📊',
+      };
+  }
 }
 
 // ============================================================================
 // COMPONENT
 // ============================================================================
 
-export default function EmployeeCard({employee, onPress}: EmployeeCardProps): React.ReactElement {
+export default function EmployeeCard({
+  employee,
+  orgDefaultMode,
+  onPress,
+}: EmployeeCardProps): React.ReactElement {
   const getStatusColor = (status: UserStatus): string => {
     switch (status) {
       case UserStatus.ACTIVE:
@@ -48,12 +84,16 @@ export default function EmployeeCard({employee, onPress}: EmployeeCardProps): Re
     }
   };
 
+  const modeBadge = getModeBadge(employee, orgDefaultMode);
+
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.7} disabled={!onPress}>
       <View style={styles.content}>
         {/* Avatar */}
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{employee.name.charAt(0).toUpperCase()}</Text>
+        <View style={[styles.avatar, {backgroundColor: modeBadge.bg}]}>
+          <Text style={[styles.avatarText, {color: modeBadge.color}]}>
+            {employee.name.charAt(0).toUpperCase()}
+          </Text>
         </View>
 
         {/* Info */}
@@ -80,15 +120,12 @@ export default function EmployeeCard({employee, onPress}: EmployeeCardProps): Re
             {employee.phone}
           </Text>
 
-          {/* {employee.email && (
-            <Text style={styles.email} numberOfLines={1}>
-              {employee.email}
+          {/* Commission / Salary badge */}
+          <View style={[styles.modeBadgeWrap, {backgroundColor: modeBadge.bg}]}>
+            <Text style={[styles.modeBadgeText, {color: modeBadge.color}]}>
+              {modeBadge.icon} {modeBadge.label}
             </Text>
-          )} */}
-
-          {employee.commissionPercentage !== undefined && (
-            <Text style={styles.commission}>💰 Commission: {employee.commissionPercentage}%</Text>
-          )}
+          </View>
         </View>
 
         {/* Arrow */}
@@ -128,7 +165,6 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: Theme.colors.primary[100],
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -180,10 +216,15 @@ const styles = StyleSheet.create({
     color: Theme.colors.text.secondary,
     marginBottom: 4,
   },
-  commission: {
-    fontSize: 14,
-    color: Theme.colors.success.main,
-    fontWeight: '600',
+  modeBadgeWrap: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+  },
+  modeBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
   },
   arrow: {
     marginLeft: 8,

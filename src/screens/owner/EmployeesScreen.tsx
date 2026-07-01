@@ -20,7 +20,7 @@ import MaterialIcons from '@react-native-vector-icons/material-icons';
 import {useThemedStyles} from '@/hooks/useThemedStyles';
 import {ThemeColors} from '@/constants/theme';
 
-export default function EmployeesScreen({navigation}: any): React.ReactElement {
+export default function EmployeesScreen({navigation, embedded = false}: any): React.ReactElement {
   const {orgUsers, loading, fetchOrgData, currentOrg} = useOrg();
   const {isDarkMode, colors} = useTheme();
   const {language, t} = useLanguage();
@@ -182,24 +182,25 @@ export default function EmployeesScreen({navigation}: any): React.ReactElement {
         backgroundColor={colors.background.paper}
       />
 
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>{t.employees.title}</Text>
-        <Text style={styles.headerSubtitle}>
-          {employees.length}{' '}
-          {language === 'en'
-            ? employees.length === 1
-              ? 'employee'
-              : 'employees'
-            : language === 'bn'
-              ? 'জন কর্মী'
-              : language === 'es'
-                ? employees.length === 1
-                  ? 'empleado'
-                  : 'empleados'
-                : 'कर्मचारी'}
-        </Text>
-      </View>
+      {!embedded && (
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>{t.employees.title}</Text>
+          <Text style={styles.headerSubtitle}>
+            {employees.length}{' '}
+            {language === 'en'
+              ? employees.length === 1
+                ? 'employee'
+                : 'employees'
+              : language === 'bn'
+                ? 'জন কর্মী'
+                : language === 'es'
+                  ? employees.length === 1
+                    ? 'empleado'
+                    : 'empleados'
+                  : 'कर्मचारी'}
+          </Text>
+        </View>
+      )}
 
       {/* Initial Loading State */}
       {loading && employees.length === 0 && !refreshing ? (
@@ -248,7 +249,11 @@ export default function EmployeesScreen({navigation}: any): React.ReactElement {
             data={filteredEmployees}
             keyExtractor={item => item.id}
             renderItem={({item}) => (
-              <EmployeeCard employee={item} onPress={() => handleEmployeePress(item)} />
+              <EmployeeCard
+                employee={item}
+                orgDefaultMode={currentOrg?.defaultCommissionMode as any}
+                onPress={() => handleEmployeePress(item)}
+              />
             )}
             contentContainerStyle={styles.listContent}
             ListEmptyComponent={searchQuery.trim() ? renderNoResults() : renderEmpty()}

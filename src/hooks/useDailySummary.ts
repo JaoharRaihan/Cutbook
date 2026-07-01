@@ -36,6 +36,8 @@ interface DailySummaryData {
   totalBkash: number;
   totalNagad: number;
   totalCard: number;
+  totalBanglaQr: number;
+  totalRocket: number;
   totalOther: number;
   entryCount: number;
   topEmployees: EmployeeStats[];
@@ -156,6 +158,8 @@ const useDailySummary = (
     let totalBkash = 0;
     let totalNagad = 0;
     let totalCard = 0;
+    let totalBanglaQr = 0;
+    let totalRocket = 0;
     let totalOther = 0;
 
     const employeeStatsMap = new Map<string, EmployeeStats>();
@@ -166,14 +170,16 @@ const useDailySummary = (
       totalIncome += amount;
       totalTips += tip;
 
-      // Commission
+      // Commission — use per-employee commissionMode override if set
       const employee = orgUsers.find(u => u.id === entry.employeeId);
       let entryCommission = 0;
       if (employee && currentOrg) {
+        // Salary employees earn 0 commission per-entry (salary is handled separately)
         entryCommission = calculateEmployeeCommission(
           amount,
           currentOrg,
           employee.commissionPercentage,
+          employee.commissionMode, // per-employee mode override
         );
         totalCommission += entryCommission;
       }
@@ -192,6 +198,12 @@ const useDailySummary = (
           break;
         case PaymentMethod.CARD:
           totalCard += totalAmount;
+          break;
+        case PaymentMethod.BANGLA_QR:
+          totalBanglaQr += totalAmount;
+          break;
+        case PaymentMethod.ROCKET:
+          totalRocket += totalAmount;
           break;
         case PaymentMethod.OTHER:
           totalOther += totalAmount;
@@ -217,6 +229,45 @@ const useDailySummary = (
       }
     });
 
+    // ── Salary mode: add pro-rated salary for employees on SALARY mode ──
+    // Each employee may have their own commissionMode override. We only add
+    // a salary entry here for employees whose *effective* mode is SALARY.
+    orgUsers.forEach(user => {
+      const effectiveMode = user.commissionMode ?? currentOrg.defaultCommissionMode;
+      if (effectiveMode !== 'salary') return;
+
+      const monthlySalary = user.monthlySalary || 0;
+      if (monthlySalary <= 0) return;
+
+      let proRatedSalary = 0;
+      if (timePeriod === TimePeriod.TODAY) {
+        proRatedSalary = monthlySalary / 30;
+      } else if (timePeriod === TimePeriod.WEEKLY) {
+        proRatedSalary = (monthlySalary * 7) / 30;
+      } else if (timePeriod === TimePeriod.MONTHLY) {
+        proRatedSalary = monthlySalary;
+      } else if (timePeriod === TimePeriod.YEARLY) {
+        proRatedSalary = monthlySalary * 12;
+      }
+      proRatedSalary = Math.round(proRatedSalary);
+
+      totalCommission += proRatedSalary;
+
+      const existing = employeeStatsMap.get(user.id);
+      if (existing) {
+        existing.commission = proRatedSalary;
+      } else {
+        employeeStatsMap.set(user.id, {
+          employeeId: user.id,
+          employeeName: user.name,
+          totalIncome: 0,
+          totalTips: 0,
+          serviceCount: 0,
+          commission: proRatedSalary,
+        });
+      }
+    });
+
     const topEmployees = Array.from(employeeStatsMap.values()).sort(
       (a, b) => b.totalIncome - a.totalIncome,
     );
@@ -230,6 +281,8 @@ const useDailySummary = (
       totalBkash,
       totalNagad,
       totalCard,
+      totalBanglaQr,
+      totalRocket,
       totalOther,
       entryCount: entries.length,
       topEmployees,

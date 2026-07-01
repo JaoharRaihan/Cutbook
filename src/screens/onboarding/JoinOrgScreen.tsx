@@ -17,8 +17,9 @@ import {
   Alert,
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
-import {useOrg, useTheme, useLanguage} from '@/context';
+import {useOrg, useTheme, useLanguage, useAuth} from '@/context';
 import Theme, {ThemeColors} from '@/constants/theme';
+import {UserRole} from '@/types';
 import MaterialIcons from '@react-native-vector-icons/material-icons';
 import {useThemedStyles} from '@/hooks/useThemedStyles';
 
@@ -35,8 +36,9 @@ export const Palette = {
 // ============================================================================
 
 const JoinOrgScreen: React.FC = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   const {joinOrg, loading} = useOrg();
+  const {updateUser} = useAuth();
   const {colors} = useTheme();
   const {language} = useLanguage();
   const styles = useThemedStyles(getStyles);
@@ -92,6 +94,22 @@ const JoinOrgScreen: React.FC = () => {
       Alert.alert(
         language === 'bn' ? 'ত্রুটি' : 'Error',
         err.message || 'Failed to join organization',
+      );
+    }
+  };
+
+  // Handle switching role to owner and navigating to create salon screen
+  const handleCreateOwnSalon = async () => {
+    try {
+      await updateUser({role: UserRole.OWNER});
+      navigation.reset({
+        index: 1,
+        routes: [{name: 'OnboardingChoice'}, {name: 'CreateOrg'}],
+      });
+    } catch (err: any) {
+      Alert.alert(
+        language === 'bn' ? 'ত্রুটি' : 'Error',
+        err.message || 'Failed to update account type',
       );
     }
   };
@@ -176,7 +194,7 @@ const JoinOrgScreen: React.FC = () => {
                 ? 'আপনার নিজের সেলুন তৈরি করতে চান?'
                 : 'Want to create your own salon? '}
             </Text>
-            <TouchableOpacity onPress={() => navigation.goBack()} disabled={loading}>
+            <TouchableOpacity onPress={handleCreateOwnSalon} disabled={loading}>
               <Text style={styles.backLink}>{language === 'bn' ? 'ফিরে যান' : 'Go Back'}</Text>
             </TouchableOpacity>
           </View>

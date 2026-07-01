@@ -37,7 +37,7 @@ export const Palette = {
 // ============================================================================
 
 export default function ProfileScreen(): React.ReactElement {
-  const {user: currentUser, logout} = useAuth();
+  const {user: currentUser, logout, deleteAccount} = useAuth();
   const {currentOrg, employeeTransactions} = useOrg();
   const {workEntries} = useData();
   const {isDarkMode, toggleDarkMode, colors} = useTheme();
@@ -96,15 +96,23 @@ export default function ProfileScreen(): React.ReactElement {
     );
 
     const commissionPercentage = currentUser?.commissionPercentage || 0;
+    // Effective mode: per-employee override takes priority over org default
+    const effectiveMode =
+      currentUser?.commissionMode ?? currentOrg?.defaultCommissionMode ?? 'percentage';
     let monthCommission = 0;
     if (currentOrg) {
-      monthEntries.forEach(entry => {
-        monthCommission += calculateEmployeeCommission(
-          entry.price,
-          currentOrg,
-          commissionPercentage,
-        );
-      });
+      if (effectiveMode === 'salary') {
+        monthCommission = currentUser?.monthlySalary || 0;
+      } else {
+        monthEntries.forEach(entry => {
+          monthCommission += calculateEmployeeCommission(
+            entry.price,
+            currentOrg,
+            commissionPercentage,
+            currentUser?.commissionMode, // per-employee mode override
+          );
+        });
+      }
     }
     monthCommission = Math.round(monthCommission);
 
@@ -117,26 +125,50 @@ export default function ProfileScreen(): React.ReactElement {
       monthServices: monthEntries.length,
       monthCommission,
     };
-  }, [employeeEntries, currentOrg, currentUser?.commissionPercentage]);
+  }, [employeeEntries, currentOrg, currentUser?.commissionMode, currentUser?.commissionPercentage]);
 
   // Calculate earnings info (commission based on price only + tips)
   const earningsInfo = useMemo(() => {
     const commissionPercentage = currentUser?.commissionPercentage || 0;
+    // Effective mode: per-employee override takes priority over org default
+    const effectiveMode =
+      currentUser?.commissionMode ?? currentOrg?.defaultCommissionMode ?? 'percentage';
     let commission = 0;
     if (currentOrg) {
-      employeeEntries.forEach(entry => {
-        commission += calculateEmployeeCommission(entry.price, currentOrg, commissionPercentage);
-      });
+      if (effectiveMode === 'salary') {
+        const joinedDate = currentUser?.createdAt ? new Date(currentUser.createdAt) : new Date();
+        const currentDate = new Date();
+        const diffMonths = Math.max(
+          1,
+          (currentDate.getFullYear() - joinedDate.getFullYear()) * 12 +
+            currentDate.getMonth() -
+            joinedDate.getMonth() +
+            1,
+        );
+        commission = (currentUser?.monthlySalary || 0) * diffMonths;
+      } else {
+        employeeEntries.forEach(entry => {
+          commission += calculateEmployeeCommission(
+            entry.price,
+            currentOrg,
+            commissionPercentage,
+            currentUser?.commissionMode, // per-employee mode override
+          );
+        });
+      }
     }
     commission = Math.round(commission);
     const totalEarned = commission + overallStats.totalTips;
     const netBalance = totalEarned - cashAccount.received;
-    return {commission, totalEarned, netBalance};
+    return {commission, totalEarned, netBalance, effectiveMode};
   }, [
     overallStats,
     employeeEntries,
     currentOrg,
+    currentUser?.commissionMode,
     currentUser?.commissionPercentage,
+    currentUser?.monthlySalary,
+    currentUser?.createdAt,
     cashAccount.received,
   ]);
 
@@ -161,6 +193,54 @@ export default function ProfileScreen(): React.ReactElement {
           style: 'destructive',
           onPress: async () => {
             await logout();
+          },
+        },
+      ],
+    );
+  };
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      language === 'en'
+        ? 'Delete Account Permanently'
+        : language === 'bn'
+          ? 'অ্যাকাউন্ট চিরতরে মুছে ফেলুন'
+          : language === 'es'
+            ? 'Eliminar cuenta permanentemente'
+            : 'अकाउंट हमेशा के लिए हटाएं',
+      language === 'en'
+        ? 'WARNING: This will permanently delete your account and all associated operational records. This action cannot be undone. Are you sure?'
+        : language === 'bn'
+          ? 'সতর্কতা: এটি আপনার অ্যাকাউন্ট এবং সমস্ত সংশ্লিষ্ট রেকর্ড চিরতরে মুছে ফেলবে। এই কাজটি আর ফিরিয়ে আনা সম্ভব নয়। আপনি কি নিশ্চিত?'
+          : language === 'es'
+            ? 'ADVERTENCIA: Esto eliminará de forma permanente su cuenta y todos los registros asociados. Esta acción no se puede deshacer. ¿Está seguro?'
+            : 'चेतावनी: यह आपके अकाउंट और सभी जुड़े रिकॉर्ड को हमेशा के लिए हटा देगा। यह क्रिया पूर्ववत नहीं की जा सकती। क्या आप सुनिश्चित हैं?',
+      [
+        {text: t.common.cancel, style: 'cancel'},
+        {
+          text:
+            language === 'en'
+              ? 'Delete Account'
+              : language === 'bn'
+                ? 'মুছে ফেলুন'
+                : language === 'es'
+                  ? 'Eliminar cuenta'
+                  : 'अकाउंट हटाएं',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteAccount();
+              Alert.alert(
+                t.common.success || 'Success',
+                language === 'en'
+                  ? 'Your account has been deleted successfully.'
+                  : language === 'bn'
+                    ? 'আপনার অ্যাকাউন্টটি সফলভাবে মুছে ফেলা হয়েছে।'
+                    : 'Su cuenta ha sido eliminada exitosamente.',
+              );
+            } catch (err: any) {
+              Alert.alert(t.common.error || 'Error', err.message || 'Failed to delete account');
+            }
           },
         },
       ],
@@ -305,23 +385,31 @@ export default function ProfileScreen(): React.ReactElement {
               </View>
             </View>
 
-            {currentUser?.commissionPercentage && (
+            {(currentUser?.commissionPercentage ||
+              currentOrg?.defaultCommissionMode === 'salary') && (
               <>
                 <View style={styles.monthCommissionDivider} />
                 <View style={styles.monthCommission}>
                   <Text style={styles.monthCommissionLabel}>
-                    {language === 'en'
-                      ? 'Your Commission'
-                      : language === 'bn'
-                        ? 'আপনার কমিশন'
-                        : language === 'es'
-                          ? 'Su Comisión'
-                          : 'आपका कमीशन'}{' '}
-                    (
-                    {currentOrg?.defaultCommissionMode === 'fixed'
-                      ? formatBDT(currentUser.commissionPercentage, true, 0)
-                      : `${currentUser.commissionPercentage}%`}
-                    )
+                    {currentOrg?.defaultCommissionMode === 'salary'
+                      ? language === 'en'
+                        ? 'Your Base Salary'
+                        : language === 'bn'
+                          ? 'আপনার মূল বেতন'
+                          : language === 'es'
+                            ? 'Su Salario Base'
+                            : 'आपका मूल वेतन'
+                      : language === 'en'
+                        ? 'Your Commission'
+                        : language === 'bn'
+                          ? 'আপনার কমিশন'
+                          : language === 'es'
+                            ? 'Su Comisión'
+                            : 'आपका कमीशन'}{' '}
+                    {currentOrg?.defaultCommissionMode !== 'salary' &&
+                      (currentOrg?.defaultCommissionMode === 'fixed'
+                        ? `(${formatBDT(currentUser?.commissionPercentage || 0, true, 0)})`
+                        : `(${currentUser?.commissionPercentage || 0}%)`)}
                   </Text>
                   <Text style={styles.monthCommissionValue}>
                     {formatBDT(overallStats.monthCommission)}
@@ -485,46 +573,74 @@ export default function ProfileScreen(): React.ReactElement {
           </View>
         </View>
 
-        {/* Commission Information */}
+        {/* Commission/Salary Information */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t.employees.commission}</Text>
+          <Text style={styles.sectionTitle}>
+            {currentOrg?.defaultCommissionMode === 'salary'
+              ? language === 'en'
+                ? 'Salary Information'
+                : language === 'bn'
+                  ? 'বেতনের তথ্য'
+                  : language === 'es'
+                    ? 'Información de Salario'
+                    : 'वेतन की जानकारी'
+              : t.employees.commission}
+          </Text>
 
           <View style={[styles.card, styles.commissionCard]}>
             <View style={styles.commissionHeader}>
               <Text style={styles.commissionLabel}>
-                {language === 'en'
-                  ? 'Your Commission Rate'
-                  : language === 'bn'
-                    ? 'আপনার কমিশনের হার'
-                    : language === 'es'
-                      ? 'Su Tasa de Comisión'
-                      : 'आपकी कमीशन दर'}
+                {currentOrg?.defaultCommissionMode === 'salary'
+                  ? language === 'en'
+                    ? 'Your Monthly Salary'
+                    : language === 'bn'
+                      ? 'আপনার মাসিক বেতন'
+                      : language === 'es'
+                        ? 'Su Salario Mensual'
+                        : 'आपका मासिक वेतन'
+                  : language === 'en'
+                    ? 'Your Commission Rate'
+                    : language === 'bn'
+                      ? 'আপনার কমিশনের হার'
+                      : language === 'es'
+                        ? 'Su Tasa de Comisión'
+                        : 'आपकी कमीशन दर'}
               </Text>
               <Text style={styles.commissionValue}>
-                {currentOrg?.defaultCommissionMode === 'fixed'
-                  ? formatBDT(currentUser?.commissionPercentage || 0, true, 0)
-                  : `${currentUser?.commissionPercentage || 0}%`}
+                {currentOrg?.defaultCommissionMode === 'salary'
+                  ? formatBDT(currentUser?.monthlySalary || 0, true, 0)
+                  : currentOrg?.defaultCommissionMode === 'fixed'
+                    ? formatBDT(currentUser?.commissionPercentage || 0, true, 0)
+                    : `${currentUser?.commissionPercentage || 0}%`}
               </Text>
             </View>
 
-            <View style={styles.commissionInfo}>
-              <Text style={styles.commissionInfoText}>
-                💡{' '}
-                {currentOrg?.defaultCommissionMode === 'fixed'
+            <View style={styles.commissionInfoContainer}>
+              <MaterialIcons name="lightbulb-outline" size={16} color={colors.primary[500]} />
+              <Text style={styles.commissionInfoTextFlex}>
+                {currentOrg?.defaultCommissionMode === 'salary'
                   ? language === 'en'
-                    ? `You earn a fixed amount of ${formatBDT(currentUser?.commissionPercentage || 0, true, 0)} for each service you complete`
+                    ? `You earn a fixed monthly salary of ${formatBDT(currentUser?.monthlySalary || 0, true, 0)} regardless of service counts`
                     : language === 'bn'
-                      ? `আপনার সম্পন্ন করা প্রতিটি সেবার জন্য আপনি ${formatBDT(currentUser?.commissionPercentage || 0, true, 0)} নির্দিষ্ট পরিমাণ উপার্জন করবেন`
+                      ? `সেবা সংখ্যা নির্বিশেষে আপনি ${formatBDT(currentUser?.monthlySalary || 0, true, 0)} নির্দিষ্ট মাসিক বেতন পাবেন`
                       : language === 'es'
-                        ? `Usted gana una cantidad fija de ${formatBDT(currentUser?.commissionPercentage || 0, true, 0)} por cada servicio que complete`
-                        : `आप अपनी पूरी की जाने वाली प्रत्येक सेवा के लिए ${formatBDT(currentUser?.commissionPercentage || 0, true, 0)} की एक निश्चित राशि कमाते हैं`
-                  : language === 'en'
-                    ? `You earn ${currentUser?.commissionPercentage || 0}% of each service you complete`
-                    : language === 'bn'
-                      ? `আপনার সম্পন্ন করা প্রতিটি সেবার ${currentUser?.commissionPercentage || 0}% আপনি উপার্জন করবেন`
-                      : language === 'es'
-                        ? `Usted gana el ${currentUser?.commissionPercentage || 0}% de cada servicio que complete`
-                        : `आप अपनी पूरी की जाने वाली प्रत्येक सेवा का ${currentUser?.commissionPercentage || 0}% कमाते हैं`}
+                        ? `Usted gana un salario mensual fijo de ${formatBDT(currentUser?.monthlySalary || 0, true, 0)} independientemente de la cantidad de servicios`
+                        : `आप सेवा संख्या की परवाह किए बिना ${formatBDT(currentUser?.monthlySalary || 0, true, 0)} का एक निश्चित मासिक वेतन कमाते हैं`
+                  : currentOrg?.defaultCommissionMode === 'fixed'
+                    ? language === 'en'
+                      ? `You earn a fixed amount of ${formatBDT(currentUser?.commissionPercentage || 0, true, 0)} for each service you complete`
+                      : language === 'bn'
+                        ? `আপনার সম্পন্ন করা প্রতিটি সেবার জন্য আপনি ${formatBDT(currentUser?.commissionPercentage || 0, true, 0)} নির্দিষ্ট পরিমাণ উপার্জন করবেন`
+                        : language === 'es'
+                          ? `Usted gana una cantidad fija de ${formatBDT(currentUser?.commissionPercentage || 0, true, 0)} por cada servicio que complete`
+                          : `आप अपनी पूरी की जाने वाली प्रत्येक सेवा के लिए ${formatBDT(currentUser?.commissionPercentage || 0, true, 0)} की एक निश्चित राशि कमाते हैं`
+                    : language === 'en'
+                      ? `You earn ${currentUser?.commissionPercentage || 0}% of each service you complete`
+                      : language === 'bn'
+                        ? `আপনার সম্পন্ন করা প্রতিটি সেবার ${currentUser?.commissionPercentage || 0}% আপনি উপার্জন করবেন`
+                        : language === 'es'
+                          ? `Usted gana el ${currentUser?.commissionPercentage || 0}% de cada servicio que complete`
+                          : `आप अपनी पूरी की जाने वाली प्रत्येक सेवा का ${currentUser?.commissionPercentage || 0}% कमाते हैं`}
               </Text>
             </View>
 
@@ -539,32 +655,58 @@ export default function ProfileScreen(): React.ReactElement {
                       : 'उदाहरण:'}
               </Text>
               <View style={styles.commissionExampleRow}>
-                <Text style={styles.commissionExampleLabel}>
-                  {language === 'en'
-                    ? 'Service:'
-                    : language === 'bn'
-                      ? 'সেবা:'
-                      : language === 'es'
-                        ? 'Servicio:'
-                        : 'सेवा:'}{' '}
-                  ৳500
-                </Text>
-                <Text style={styles.commissionExampleValue}>
-                  {language === 'en'
-                    ? 'Your share:'
-                    : language === 'bn'
-                      ? 'আপনার অংশ:'
-                      : language === 'es'
-                        ? 'Su parte:'
-                        : 'आपका हिस्सा:'}{' '}
-                  {currentOrg?.defaultCommissionMode === 'fixed'
-                    ? formatBDT(currentUser?.commissionPercentage || 0, true, 0)
-                    : formatBDT(
-                        Math.round((500 * (currentUser?.commissionPercentage || 0)) / 100),
-                        true,
-                        0,
-                      )}
-                </Text>
+                {currentOrg?.defaultCommissionMode === 'salary' ? (
+                  <>
+                    <Text style={styles.commissionExampleLabel}>
+                      {language === 'en'
+                        ? 'Monthly Base:'
+                        : language === 'bn'
+                          ? 'মাসিক মূল:'
+                          : language === 'es'
+                            ? 'Base Mensual:'
+                            : 'मासिक मूल:'}{' '}
+                      {formatBDT(currentUser?.monthlySalary || 0, true, 0)}
+                    </Text>
+                    <Text style={styles.commissionExampleValue}>
+                      {language === 'en'
+                        ? 'Tips are yours (100%)'
+                        : language === 'bn'
+                          ? 'টিপস আপনার (১০০%)'
+                          : language === 'es'
+                            ? 'Las propinas son suyas (100%)'
+                            : 'टिप्स आपके हैं (100%)'}
+                    </Text>
+                  </>
+                ) : (
+                  <>
+                    <Text style={styles.commissionExampleLabel}>
+                      {language === 'en'
+                        ? 'Service:'
+                        : language === 'bn'
+                          ? 'সেবা:'
+                          : language === 'es'
+                            ? 'Servicio:'
+                            : 'सेवा:'}{' '}
+                      ৳500
+                    </Text>
+                    <Text style={styles.commissionExampleValue}>
+                      {language === 'en'
+                        ? 'Your share:'
+                        : language === 'bn'
+                          ? 'আপনার অংশ:'
+                          : language === 'es'
+                            ? 'Su parte:'
+                            : 'आपका हिस्सा:'}{' '}
+                      {currentOrg?.defaultCommissionMode === 'fixed'
+                        ? formatBDT(currentUser?.commissionPercentage || 0, true, 0)
+                        : formatBDT(
+                            Math.round((500 * (currentUser?.commissionPercentage || 0)) / 100),
+                            true,
+                            0,
+                          )}
+                    </Text>
+                  </>
+                )}
               </View>
             </View>
           </View>
@@ -662,11 +804,29 @@ export default function ProfileScreen(): React.ReactElement {
           </View>
         </View>
 
-        {/* Logout Button */}
+        {/* Logout & Deletion Section */}
         <View style={styles.section}>
           <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
             <MaterialIcons name="exit-to-app" size={22} color="#FFFFFF" style={styles.logoutIcon} />
             <Text style={styles.logoutButtonText}>{t.auth.logout}</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.deleteAccountButton} onPress={handleDeleteAccount}>
+            <MaterialIcons
+              name="delete-forever"
+              size={20}
+              color={colors.error.main}
+              style={{marginRight: 4}}
+            />
+            <Text style={styles.deleteAccountButtonText}>
+              {language === 'en'
+                ? 'Delete Account Permanently'
+                : language === 'bn'
+                  ? 'অ্যাকাউন্ট স্থায়ীভাবে মুছে ফেলুন'
+                  : language === 'es'
+                    ? 'Eliminar cuenta permanentemente'
+                    : 'अकाउंट हमेशा के लिए हटाएं'}
+            </Text>
           </TouchableOpacity>
         </View>
 
@@ -857,10 +1017,25 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) =>
       padding: 12,
       marginBottom: 12,
     },
+    commissionInfoContainer: {
+      backgroundColor: isDarkMode ? Palette.darkSlateGrey : '#FAF7F2',
+      borderRadius: 8,
+      padding: 12,
+      marginBottom: 12,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
     commissionInfoText: {
       fontSize: 13,
       color: isDarkMode ? '#FFFFFF' : Palette.darkSlateGrey,
       lineHeight: 20,
+    },
+    commissionInfoTextFlex: {
+      fontSize: 13,
+      color: isDarkMode ? '#FFFFFF' : Palette.darkSlateGrey,
+      lineHeight: 20,
+      flex: 1,
     },
     commissionExample: {
       backgroundColor: isDarkMode ? Palette.darkSlateGrey : '#FAF7F2',
@@ -1077,6 +1252,18 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) =>
       fontSize: 18,
       fontWeight: '600',
       color: '#FFFFFF',
+    },
+    deleteAccountButton: {
+      marginTop: 16,
+      paddingVertical: 12,
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    deleteAccountButtonText: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: colors.error.main,
     },
     logoutIcon: {
       marginRight: 8,

@@ -7,6 +7,7 @@ import React from 'react';
 import {View, Text, StyleSheet, ViewStyle} from 'react-native';
 import {PaymentMethod} from '@/types';
 import Theme from '@/constants/theme';
+import MaterialIcons from '@react-native-vector-icons/material-icons';
 
 // ============================================================================
 // TYPES
@@ -32,31 +33,43 @@ export default function PaymentMethodBadge({
       case PaymentMethod.CASH:
         return {
           label: 'Cash',
-          icon: '💵',
+          iconName: 'payments',
           color: Theme.colors.payment.cash,
         };
       case PaymentMethod.BKASH:
         return {
           label: 'bKash',
-          icon: '📱',
+          iconName: 'smartphone',
           color: Theme.colors.payment.bkash,
         };
       case PaymentMethod.CARD:
         return {
           label: 'Card',
-          icon: '💳',
+          iconName: 'credit-card',
           color: Theme.colors.payment.card,
         };
       case PaymentMethod.NAGAD:
         return {
           label: 'Nagad',
-          icon: '📱',
+          iconName: 'smartphone',
           color: Theme.colors.payment.nagad,
+        };
+      case PaymentMethod.BANGLA_QR:
+        return {
+          label: 'Bangla QR',
+          iconName: 'qr-code',
+          color: Theme.colors.payment.bangla_qr || '#006A4E',
+        };
+      case PaymentMethod.ROCKET:
+        return {
+          label: 'Rocket',
+          iconName: 'rocket',
+          color: Theme.colors.payment.rocket || '#8C2D8B',
         };
       default:
         return {
           label: method,
-          icon: '💰',
+          iconName: 'payment',
           color: Theme.colors.payment.other,
         };
     }
@@ -90,7 +103,12 @@ export default function PaymentMethodBadge({
 
   return (
     <View style={[styles.container, sizeStyles.container, {backgroundColor: config.color}, style]}>
-      <Text style={[styles.icon, sizeStyles.icon]}>{config.icon}</Text>
+      <MaterialIcons
+        name={config.iconName as any}
+        size={size === 'small' ? 12 : size === 'large' ? 18 : 14}
+        color="#FFFFFF"
+        style={{marginRight: 2}}
+      />
       <Text style={[styles.text, sizeStyles.text]}>{config.label}</Text>
     </View>
   );

@@ -3,7 +3,7 @@
  * Form to add a new work entry (Owner Version)
  */
 
-import React, {useState} from 'react';
+import React, {useState, useMemo} from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,7 @@ import {
   TouchableOpacity,
   StatusBar,
   Alert,
+  Image,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
@@ -21,6 +22,9 @@ import {useOrg, useData, useAuth, useTheme, useLanguage} from '@/context';
 import {WorkEntry, PaymentMethod, Service, User} from '@/types';
 import {useThemedStyles} from '@/hooks/useThemedStyles';
 import {ThemeColors} from '@/constants/theme';
+import MaterialIcons from '@react-native-vector-icons/material-icons';
+const bkashLogo = require('@/assets/Logo/bkash_payment_logo.png');
+const nagadLogo = require('@/assets/Logo/Nagad-Logo.wine.png');
 
 // ============================================================================
 // COMPONENT
@@ -47,11 +51,29 @@ export default function AddWorkEntryScreen({navigation}: any): React.ReactElemen
   const [showServicePicker, setShowServicePicker] = useState(false);
   const [useCustomService, setUseCustomService] = useState(false);
 
-  // Filter active employees, owner and services
-  const activeEmployees = orgUsers.filter(
-    u => (u.role === 'employee' || u.role === 'owner') && u.status === 'active',
-  );
-  const activeServices = orgServices.filter(s => s.isActive);
+  const [searchEmployeeQuery, setSearchEmployeeQuery] = useState('');
+  const [searchServiceQuery, setSearchServiceQuery] = useState('');
+
+  // Filter active employees, owner and services with search capability
+  const activeEmployees = useMemo(() => {
+    const list = orgUsers.filter(
+      u => (u.role === 'employee' || u.role === 'owner') && u.status === 'active',
+    );
+    if (!searchEmployeeQuery.trim()) return list;
+    const query = searchEmployeeQuery.toLowerCase();
+    return list.filter(u => u.name.toLowerCase().includes(query) || u.phone.includes(query));
+  }, [orgUsers, searchEmployeeQuery]);
+
+  const activeServices = useMemo(() => {
+    const list = orgServices.filter((s: Service) => s.isActive);
+    if (!searchServiceQuery.trim()) return list;
+    const query = searchServiceQuery.toLowerCase();
+    return list.filter(
+      (s: Service) =>
+        s.name.toLowerCase().includes(query) ||
+        (s.category && s.category.toLowerCase().includes(query)),
+    );
+  }, [orgServices, searchServiceQuery]);
 
   const loading = orgLoading || dataLoading;
 
@@ -143,7 +165,7 @@ export default function AddWorkEntryScreen({navigation}: any): React.ReactElemen
         const selectedServicesData = activeServices.filter((s: Service) =>
           selectedServices.includes(s.id),
         );
-        serviceName = selectedServicesData.map(s => s.name).join(', ');
+        serviceName = selectedServicesData.map((s: Service) => s.name).join(', ');
         if (selectedServicesData.length === 1) {
           serviceId = selectedServicesData[0].id;
         }
@@ -289,26 +311,38 @@ export default function AddWorkEntryScreen({navigation}: any): React.ReactElemen
     {
       value: PaymentMethod.CASH,
       label: t.payment.cash,
-      icon: '💵',
+      iconName: 'payments' as const,
       color: colors.payment.cash || '#4CAF50',
     },
     {
       value: PaymentMethod.BKASH,
       label: t.payment.bkash,
-      icon: '📱',
-      color: colors.payment.bkash || '#E91E63',
-    },
-    {
-      value: PaymentMethod.CARD,
-      label: t.payment.card,
-      icon: '💳',
-      color: colors.payment.card || colors.primary[500],
+      logo: bkashLogo,
+      color: '#E2136E',
     },
     {
       value: PaymentMethod.NAGAD,
       label: t.payment.nagad,
-      icon: '📱',
-      color: colors.payment.nagad || '#FF9800',
+      logo: nagadLogo,
+      color: '#F37021',
+    },
+    {
+      value: PaymentMethod.BANGLA_QR,
+      label: 'Bangla QR',
+      iconName: 'qr-code' as const,
+      color: '#006A4E',
+    },
+    {
+      value: PaymentMethod.ROCKET,
+      label: 'Rocket',
+      iconName: 'rocket' as const,
+      color: '#8C2D8B',
+    },
+    {
+      value: PaymentMethod.CARD,
+      label: t.payment.card,
+      iconName: 'credit-card' as const,
+      color: colors.payment.card || colors.primary[500],
     },
   ];
 
@@ -368,79 +402,111 @@ export default function AddWorkEntryScreen({navigation}: any): React.ReactElemen
                     ? getEmployeeName(selectedEmployee)
                     : t.workEntries.selectEmployee}
                 </Text>
-                <Text style={styles.pickerArrow}>{showEmployeePicker ? '▲' : '▼'}</Text>
+                <MaterialIcons
+                  name={showEmployeePicker ? 'keyboard-arrow-up' : 'keyboard-arrow-down'}
+                  size={20}
+                  color={colors.text.hint}
+                />
               </TouchableOpacity>
 
               {showEmployeePicker && (
-                <ScrollView
-                  style={styles.pickerOptions}
-                  nestedScrollEnabled={true}
-                  showsVerticalScrollIndicator={true}>
-                  {activeEmployees.length === 0 ? (
-                    <View style={styles.emptyState}>
-                      <Text style={styles.emptyStateText}>
-                        {language === 'en'
-                          ? 'No active employees found'
-                          : language === 'bn'
-                            ? 'কোন সক্রিয় কর্মী পাওয়া যায়নি'
-                            : language === 'es'
-                              ? 'No se encontraron empleados activos'
-                              : 'कोई सक्रिय कर्मचारी नहीं मिला'}
-                      </Text>
-                      <Text style={styles.emptyStateSubtext}>
-                        {language === 'en'
-                          ? 'Add employees from Settings'
-                          : language === 'bn'
-                            ? 'সেটিংস থেকে কর্মী যোগ করুন'
-                            : language === 'es'
-                              ? 'Añadir empleados desde Configuración'
-                              : 'सेटिंग्स से कर्मचारी जोड़ें'}
-                      </Text>
-                    </View>
-                  ) : (
-                    activeEmployees.map((employee: User) => (
+                <View style={styles.pickerDropdownContainer}>
+                  {/* Search input inside dropdown */}
+                  <View style={styles.pickerSearchContainer}>
+                    <MaterialIcons
+                      name="search"
+                      size={18}
+                      color={colors.text.hint}
+                      style={styles.pickerSearchIcon}
+                    />
+                    <TextInput
+                      style={styles.pickerSearchInput}
+                      placeholder={language === 'en' ? 'Search employee...' : 'কর্মী খুঁজুন...'}
+                      placeholderTextColor={colors.text.hint}
+                      value={searchEmployeeQuery}
+                      onChangeText={setSearchEmployeeQuery}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                    />
+                    {searchEmployeeQuery.length > 0 && (
                       <TouchableOpacity
-                        key={employee.id}
-                        style={[
-                          styles.pickerOption,
-                          selectedEmployee === employee.id && styles.pickerOptionSelected,
-                        ]}
-                        onPress={() => {
-                          setSelectedEmployee(employee.id);
-                          setShowEmployeePicker(false);
-                        }}>
-                        <View>
-                          <Text style={styles.pickerOptionText}>
-                            {employee.name}{' '}
-                            {employee.role === 'owner'
-                              ? `(${language === 'en' ? 'Owner' : language === 'bn' ? 'মালিক' : 'Owner'})`
-                              : ''}
-                          </Text>
-                          <Text style={styles.pickerOptionSubtext}>
-                            {employee.role === 'owner' && !employee.commissionPercentage
-                              ? language === 'en'
-                                ? 'Owner'
-                                : language === 'bn'
-                                  ? 'মালিক'
-                                  : language === 'es'
-                                    ? 'Propietario'
-                                    : 'Owner'
-                              : language === 'en'
-                                ? `Commission: ${employee.commissionPercentage || 0}%`
-                                : language === 'bn'
-                                  ? `কমিশন: ${employee.commissionPercentage || 0}%`
-                                  : language === 'es'
-                                    ? `Comisión: ${employee.commissionPercentage || 0}%`
-                                    : `कमीशन: ${employee.commissionPercentage || 0}%`}
-                          </Text>
-                        </View>
-                        {selectedEmployee === employee.id && (
-                          <Text style={styles.checkmark}>✓</Text>
-                        )}
+                        onPress={() => setSearchEmployeeQuery('')}
+                        style={styles.pickerSearchClear}>
+                        <MaterialIcons name="close" size={18} color={colors.text.hint} />
                       </TouchableOpacity>
-                    ))
-                  )}
-                </ScrollView>
+                    )}
+                  </View>
+                  <ScrollView
+                    style={styles.pickerOptions}
+                    nestedScrollEnabled={true}
+                    showsVerticalScrollIndicator={true}>
+                    {activeEmployees.length === 0 ? (
+                      <View style={styles.emptyState}>
+                        <Text style={styles.emptyStateText}>
+                          {language === 'en'
+                            ? 'No active employees found'
+                            : language === 'bn'
+                              ? 'কোন সক্রিয় কর্মী পাওয়া যায়নি'
+                              : language === 'es'
+                                ? 'No se encontraron empleados activos'
+                                : 'कोई सक्रिय कर्मचारी नहीं मिला'}
+                        </Text>
+                        <Text style={styles.emptyStateSubtext}>
+                          {language === 'en'
+                            ? 'Add employees from Settings'
+                            : language === 'bn'
+                              ? 'সেটিংস থেকে কর্মী যোগ করুন'
+                              : language === 'es'
+                                ? 'Añadir empleados desde Configuración'
+                                : 'सेटिंग्स से कर्मचारी जोड़ें'}
+                        </Text>
+                      </View>
+                    ) : (
+                      activeEmployees.map((employee: User) => (
+                        <TouchableOpacity
+                          key={employee.id}
+                          style={[
+                            styles.pickerOption,
+                            selectedEmployee === employee.id && styles.pickerOptionSelected,
+                          ]}
+                          onPress={() => {
+                            setSelectedEmployee(employee.id);
+                            setShowEmployeePicker(false);
+                            setSearchEmployeeQuery('');
+                          }}>
+                          <View>
+                            <Text style={styles.pickerOptionText}>
+                              {employee.name}{' '}
+                              {employee.role === 'owner'
+                                ? `(${language === 'en' ? 'Owner' : language === 'bn' ? 'মালিক' : 'Owner'})`
+                                : ''}
+                            </Text>
+                            <Text style={styles.pickerOptionSubtext}>
+                              {employee.role === 'owner' && !employee.commissionPercentage
+                                ? language === 'en'
+                                  ? 'Owner'
+                                  : language === 'bn'
+                                    ? 'মালিক'
+                                    : language === 'es'
+                                      ? 'Propietario'
+                                      : 'Owner'
+                                : language === 'en'
+                                  ? `Commission: ${employee.commissionPercentage || 0}%`
+                                  : language === 'bn'
+                                    ? `কমিশন: ${employee.commissionPercentage || 0}%`
+                                    : language === 'es'
+                                      ? `Comisión: ${employee.commissionPercentage || 0}%`
+                                      : `কमीशन: ${employee.commissionPercentage || 0}%`}
+                            </Text>
+                          </View>
+                          {selectedEmployee === employee.id && (
+                            <Text style={styles.checkmark}>✓</Text>
+                          )}
+                        </TouchableOpacity>
+                      ))
+                    )}
+                  </ScrollView>
+                </View>
               )}
             </View>
           </View>
@@ -494,64 +560,97 @@ export default function AddWorkEntryScreen({navigation}: any): React.ReactElemen
                     ]}>
                     {getSelectedServicesLabel()}
                   </Text>
-                  <Text style={styles.pickerArrow}>{showServicePicker ? '▲' : '▼'}</Text>
+                  <MaterialIcons
+                    name={showServicePicker ? 'keyboard-arrow-up' : 'keyboard-arrow-down'}
+                    size={20}
+                    color={colors.text.hint}
+                  />
                 </TouchableOpacity>
                 {showServicePicker && (
-                  <ScrollView
-                    style={styles.pickerOptions}
-                    nestedScrollEnabled={true}
-                    showsVerticalScrollIndicator={true}>
-                    {activeServices.length === 0 ? (
-                      <View style={styles.pickerOption}>
-                        <Text style={styles.pickerOptionText}>
-                          {language === 'en'
-                            ? 'No active services found'
-                            : language === 'bn'
-                              ? 'কোন সক্রিয় সেবা পাওয়া যায়নি'
-                              : language === 'es'
-                                ? 'No se encontraron servicios activos'
-                                : 'कोई सक्रिय सेवा नहीं मिली'}
-                        </Text>
-                        <Text style={styles.pickerOptionSubtext}>
-                          {language === 'en'
-                            ? 'Add services from Settings'
-                            : language === 'bn'
-                              ? 'সেটিংস থেকে সেবা যোগ করুন'
-                              : language === 'es'
-                                ? 'Añadir servicios desde Configuración'
-                                : 'सेटिंग्स से सेवा जोड़ें'}
-                        </Text>
-                      </View>
-                    ) : (
-                      activeServices.map((service: Service) => (
+                  <View style={styles.pickerDropdownContainer}>
+                    {/* Search input inside dropdown */}
+                    <View style={styles.pickerSearchContainer}>
+                      <MaterialIcons
+                        name="search"
+                        size={18}
+                        color={colors.text.hint}
+                        style={styles.pickerSearchIcon}
+                      />
+                      <TextInput
+                        style={styles.pickerSearchInput}
+                        placeholder={language === 'en' ? 'Search service...' : 'সেবা খুঁজুন...'}
+                        placeholderTextColor={colors.text.hint}
+                        value={searchServiceQuery}
+                        onChangeText={setSearchServiceQuery}
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                      />
+                      {searchServiceQuery.length > 0 && (
                         <TouchableOpacity
-                          key={service.id}
-                          style={[
-                            styles.pickerOption,
-                            selectedServices.includes(service.id) && styles.pickerOptionSelected,
-                          ]}
-                          onPress={() => handleServiceSelect(service.id)}>
-                          <View>
-                            <Text style={styles.pickerOptionText}>{service.name}</Text>
-                            {service.defaultPrice && (
-                              <Text style={styles.pickerOptionSubtext}>
-                                {language === 'en'
-                                  ? `Default: ৳${service.defaultPrice}`
-                                  : language === 'bn'
-                                    ? `ডিফল্ট: ৳${service.defaultPrice}`
-                                    : language === 'es'
-                                      ? `Predeterminado: ৳${service.defaultPrice}`
-                                      : `डिफ़ॉल्ट: ৳${service.defaultPrice}`}
-                              </Text>
-                            )}
-                          </View>
-                          {selectedServices.includes(service.id) && (
-                            <Text style={styles.checkmark}>✓</Text>
-                          )}
+                          onPress={() => setSearchServiceQuery('')}
+                          style={styles.pickerSearchClear}>
+                          <MaterialIcons name="close" size={18} color={colors.text.hint} />
                         </TouchableOpacity>
-                      ))
-                    )}
-                  </ScrollView>
+                      )}
+                    </View>
+                    <ScrollView
+                      style={styles.pickerOptions}
+                      nestedScrollEnabled={true}
+                      showsVerticalScrollIndicator={true}>
+                      {activeServices.length === 0 ? (
+                        <View style={styles.pickerOption}>
+                          <Text style={styles.pickerOptionText}>
+                            {language === 'en'
+                              ? 'No active services found'
+                              : language === 'bn'
+                                ? 'কোন সক্রিয় সেবা পাওয়া যায়নি'
+                                : language === 'es'
+                                  ? 'No se encontraron servicios activos'
+                                  : 'कोई सक्रिय सेवा नहीं मिली'}
+                          </Text>
+                          <Text style={styles.pickerOptionSubtext}>
+                            {language === 'en'
+                              ? 'Add services from Settings'
+                              : language === 'bn'
+                                ? 'সেটিংস থেকে সেবা যোগ করুন'
+                                : language === 'es'
+                                  ? 'Añadir servicios desde Configuración'
+                                  : 'सेटींग्स से सेवा जोड़ें'}
+                          </Text>
+                        </View>
+                      ) : (
+                        activeServices.map((service: Service) => (
+                          <TouchableOpacity
+                            key={service.id}
+                            style={[
+                              styles.pickerOption,
+                              selectedServices.includes(service.id) && styles.pickerOptionSelected,
+                            ]}
+                            onPress={() => {
+                              handleServiceSelect(service.id);
+                            }}>
+                            <View>
+                              <Text style={styles.pickerOptionText}>{service.name}</Text>
+                              {service.defaultPrice && (
+                                <Text style={styles.pickerOptionSubtext}>
+                                  {language === 'en'
+                                    ? `Default: ৳${service.defaultPrice}`
+                                    : language === 'bn'
+                                      ? `ডিফল্ট: ৳${service.defaultPrice}`
+                                      : language === 'es'
+                                        ? `Predeterminado: ৳${service.defaultPrice}`
+                                        : `डिफ़ॉल्ट: ৳${service.defaultPrice}`}
+                                </Text>
+                              )}
+                            </View>
+                            {selectedServices.includes(service.id) && (
+                              <Text style={styles.checkmark}>✓</Text>
+                            )}
+                          </TouchableOpacity>
+                        ))
+                      )}
+                    </ScrollView>
+                  </View>
                 )}
               </View>
             ) : (
@@ -658,7 +757,22 @@ export default function AddWorkEntryScreen({navigation}: any): React.ReactElemen
                     },
                   ]}
                   onPress={() => setPaymentMethod(method.value)}>
-                  <Text style={styles.paymentIcon}>{method.icon}</Text>
+                  {method.logo ? (
+                    <Image
+                      source={method.logo}
+                      style={styles.paymentMethodLogo}
+                      resizeMode="contain"
+                    />
+                  ) : method.iconName ? (
+                    <MaterialIcons
+                      name={method.iconName}
+                      size={28}
+                      color={method.color}
+                      style={styles.paymentMethodIcon}
+                    />
+                  ) : (
+                    <Text style={styles.paymentIcon}>💵</Text>
+                  )}
                   <Text
                     style={[
                       styles.paymentLabel,
@@ -742,6 +856,14 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) =>
     container: {
       flex: 1,
       backgroundColor: colors.background.default,
+    },
+    paymentMethodLogo: {
+      width: 50,
+      height: 28,
+      marginBottom: 8,
+    },
+    paymentMethodIcon: {
+      marginBottom: 8,
     },
     keyboardView: {
       flex: 1,
@@ -832,13 +954,43 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) =>
       color: colors.text.hint,
     },
     pickerOptions: {
+      backgroundColor: 'transparent',
+    },
+    pickerDropdownContainer: {
       marginTop: 8,
       backgroundColor: colors.background.paper,
-      borderRadius: 8,
-      borderWidth: 1,
+      borderRadius: 12,
+      borderWidth: 1.5,
       borderColor: colors.border.light,
       overflow: 'hidden',
-      maxHeight: 250,
+      maxHeight: 300,
+      shadowColor: '#000',
+      shadowOffset: {width: 0, height: 4},
+      shadowOpacity: isDarkMode ? 0.2 : 0.08,
+      shadowRadius: 6,
+      elevation: 3,
+    },
+    pickerSearchContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border.light,
+      backgroundColor: colors.background.default,
+    },
+    pickerSearchIcon: {
+      marginRight: 6,
+    },
+    pickerSearchInput: {
+      flex: 1,
+      fontSize: 14,
+      color: colors.text.primary,
+      padding: 0,
+      height: 32,
+    },
+    pickerSearchClear: {
+      padding: 4,
     },
     pickerOption: {
       flexDirection: 'row',

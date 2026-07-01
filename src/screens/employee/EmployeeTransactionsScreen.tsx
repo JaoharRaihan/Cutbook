@@ -22,7 +22,6 @@ import {
   createNotification,
   markNotificationForTransactionAsRead,
 } from '@/services/notificationService';
-import {sendPayoutResponsePush} from '@/services/fcmService';
 import type {NotificationType} from '@/types/notifications';
 import {formatBDT} from '@/utils/currency';
 import {formatDateISO} from '@/utils/date';
@@ -137,15 +136,6 @@ export default function EmployeeTransactionsScreen(): React.ReactElement {
           relatedRequestId: txn.id,
           isRead: false,
         });
-
-        // Device push notification to owner
-        await sendPayoutResponsePush({
-          ownerId: txn.ownerId,
-          employeeName: user.name || 'Employee',
-          amount: txn.amount,
-          accepted: status === TransactionStatus.ACCEPTED,
-          transactionId: txn.id,
-        }).catch(() => {});
       }
 
       const alertMsg =

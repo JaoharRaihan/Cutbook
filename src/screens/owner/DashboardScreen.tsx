@@ -7,6 +7,8 @@ import {
   RefreshControl,
   TouchableOpacity,
   StatusBar,
+  Image,
+  Modal,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
@@ -34,6 +36,7 @@ export const Palette = {
 };
 
 export default function DashboardScreen({navigation}: any): React.ReactElement {
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
   const {currentOrg, employeeTransactions} = useOrg();
   const {unreadCount} = useNotifications();
   const {expenses, workEntries} = useData();
@@ -47,6 +50,7 @@ export default function DashboardScreen({navigation}: any): React.ReactElement {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [datePickerVisible, setDatePickerVisible] = useState(false);
   const [showAllTopEmployees, setShowAllTopEmployees] = useState(false);
+  const [showOnlyPayouts, setShowOnlyPayouts] = useState(false);
   const {summary, loading, error, refresh, timePeriod, setTimePeriod} =
     useDailySummary(selectedDate);
 
@@ -113,8 +117,12 @@ export default function DashboardScreen({navigation}: any): React.ReactElement {
     const combined = [...entriesTxns, ...expensesTxns, ...payoutsTxns];
     combined.sort((a, b) => b.date.getTime() - a.date.getTime());
 
-    return combined.slice(0, 10);
-  }, [workEntries, periodExpenses, periodPayouts, currentOrg?.id, timePeriod, selectedDate]);
+    const baseTransactions = showOnlyPayouts
+      ? combined.filter(txn => txn.type === 'payout')
+      : combined;
+
+    return baseTransactions.slice(0, 10);
+  }, [workEntries, periodExpenses, periodPayouts, currentOrg?.id, timePeriod, selectedDate, showOnlyPayouts]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -140,15 +148,6 @@ export default function DashboardScreen({navigation}: any): React.ReactElement {
                 <Text style={styles.badgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
               </View>
             )}
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.dateButton}
-            onPress={() => setDatePickerVisible(true)}
-            activeOpacity={0.7}>
-            <MaterialCommunityIcons name="calendar" size={16} color="#7eadf8" />
-            <Text style={styles.dateButtonLabel}>
-              {isToday(selectedDate) ? t.common.today : formatDateISO(selectedDate)}
-            </Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -240,6 +239,16 @@ export default function DashboardScreen({navigation}: any): React.ReactElement {
                   : language === 'es'
                     ? 'Anual'
                     : 'वार्षिक'}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.filterButton, styles.calendarButton]}
+            onPress={() => setDatePickerVisible(true)}
+            activeOpacity={0.8}>
+            <MaterialCommunityIcons name="calendar" size={14} color={isDarkMode ? Palette.wheat : Palette.darkSlateGrey} />
+            <Text style={styles.filterButtonText}>
+              {isToday(selectedDate) ? t.common.today : formatDateISO(selectedDate)}
             </Text>
           </TouchableOpacity>
         </View>
@@ -409,24 +418,57 @@ export default function DashboardScreen({navigation}: any): React.ReactElement {
 
                     <View style={styles.paymentRows}>
                       <View style={styles.paymentRow}>
-                        <Text style={styles.paymentLabel}>{t.payment.cash}</Text>
+                        <View style={styles.paymentLabelContainer}>
+                          <MaterialCommunityIcons
+                            name="cash"
+                            size={16}
+                            color={isDarkMode ? '#10B981' : '#059669'}
+                          />
+                          <Text style={styles.paymentLabel}>{t.payment.cash}</Text>
+                        </View>
                         <Text style={styles.paymentValue}>{formatBDT(summary.totalCash)}</Text>
                       </View>
 
                       <View style={styles.paymentRow}>
-                        <Text style={styles.paymentLabel}>{t.payment.bkash}</Text>
+                        <View style={styles.paymentLabelContainer}>
+                          <Image
+                            source={require('@/assets/Logo/bkash_payment_logo.png')}
+                            style={styles.paymentLogoImage}
+                            resizeMode="contain"
+                          />
+                          <Text style={styles.paymentLabel}>{t.payment.bkash}</Text>
+                        </View>
                         <Text style={styles.paymentValue}>{formatBDT(summary.totalBkash)}</Text>
                       </View>
 
                       <View style={styles.paymentRow}>
-                        <Text style={styles.paymentLabel}>{t.payment.nagad}</Text>
-                        <Text style={styles.paymentValue}>{formatBDT(summary.totalNagad)}</Text>
+                        <View style={styles.paymentLabelContainer}>
+                          <MaterialIcons
+                            name="qr-code"
+                            size={15}
+                            color={isDarkMode ? '#10B981' : '#006A4E'}
+                            style={styles.paymentRowIcon}
+                          />
+                          <Text style={styles.paymentLabel}>Bangla QR</Text>
+                        </View>
+                        <Text style={styles.paymentValue}>
+                          {formatBDT(summary.totalBanglaQr || 0)}
+                        </Text>
                       </View>
 
-                      <View style={styles.paymentRow}>
-                        <Text style={styles.paymentLabel}>{t.payment.card}</Text>
-                        <Text style={styles.paymentValue}>{formatBDT(summary.totalCard)}</Text>
-                      </View>
+                      <TouchableOpacity
+                        style={styles.seeMoreRow}
+                        onPress={() => setShowPaymentModal(true)}
+                        activeOpacity={0.7}>
+                        <Text style={styles.seeMoreText}>
+                          {language === 'en' ? 'See More' : 'আরও দেখুন'}
+                        </Text>
+                        <MaterialIcons
+                          name="keyboard-arrow-right"
+                          size={14}
+                          color={colors.primary[500]}
+                        />
+                      </TouchableOpacity>
                     </View>
                   </View>
                 </View>
@@ -463,30 +505,34 @@ export default function DashboardScreen({navigation}: any): React.ReactElement {
                     : '⚡ त्वरित क्रियाएं'}
             </Text>
             <View style={styles.actionsGrid}>
-              <TouchableOpacity
-                style={[styles.actionButton, styles.actionButtonPrimary]}
-                onPress={() => navigation.navigate('AddWorkEntry')}>
-                <MaterialIcons name="note-add" size={50} color="#f3e7e7" />
-                <Text style={styles.actionButtonTextPrimary}>{t.dashboard.addWorkEntry}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.actionButton, styles.actionButtonSecondary]}
-                onPress={() => navigation.navigate('WorkEntries')}>
-                <MaterialIcons name="table-view" size={50} color={colors.text.primary} />
-                <Text style={styles.actionButtonText}>{t.workEntries.title}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.actionButton, styles.actionButtonSecondary]}
-                onPress={() => navigation.navigate('Reports')}>
-                <MaterialIcons name="bar-chart" size={50} color={colors.text.primary} />
-                <Text style={styles.actionButtonText}>{t.reports.summary}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.actionButton, styles.actionButtonSecondary]}
-                onPress={() => navigation.navigate('Expenses')}>
-                <MaterialIcons name="shopping-bag" size={50} color={colors.text.primary} />
-                <Text style={styles.actionButtonText}>{t.tabs.expenses}</Text>
-              </TouchableOpacity>
+              <View style={styles.actionsRow}>
+                <TouchableOpacity
+                  style={[styles.actionButton, styles.actionButtonPrimary]}
+                  onPress={() => navigation.navigate('AddWorkEntry')}>
+                  <MaterialIcons name="note-add" size={50} color="#f3e7e7" />
+                  <Text style={styles.actionButtonTextPrimary}>{t.dashboard.addWorkEntry}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.actionButton, styles.actionButtonSecondary]}
+                  onPress={() => navigation.navigate('WorkEntries')}>
+                  <MaterialIcons name="table-view" size={50} color={colors.text.primary} />
+                  <Text style={styles.actionButtonText}>{t.workEntries.title}</Text>
+                </TouchableOpacity>
+              </View>
+              <View style={styles.actionsRow}>
+                <TouchableOpacity
+                  style={[styles.actionButton, styles.actionButtonSecondary]}
+                  onPress={() => navigation.navigate('Reports')}>
+                  <MaterialIcons name="bar-chart" size={50} color={colors.text.primary} />
+                  <Text style={styles.actionButtonText}>{t.reports.summary}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.actionButton, styles.actionButtonPrimary]}
+                  onPress={() => navigation.navigate('Expenses')}>
+                  <MaterialIcons name="shopping-bag" size={50} color="#f3e7e7" />
+                  <Text style={styles.actionButtonTextPrimary}>{t.tabs.expenses}</Text>
+                </TouchableOpacity>
+              </View>
             </View>
 
             <View style={styles.section}>
@@ -500,17 +546,45 @@ export default function DashboardScreen({navigation}: any): React.ReactElement {
                         ? '💸 Transacciones Recientes'
                         : '💸 हाल के लेन-देन'}
                 </Text>
-                <TouchableOpacity onPress={() => navigation.navigate('WorkEntries')}>
-                  <Text style={styles.seeAllText}>
-                    {language === 'en'
-                      ? 'See All'
-                      : language === 'bn'
-                        ? 'সব দেখুন'
-                        : language === 'es'
-                          ? 'Ver todo'
-                          : 'सभी देखें'}
-                  </Text>
-                </TouchableOpacity>
+                <View style={styles.sectionActions}>
+                  <TouchableOpacity
+                    style={[styles.toggleButton, showOnlyPayouts && styles.toggleButtonActive]}
+                    onPress={() => setShowOnlyPayouts(prev => !prev)}>
+                    <MaterialIcons
+                      name="payments"
+                      size={14}
+                      color={showOnlyPayouts ? '#FFFFFF' : colors.primary[500]}
+                    />
+                    <Text style={[styles.toggleButtonText, showOnlyPayouts && styles.toggleButtonTextActive]}>
+                      {language === 'en'
+                        ? showOnlyPayouts
+                          ? 'Payouts Only'
+                          : 'Payouts'
+                        : language === 'bn'
+                          ? showOnlyPayouts
+                            ? 'শুধু পে-আউট'
+                            : 'পে-আউট'
+                          : language === 'es'
+                            ? showOnlyPayouts
+                              ? 'Solo Pagos'
+                              : 'Pagos'
+                            : showOnlyPayouts
+                              ? 'केवल पेआउट'
+                              : 'पेआउट'}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => navigation.navigate('WorkEntries')}>
+                    <Text style={styles.seeAllText}>
+                      {language === 'en'
+                        ? 'See All'
+                        : language === 'bn'
+                          ? 'সব দেখুন'
+                          : language === 'es'
+                            ? 'Ver todo'
+                            : 'सभी देखें'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
               </View>
 
               <View style={styles.transactionsCard}>
@@ -681,6 +755,14 @@ export default function DashboardScreen({navigation}: any): React.ReactElement {
         )}
       </ScrollView>
 
+      {/* Floating Action Button to Add Work Entry */}
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => navigation.navigate('AddWorkEntry')}
+        activeOpacity={0.8}>
+        <MaterialIcons name="note-add" size={28} color="#FFFFFF" />
+      </TouchableOpacity>
+
       {/* Date Picker Modal */}
       <DatePickerModal
         visible={datePickerVisible}
@@ -688,6 +770,118 @@ export default function DashboardScreen({navigation}: any): React.ReactElement {
         onDateChange={setSelectedDate}
         onClose={() => setDatePickerVisible(false)}
       />
+
+      {/* Payment methods breakdown Modal */}
+      <Modal
+        visible={showPaymentModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowPaymentModal(false)}>
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowPaymentModal(false)}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>
+                {language === 'en'
+                  ? 'Payment Methods'
+                  : language === 'bn'
+                    ? 'পেমেন্ট পদ্ধতিসমূহ'
+                    : 'Payment Methods'}
+              </Text>
+              <TouchableOpacity
+                onPress={() => setShowPaymentModal(false)}
+                style={styles.modalCloseButton}>
+                <MaterialIcons name="close" size={22} color={colors.text.primary} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.modalBody}>
+              {/* Cash */}
+              <View style={styles.modalPaymentRow}>
+                <View style={styles.paymentLabelContainer}>
+                  <MaterialCommunityIcons
+                    name="cash"
+                    size={20}
+                    color={isDarkMode ? '#10B981' : '#059669'}
+                  />
+                  <Text style={styles.modalPaymentLabel}>{t.payment.cash}</Text>
+                </View>
+                <Text style={styles.modalPaymentValue}>{formatBDT(summary?.totalCash || 0)}</Text>
+              </View>
+
+              {/* bKash */}
+              <View style={styles.modalPaymentRow}>
+                <View style={styles.paymentLabelContainer}>
+                  <Image
+                    source={require('@/assets/Logo/bkash_payment_logo.png')}
+                    style={styles.modalPaymentLogo}
+                    resizeMode="contain"
+                  />
+                  <Text style={styles.modalPaymentLabel}>{t.payment.bkash}</Text>
+                </View>
+                <Text style={styles.modalPaymentValue}>{formatBDT(summary?.totalBkash || 0)}</Text>
+              </View>
+
+              {/* Nagad */}
+              <View style={styles.modalPaymentRow}>
+                <View style={styles.paymentLabelContainer}>
+                  <Image
+                    source={require('@/assets/Logo/Nagad-Logo.wine.png')}
+                    style={styles.modalPaymentLogo}
+                    resizeMode="contain"
+                  />
+                  <Text style={styles.modalPaymentLabel}>{t.payment.nagad}</Text>
+                </View>
+                <Text style={styles.modalPaymentValue}>{formatBDT(summary?.totalNagad || 0)}</Text>
+              </View>
+
+              {/* Card */}
+              <View style={styles.modalPaymentRow}>
+                <View style={styles.paymentLabelContainer}>
+                  <MaterialCommunityIcons
+                    name="credit-card"
+                    size={20}
+                    color={isDarkMode ? '#3B82F6' : '#2563EB'}
+                  />
+                  <Text style={styles.modalPaymentLabel}>{t.payment.card}</Text>
+                </View>
+                <Text style={styles.modalPaymentValue}>{formatBDT(summary?.totalCard || 0)}</Text>
+              </View>
+
+              {/* Bangla QR */}
+              <View style={styles.modalPaymentRow}>
+                <View style={styles.paymentLabelContainer}>
+                  <MaterialIcons
+                    name="qr-code"
+                    size={18}
+                    color={isDarkMode ? '#10B981' : '#006A4E'}
+                    style={styles.paymentRowIcon}
+                  />
+                  <Text style={styles.modalPaymentLabel}>Bangla QR</Text>
+                </View>
+                <Text style={styles.modalPaymentValue}>
+                  {formatBDT(summary?.totalBanglaQr || 0)}
+                </Text>
+              </View>
+
+              <View style={styles.modalPaymentRowLast}>
+                <View style={styles.paymentLabelContainer}>
+                  <MaterialIcons
+                    name="rocket"
+                    size={18}
+                    color={isDarkMode ? '#A78BFA' : '#8C2D8B'}
+                    style={styles.paymentRowIcon}
+                  />
+                  <Text style={styles.modalPaymentLabel}>Rocket</Text>
+                </View>
+                <Text style={styles.modalPaymentValue}>{formatBDT(summary?.totalRocket || 0)}</Text>
+              </View>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -697,6 +891,23 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) =>
     container: {
       flex: 1,
       backgroundColor: isDarkMode ? Palette.inkBlack : '#FAFBFB',
+    },
+
+    fab: {
+      position: 'absolute',
+      bottom: 24,
+      right: 24,
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      backgroundColor: Palette.darkSlateGrey,
+      justifyContent: 'center',
+      alignItems: 'center',
+      shadowColor: '#000',
+      shadowOffset: {width: 0, height: 4},
+      shadowOpacity: 0.3,
+      shadowRadius: 4.65,
+      elevation: 8,
     },
 
     header: {
@@ -818,6 +1029,88 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) =>
       letterSpacing: 0.8,
     },
 
+    seeMoreRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 5,
+      marginTop: 2,
+    },
+    seeMoreText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: colors.primary[500],
+      marginRight: 2,
+    },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.6)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    modalContent: {
+      width: '85%',
+      backgroundColor: colors.background.paper,
+      borderRadius: 16,
+      padding: 20,
+      shadowColor: '#000',
+      shadowOffset: {width: 0, height: 10},
+      shadowOpacity: 0.25,
+      shadowRadius: 12,
+      elevation: 10,
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border.light,
+      paddingBottom: 10,
+    },
+    modalTitle: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: colors.text.primary,
+    },
+    modalCloseButton: {
+      padding: 4,
+    },
+    modalBody: {
+      gap: 2,
+    },
+    modalPaymentRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: 8,
+      borderBottomWidth: 1,
+      borderBottomColor: isDarkMode ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)',
+    },
+    modalPaymentRowLast: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: 8,
+      borderBottomWidth: 0,
+    },
+    modalPaymentLabel: {
+      color: colors.text.primary,
+      fontSize: 14,
+      fontWeight: '600',
+    },
+    modalPaymentValue: {
+      color: colors.text.primary,
+      fontSize: 14,
+      fontWeight: '700',
+    },
+    modalPaymentLogo: {
+      width: 32,
+      height: 18,
+    },
+    paymentRowIcon: {
+      marginRight: 2,
+    },
     paymentRows: {
       gap: 0,
     },
@@ -826,9 +1119,20 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) =>
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      paddingVertical: 2,
+      paddingVertical: 4,
       borderBottomWidth: 1,
       borderBottomColor: isDarkMode ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)',
+    },
+
+    paymentLabelContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+
+    paymentLogoImage: {
+      width: 26,
+      height: 14,
     },
 
     paymentLabel: {
@@ -858,18 +1162,22 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) =>
     },
 
     actionsGrid: {
+      gap: 12,
+    },
+
+    actionsRow: {
       flexDirection: 'row',
-      flexWrap: 'wrap',
       gap: 12,
     },
 
     actionButton: {
-      width: '48%',
-      padding: 16,
+      flex: 1,
+      padding: 12,
       borderRadius: 12,
       alignItems: 'center',
       justifyContent: 'center',
-      minHeight: 95,
+      height: 130,
+      gap: 6,
       shadowColor: '#000',
       shadowOffset: {width: 0, height: 2},
       shadowOpacity: isDarkMode ? 0.3 : 0.08,
@@ -891,12 +1199,14 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) =>
       fontSize: 15,
       fontWeight: '600',
       color: isDarkMode ? '#FFFFFF' : Palette.darkSlateGrey,
+      textAlign: 'center',
     },
 
     actionButtonTextPrimary: {
       fontSize: 15,
       fontWeight: '600',
       color: '#ffffff',
+      textAlign: 'center',
     },
 
     emptyState: {
@@ -939,6 +1249,7 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) =>
 
     filterContainer: {
       flexDirection: 'row',
+      flexWrap: 'wrap',
       gap: 8,
       marginBottom: 12,
       paddingHorizontal: 4,
@@ -946,6 +1257,7 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) =>
 
     filterButton: {
       flex: 1,
+      minWidth: 72,
       paddingVertical: 8,
       paddingHorizontal: 10,
       borderRadius: 10,
@@ -954,6 +1266,14 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) =>
       borderColor: isDarkMode ? Palette.darkSlateGrey : Palette.wheat,
       alignItems: 'center',
       justifyContent: 'center',
+    },
+
+    calendarButton: {
+      flexBasis: '100%',
+      flexGrow: 1,
+      flexDirection: 'row',
+      gap: 6,
+      marginTop: 2,
     },
 
     filterButtonActive: {
@@ -978,6 +1298,36 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) =>
       justifyContent: 'space-between',
       alignItems: 'center',
       marginBottom: 12,
+      gap: 8,
+    },
+    sectionActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      flexShrink: 1,
+    },
+    toggleButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      paddingVertical: 6,
+      paddingHorizontal: 10,
+      borderRadius: 999,
+      backgroundColor: isDarkMode ? 'rgba(255,255,255,0.08)' : '#F3F4F6',
+      borderWidth: 1,
+      borderColor: isDarkMode ? 'rgba(255,255,255,0.1)' : '#E5E7EB',
+    },
+    toggleButtonActive: {
+      backgroundColor: Palette.darkSlateGrey,
+      borderColor: Palette.darkSlateGrey,
+    },
+    toggleButtonText: {
+      fontSize: 11,
+      fontWeight: '600',
+      color: colors.primary[500],
+    },
+    toggleButtonTextActive: {
+      color: '#FFFFFF',
     },
     seeAllText: {
       fontSize: 13,

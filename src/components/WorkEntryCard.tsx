@@ -38,6 +38,10 @@ export default function WorkEntryCard({
         return '#3aa7f4';
       case PaymentMethod.NAGAD:
         return '#FF9800';
+      case PaymentMethod.BANGLA_QR:
+        return '#006A4E';
+      case PaymentMethod.ROCKET:
+        return '#8C2D8B';
       default:
         return '#757575';
     }
@@ -53,6 +57,10 @@ export default function WorkEntryCard({
         return 'Card';
       case PaymentMethod.NAGAD:
         return 'Nagad';
+      case PaymentMethod.BANGLA_QR:
+        return 'Bangla QR';
+      case PaymentMethod.ROCKET:
+        return 'Rocket';
       default:
         return method;
     }

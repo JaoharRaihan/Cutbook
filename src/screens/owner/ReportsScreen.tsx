@@ -21,6 +21,7 @@ interface EmployeeStats {
   totalCommission: number;
   avgPerService: number;
   commissionPercentage?: number;
+  monthlySalary?: number;
 }
 
 interface PaymentStats {
@@ -169,20 +170,30 @@ export default function ReportsScreen({navigation: _navigation}: any): React.Rea
         const stats = grouped[id];
         const employee = orgUsers.find(e => e.id === id);
         const commissionPercentage = employee?.commissionPercentage || 0;
+        const monthlySalary = employee?.monthlySalary || 0;
 
-        // Calculate commission entry-by-entry based on org commission mode
-        const employeeEntries = filteredEntries.filter(entry => entry.employeeId === id);
-        let commissionAmount = 0;
-        if (currentOrg) {
+        // Effective mode: per-employee override takes priority over org default
+        const effectiveMode = employee?.commissionMode ?? currentOrg?.defaultCommissionMode;
+
+        let roundedCommissionAmount = 0;
+        if (currentOrg && effectiveMode === 'salary') {
+          const {start, end} = getDateRange(dateRange);
+          const diffTime = Math.abs(end.getTime() - start.getTime());
+          const diffDays = Math.max(1, Math.round(diffTime / (1000 * 60 * 60 * 24)));
+          roundedCommissionAmount = Math.round((monthlySalary / 30) * diffDays);
+        } else if (currentOrg) {
+          const employeeEntries = filteredEntries.filter(entry => entry.employeeId === id);
+          let commissionAmount = 0;
           employeeEntries.forEach(entry => {
             commissionAmount += calculateEmployeeCommission(
               entry.price,
               currentOrg,
               commissionPercentage,
+              employee?.commissionMode, // per-employee mode override
             );
           });
+          roundedCommissionAmount = Math.round(commissionAmount);
         }
-        const roundedCommissionAmount = Math.round(commissionAmount);
         const roundedTotalIncomeAfterCommission = stats.totalPrice - roundedCommissionAmount;
 
         return {
@@ -191,10 +202,12 @@ export default function ReportsScreen({navigation: _navigation}: any): React.Rea
           totalCommission: roundedCommissionAmount,
           avgPerService: stats.totalServices > 0 ? stats.totalIncome / stats.totalServices : 0,
           commissionPercentage,
+          monthlySalary,
+          effectiveMode: effectiveMode ?? 'percentage',
         };
       })
       .sort((a, b) => b.totalIncome - a.totalIncome);
-  }, [filteredEntries, orgUsers, currentOrg]);
+  }, [filteredEntries, orgUsers, currentOrg, dateRange]);
 
   // ============================================================================
   // HANDLERS
@@ -551,14 +564,23 @@ export default function ReportsScreen({navigation: _navigation}: any): React.Rea
                             : 'टिप्स'}
                     </Text>
                   </View>
-                  {/* Commission info */}
+                  {/* Commission/Salary info */}
                   <View style={styles.earningsRow}>
                     <Text style={styles.earningsLabel}>
-                      {t.employees.commission} (
-                      {currentOrg?.defaultCommissionMode === 'fixed'
-                        ? formatBDT(employee.commissionPercentage ?? 0, true, 0)
-                        : `${employee.commissionPercentage ?? 0}%`}
-                      )
+                      {currentOrg?.defaultCommissionMode === 'salary'
+                        ? language === 'en'
+                          ? 'Base Salary: '
+                          : language === 'bn'
+                            ? 'মূল বেতন: '
+                            : language === 'es'
+                              ? 'Salario Base: '
+                              : 'मूल वेतन: '
+                        : `${t.employees.commission} (`}
+                      {currentOrg?.defaultCommissionMode === 'salary'
+                        ? formatBDT(employee.monthlySalary ?? 0, true, 0)
+                        : currentOrg?.defaultCommissionMode === 'fixed'
+                          ? `${formatBDT(employee.commissionPercentage ?? 0, true, 0)})`
+                          : `${employee.commissionPercentage ?? 0}%)`}
                     </Text>
                   </View>
                 </View>
@@ -566,7 +588,17 @@ export default function ReportsScreen({navigation: _navigation}: any): React.Rea
                 <View style={styles.employeeAmount}>
                   <Text style={styles.employeeIncome}>{formatBDT(employee.totalIncome)}</Text>
                   <Text style={styles.comtipsincome}>
-                    {language === 'en' ? 'Comm: ' : 'কমিশন: '}
+                    {currentOrg?.defaultCommissionMode === 'salary'
+                      ? language === 'en'
+                        ? 'Salary: '
+                        : language === 'bn'
+                          ? 'বেতন: '
+                          : language === 'es'
+                            ? 'Salario: '
+                            : 'वेतन: '
+                      : language === 'en'
+                        ? 'Comm: '
+                        : 'কমিশন: '}
                     {formatBDT(employee.totalCommission)}
                   </Text>
                 </View>

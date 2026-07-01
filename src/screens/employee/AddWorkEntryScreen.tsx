@@ -4,7 +4,7 @@
  * Only accessible if they have the CAN_ADD_ENTRIES permission
  */
 
-import React, {useState} from 'react';
+import React, {useState, useMemo} from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,7 @@ import {
   TouchableOpacity,
   StatusBar,
   Alert,
+  Image,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
@@ -21,6 +22,9 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import {useOrg, useData, useAuth, useTheme, useLanguage} from '@/context';
 import {PaymentMethod, Service, EmployeePermission, User} from '@/types';
 import {useThemedStyles} from '@/hooks/useThemedStyles';
+import MaterialIcons from '@react-native-vector-icons/material-icons';
+const bkashLogo = require('@/assets/Logo/bkash_payment_logo.png');
+const nagadLogo = require('@/assets/Logo/Nagad-Logo.wine.png');
 import {ThemeColors} from '@/constants/theme';
 
 // ============================================================================
@@ -84,15 +88,71 @@ export default function AddWorkEntryScreen({navigation}: any): React.ReactElemen
       .join(', ');
   };
 
-  // Filter active employees (includes both employees and owner)
-  const activeEmployees = orgUsers.filter(
-    u => (u.role === 'employee' || u.role === 'owner') && u.status === 'active',
-  );
+  const [searchEmployeeQuery, setSearchEmployeeQuery] = useState('');
+  const [searchServiceQuery, setSearchServiceQuery] = useState('');
 
-  // Filter active services
-  const activeServices = orgServices.filter(s => s.isActive);
+  // Filter active employees (includes both employees and owner) with search capability
+  const activeEmployees = useMemo(() => {
+    const list = orgUsers.filter(
+      u => (u.role === 'employee' || u.role === 'owner') && u.status === 'active',
+    );
+    if (!searchEmployeeQuery.trim()) return list;
+    const query = searchEmployeeQuery.toLowerCase();
+    return list.filter(u => u.name.toLowerCase().includes(query) || u.phone.includes(query));
+  }, [orgUsers, searchEmployeeQuery]);
+
+  // Filter active services with search capability
+  const activeServices = useMemo(() => {
+    const list = orgServices.filter((s: Service) => s.isActive);
+    if (!searchServiceQuery.trim()) return list;
+    const query = searchServiceQuery.toLowerCase();
+    return list.filter(
+      (s: Service) =>
+        s.name.toLowerCase().includes(query) ||
+        (s.category && s.category.toLowerCase().includes(query)),
+    );
+  }, [orgServices, searchServiceQuery]);
 
   const loading = dataLoading;
+
+  const paymentMethods = [
+    {
+      value: PaymentMethod.CASH,
+      label: t.payment.cash,
+      iconName: 'payments' as const,
+      color: colors.payment.cash || '#4CAF50',
+    },
+    {
+      value: PaymentMethod.BKASH,
+      label: t.payment.bkash,
+      logo: bkashLogo,
+      color: '#E2136E',
+    },
+    {
+      value: PaymentMethod.NAGAD,
+      label: t.payment.nagad,
+      logo: nagadLogo,
+      color: '#F37021',
+    },
+    {
+      value: PaymentMethod.BANGLA_QR,
+      label: 'Bangla QR',
+      iconName: 'qr-code' as const,
+      color: '#006A4E',
+    },
+    {
+      value: PaymentMethod.ROCKET,
+      label: 'Rocket',
+      iconName: 'rocket' as const,
+      color: '#8C2D8B',
+    },
+    {
+      value: PaymentMethod.CARD,
+      label: t.payment.card,
+      iconName: 'credit-card' as const,
+      color: colors.payment.card || colors.primary[500],
+    },
+  ];
 
   // ============================================================================
   // VALIDATION
@@ -202,7 +262,7 @@ export default function AddWorkEntryScreen({navigation}: any): React.ReactElemen
         const selectedServicesData = activeServices.filter((s: Service) =>
           selectedServices.includes(s.id),
         );
-        serviceName = selectedServicesData.map(s => s.name).join(', ');
+        serviceName = selectedServicesData.map((s: Service) => s.name).join(', ');
         if (selectedServicesData.length === 1) {
           serviceId = selectedServicesData[0].id;
         }
@@ -222,12 +282,12 @@ export default function AddWorkEntryScreen({navigation}: any): React.ReactElemen
       Alert.alert(
         t.common.success,
         language === 'en'
-          ? 'Work entry added successfully! ✅'
+          ? 'Work entry added successfully!'
           : language === 'bn'
-            ? 'কাজের এন্ট্রি সফলভাবে যোগ করা হয়েছে! ✅'
+            ? 'কাজের এন্ট্রি সফলভাবে যোগ করা হয়েছে!'
             : language === 'es'
-              ? '¡Entrada de trabajo añadida con éxito! ✅'
-              : 'कार्य प्रविष्टि सफलतापूर्वक जोड़ी गई! ✅',
+              ? '¡Entrada de trabajo añadida con éxito!'
+              : 'कार्य प्रविष्टि सफलतापूर्वक जोड़ी गई!',
         [
           {
             text: t.common.done,
@@ -278,40 +338,99 @@ export default function AddWorkEntryScreen({navigation}: any): React.ReactElemen
               <TouchableOpacity
                 style={styles.picker}
                 onPress={() => setShowEmployeePicker(!showEmployeePicker)}>
-                <Text style={styles.pickerText}>
-                  {selectedEmployee
-                    ? activeEmployees.find(e => e.id === selectedEmployee)?.name ||
-                      t.workEntries.selectEmployee
-                    : t.workEntries.selectEmployee}
-                </Text>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    flex: 1,
+                  }}>
+                  <Text style={styles.pickerText}>
+                    {selectedEmployee
+                      ? activeEmployees.find(e => e.id === selectedEmployee)?.name ||
+                        t.workEntries.selectEmployee
+                      : t.workEntries.selectEmployee}
+                  </Text>
+                  <MaterialIcons
+                    name={showEmployeePicker ? 'keyboard-arrow-up' : 'keyboard-arrow-down'}
+                    size={20}
+                    color={colors.text.hint}
+                  />
+                </View>
               </TouchableOpacity>
 
               {showEmployeePicker && (
-                <ScrollView
-                  style={styles.pickerDropdown}
-                  scrollEnabled
-                  showsVerticalScrollIndicator>
-                  {activeEmployees.map((employee: User) => (
-                    <TouchableOpacity
-                      key={employee.id}
-                      style={styles.pickerOption}
-                      onPress={() => {
-                        setSelectedEmployee(employee.id);
-                        setShowEmployeePicker(false);
-                      }}>
-                      <Text
-                        style={[
-                          styles.pickerOptionText,
-                          selectedEmployee === employee.id && styles.pickerOptionTextActive,
-                        ]}>
-                        {employee.name}{' '}
-                        {employee.role === 'owner'
-                          ? `(${language === 'en' ? 'Owner' : language === 'bn' ? 'মালিক' : 'Owner'})`
-                          : ''}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
+                <View style={styles.pickerDropdownContainer}>
+                  {/* Search input inside dropdown */}
+                  <View style={styles.pickerSearchContainer}>
+                    <MaterialIcons
+                      name="search"
+                      size={18}
+                      color={colors.text.hint}
+                      style={styles.pickerSearchIcon}
+                    />
+                    <TextInput
+                      style={styles.pickerSearchInput}
+                      placeholder={language === 'en' ? 'Search employee...' : 'কর্মী খুঁজুন...'}
+                      placeholderTextColor={colors.text.hint}
+                      value={searchEmployeeQuery}
+                      onChangeText={setSearchEmployeeQuery}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                    />
+                    {searchEmployeeQuery.length > 0 && (
+                      <TouchableOpacity
+                        onPress={() => setSearchEmployeeQuery('')}
+                        style={styles.pickerSearchClear}>
+                        <MaterialIcons name="close" size={18} color={colors.text.hint} />
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                  <ScrollView
+                    style={styles.pickerOptions}
+                    nestedScrollEnabled={true}
+                    showsVerticalScrollIndicator={true}>
+                    {activeEmployees.length === 0 ? (
+                      <View style={styles.emptyState}>
+                        <Text style={styles.emptyStateText}>
+                          {language === 'en'
+                            ? 'No active employees found'
+                            : language === 'bn'
+                              ? 'কোন সক্রিয় কর্মী পাওয়া যায়নি'
+                              : language === 'es'
+                                ? 'No se encontraron empleados activos'
+                                : 'कोई सक्रिय कर्मचारी नहीं मिला'}
+                        </Text>
+                      </View>
+                    ) : (
+                      activeEmployees.map((employee: User) => (
+                        <TouchableOpacity
+                          key={employee.id}
+                          style={[
+                            styles.pickerOption,
+                            selectedEmployee === employee.id && styles.pickerOptionSelected,
+                          ]}
+                          onPress={() => {
+                            setSelectedEmployee(employee.id);
+                            setShowEmployeePicker(false);
+                            setSearchEmployeeQuery('');
+                          }}>
+                          <View>
+                            <Text style={styles.pickerOptionText}>
+                              {employee.name}{' '}
+                              {employee.role === 'owner'
+                                ? `(${language === 'en' ? 'Owner' : language === 'bn' ? 'মালিক' : 'Owner'})`
+                                : ''}
+                            </Text>
+                          </View>
+                          {selectedEmployee === employee.id && (
+                            <Text style={styles.checkmark}>✓</Text>
+                          )}
+                        </TouchableOpacity>
+                      ))
+                    )}
+                  </ScrollView>
+                </View>
               )}
             </View>
 
@@ -358,42 +477,93 @@ export default function AddWorkEntryScreen({navigation}: any): React.ReactElemen
                   <TouchableOpacity
                     style={styles.picker}
                     onPress={() => setShowServicePicker(!showServicePicker)}>
-                    <Text style={styles.pickerText}>{getSelectedServicesLabel()}</Text>
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        flex: 1,
+                      }}>
+                      <Text style={styles.pickerText}>{getSelectedServicesLabel()}</Text>
+                      <MaterialIcons
+                        name={showServicePicker ? 'keyboard-arrow-up' : 'keyboard-arrow-down'}
+                        size={20}
+                        color={colors.text.hint}
+                      />
+                    </View>
                   </TouchableOpacity>
 
                   {showServicePicker && (
-                    <ScrollView
-                      style={styles.pickerDropdown}
-                      scrollEnabled
-                      showsVerticalScrollIndicator>
-                      {activeServices.map((service: Service) => (
-                        <TouchableOpacity
-                          key={service.id}
-                          style={styles.pickerOption}
-                          onPress={() => handleServiceSelect(service.id)}>
-                          <View style={styles.pickerOptionContent}>
-                            <Text
-                              style={[
-                                styles.pickerOptionText,
-                                selectedServices.includes(service.id) &&
-                                  styles.pickerOptionTextActive,
-                              ]}>
-                              {service.name} {selectedServices.includes(service.id) ? '✓' : ''}
+                    <View style={styles.pickerDropdownContainer}>
+                      {/* Search input inside dropdown */}
+                      <View style={styles.pickerSearchContainer}>
+                        <MaterialIcons
+                          name="search"
+                          size={18}
+                          color={colors.text.hint}
+                          style={styles.pickerSearchIcon}
+                        />
+                        <TextInput
+                          style={styles.pickerSearchInput}
+                          placeholder={language === 'en' ? 'Search service...' : 'সেবা খুঁজুন...'}
+                          placeholderTextColor={colors.text.hint}
+                          value={searchServiceQuery}
+                          onChangeText={setSearchServiceQuery}
+                          autoCapitalize="none"
+                          autoCorrect={false}
+                        />
+                        {searchServiceQuery.length > 0 && (
+                          <TouchableOpacity
+                            onPress={() => setSearchServiceQuery('')}
+                            style={styles.pickerSearchClear}>
+                            <MaterialIcons name="close" size={18} color={colors.text.hint} />
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                      <ScrollView
+                        style={styles.pickerOptions}
+                        nestedScrollEnabled={true}
+                        showsVerticalScrollIndicator={true}>
+                        {activeServices.length === 0 ? (
+                          <View style={styles.pickerOption}>
+                            <Text style={styles.pickerOptionText}>
+                              {language === 'en'
+                                ? 'No active services found'
+                                : language === 'bn'
+                                  ? 'কোন সক্রিয় সেবা পাওয়া যায়নি'
+                                  : language === 'es'
+                                    ? 'No se encontraron servicios activos'
+                                    : 'कोई सक्रिय सेवा नहीं मिली'}
                             </Text>
-                            {service.defaultPrice && (
-                              <Text
-                                style={[
-                                  styles.pickerOptionPrice,
-                                  selectedServices.includes(service.id) &&
-                                    styles.pickerOptionPriceActive,
-                                ]}>
-                                ৳{service.defaultPrice}
-                              </Text>
-                            )}
                           </View>
-                        </TouchableOpacity>
-                      ))}
-                    </ScrollView>
+                        ) : (
+                          activeServices.map((service: Service) => (
+                            <TouchableOpacity
+                              key={service.id}
+                              style={[
+                                styles.pickerOption,
+                                selectedServices.includes(service.id) &&
+                                  styles.pickerOptionSelected,
+                              ]}
+                              onPress={() => {
+                                handleServiceSelect(service.id);
+                              }}>
+                              <View style={styles.pickerOptionContent}>
+                                <Text style={styles.pickerOptionText}>{service.name}</Text>
+                                {service.defaultPrice && (
+                                  <Text style={styles.pickerOptionPrice}>
+                                    ৳{service.defaultPrice}
+                                  </Text>
+                                )}
+                              </View>
+                              {selectedServices.includes(service.id) && (
+                                <Text style={styles.checkmark}>✓</Text>
+                              )}
+                            </TouchableOpacity>
+                          ))
+                        )}
+                      </ScrollView>
+                    </View>
                   )}
                 </>
               ) : (
@@ -465,23 +635,45 @@ export default function AddWorkEntryScreen({navigation}: any): React.ReactElemen
 
             {/* Payment Method */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>{t.workEntries.paymentMethod}</Text>
+              <Text style={styles.label}>
+                {t.workEntries.paymentMethod} <Text style={styles.required}>*</Text>
+              </Text>
               <View style={styles.methodGrid}>
-                {Object.values(PaymentMethod).map(method => (
+                {paymentMethods.map(method => (
                   <TouchableOpacity
-                    key={method}
+                    key={method.value}
                     style={[
                       styles.methodButton,
-                      paymentMethod === method && styles.methodButtonActive,
+                      paymentMethod === method.value && styles.methodButtonActive,
+                      {borderColor: method.color},
+                      paymentMethod === method.value && {
+                        backgroundColor: method.color + '20',
+                      },
                     ]}
-                    onPress={() => setPaymentMethod(method)}
+                    onPress={() => setPaymentMethod(method.value)}
                     disabled={loading}>
+                    {method.logo ? (
+                      <Image
+                        source={method.logo}
+                        style={styles.paymentMethodLogo}
+                        resizeMode="contain"
+                      />
+                    ) : method.iconName ? (
+                      <MaterialIcons
+                        name={method.iconName}
+                        size={28}
+                        color={method.color}
+                        style={styles.paymentMethodIcon}
+                      />
+                    ) : (
+                      <Text style={styles.paymentIcon}>💵</Text>
+                    )}
                     <Text
                       style={[
                         styles.methodButtonText,
-                        paymentMethod === method && styles.methodButtonTextActive,
+                        paymentMethod === method.value && {color: method.color},
                       ]}>
-                      {method.toUpperCase()}
+                      {method.label}
                     </Text>
                   </TouchableOpacity>
                 ))}
@@ -522,8 +714,13 @@ export default function AddWorkEntryScreen({navigation}: any): React.ReactElemen
 
           {/* Info Card */}
           <View style={styles.infoCard}>
+            <MaterialIcons
+              name="lightbulb-outline"
+              size={18}
+              color={colors.primary[500]}
+              style={{marginRight: 8}}
+            />
             <Text style={styles.infoText}>
-              💡{' '}
               {language === 'en'
                 ? 'This entry will be recorded for the selected employee and visible to your manager. You can add entries for yourself or other employees.'
                 : language === 'bn'
@@ -643,14 +840,77 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) =>
       color: colors.text.primary,
     },
     pickerDropdown: {
-      backgroundColor: colors.background.paper,
-      borderRadius: 8,
-      borderWidth: 1,
-      borderColor: colors.border.light,
+      backgroundColor: 'transparent',
+    },
+    pickerDropdownContainer: {
       marginTop: 8,
+      backgroundColor: colors.background.paper,
+      borderRadius: 12,
+      borderWidth: 1.5,
+      borderColor: colors.border.light,
+      overflow: 'hidden',
       maxHeight: 300,
-      zIndex: 1000,
-      elevation: 8,
+      shadowColor: '#000',
+      shadowOffset: {width: 0, height: 4},
+      shadowOpacity: isDarkMode ? 0.2 : 0.08,
+      shadowRadius: 6,
+      elevation: 3,
+    },
+    pickerSearchContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border.light,
+      backgroundColor: colors.background.default,
+    },
+    pickerSearchIcon: {
+      marginRight: 6,
+    },
+    pickerSearchInput: {
+      flex: 1,
+      fontSize: 14,
+      color: colors.text.primary,
+      padding: 0,
+      height: 32,
+    },
+    pickerSearchClear: {
+      padding: 4,
+    },
+    pickerOptions: {
+      backgroundColor: 'transparent',
+    },
+    pickerOptionSelected: {
+      backgroundColor: isDarkMode ? colors.neutral[100] : colors.primary[50],
+    },
+    checkmark: {
+      fontSize: 16,
+      color: colors.primary[500],
+      fontWeight: 'bold',
+      marginRight: 8,
+    },
+    paymentIcon: {
+      fontSize: 24,
+      marginBottom: 8,
+    },
+    paymentMethodLogo: {
+      width: 50,
+      height: 28,
+      marginBottom: 8,
+    },
+    paymentMethodIcon: {
+      marginBottom: 8,
+    },
+    emptyState: {
+      padding: 16,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    emptyStateText: {
+      fontSize: 14,
+      color: colors.text.secondary,
+      textAlign: 'center',
     },
     pickerOption: {
       paddingHorizontal: 16,

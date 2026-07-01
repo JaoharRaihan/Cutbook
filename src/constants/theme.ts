@@ -124,6 +124,8 @@ export const Colors = {
     bkash: '#E2136E',
     nagad: '#F37021',
     card: '#2196F3',
+    bangla_qr: '#006A4E',
+    rocket: '#8C2D8B',
     other: '#9E9E9E',
   },
 

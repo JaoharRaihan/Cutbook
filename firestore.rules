@@ -20,10 +20,10 @@ service cloud.firestore {
 
     // Users
     match /users/{userId} {
-      // Users can read/write their own profile
-      allow read, write: if isAuthenticated() && request.auth.uid == userId;
-      // Org members can read other members in same org (simplified for now)
-      allow read: if isAuthenticated();
+      // Users can write their own profile
+      allow write: if isAuthenticated() && request.auth.uid == userId;
+      // Allow read access for profile lookup during login, registration, and member searches
+      allow read: if true;
     }
 
     // Organizations

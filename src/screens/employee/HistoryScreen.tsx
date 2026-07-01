@@ -129,17 +129,47 @@ export default function HistoryScreen(): React.ReactElement {
     const totalTips = filteredEntries.reduce((sum, e) => sum + (e.tip || 0), 0);
     const totalIncome = serviceRevenue + totalTips;
     const commissionPercentage = currentUser?.commissionPercentage || 0;
+    const monthlySalary = currentUser?.monthlySalary || 0;
+    // Effective mode: per-employee override takes priority over org default
+    const effectiveMode =
+      currentUser?.commissionMode ?? currentOrg?.defaultCommissionMode ?? 'percentage';
 
     let commission = 0;
     if (currentOrg) {
-      filteredEntries.forEach(entry => {
-        commission += calculateEmployeeCommission(entry.price, currentOrg, commissionPercentage);
-      });
+      if (effectiveMode === 'salary') {
+        const diffTime = Math.abs(dateRange.end.getTime() - dateRange.start.getTime());
+        const diffDays = Math.max(1, Math.round(diffTime / (1000 * 60 * 60 * 24)));
+        commission = (monthlySalary / 30) * diffDays;
+      } else {
+        filteredEntries.forEach(entry => {
+          commission += calculateEmployeeCommission(
+            entry.price,
+            currentOrg,
+            commissionPercentage,
+            currentUser?.commissionMode, // per-employee mode override
+          );
+        });
+      }
     }
     commission = Math.round(commission);
     const myEarnings = commission + totalTips;
-    return {totalServices, totalIncome, totalTips, commission, myEarnings, commissionPercentage};
-  }, [filteredEntries, currentOrg, currentUser?.commissionPercentage]);
+    return {
+      totalServices,
+      totalIncome,
+      totalTips,
+      commission,
+      myEarnings,
+      commissionPercentage,
+      effectiveMode,
+    };
+  }, [
+    filteredEntries,
+    currentOrg,
+    currentUser?.commissionMode,
+    currentUser?.commissionPercentage,
+    currentUser?.monthlySalary,
+    dateRange,
+  ]);
 
   const periodPayouts = useMemo(() => {
     if (!currentUser?.id || !employeeTransactions) return [];
@@ -404,9 +434,17 @@ export default function HistoryScreen(): React.ReactElement {
 
   const renderHeader = () => {
     const earningsSubtitle =
-      currentOrg?.defaultCommissionMode === 'fixed'
-        ? `${formatBDT(periodStats.commissionPercentage, true, 0)} + tips`
-        : `${periodStats.commissionPercentage}% + tips`;
+      currentOrg?.defaultCommissionMode === 'salary'
+        ? language === 'en'
+          ? 'Base salary + tips'
+          : language === 'bn'
+            ? 'মূল বেতন + টিপস'
+            : language === 'es'
+              ? 'Salario base + propinas'
+              : 'मूल वेतन + टिप्स'
+        : currentOrg?.defaultCommissionMode === 'fixed'
+          ? `${formatBDT(periodStats.commissionPercentage, true, 0)} + tips`
+          : `${periodStats.commissionPercentage}% + tips`;
 
     return (
       <>
@@ -501,13 +539,21 @@ export default function HistoryScreen(): React.ReactElement {
                 />
                 <View>
                   <Text style={styles.statLabel}>
-                    {language === 'en'
-                      ? 'Commission'
-                      : language === 'bn'
-                        ? 'কমিশন'
-                        : language === 'es'
-                          ? 'Comisión'
-                          : 'कमीशन'}
+                    {currentOrg?.defaultCommissionMode === 'salary'
+                      ? language === 'en'
+                        ? 'Salary'
+                        : language === 'bn'
+                          ? 'বেতন'
+                          : language === 'es'
+                            ? 'Salario'
+                            : 'वेतन'
+                      : language === 'en'
+                        ? 'Commission'
+                        : language === 'bn'
+                          ? 'কমিশন'
+                          : language === 'es'
+                            ? 'Comisión'
+                            : 'कमीशन'}
                   </Text>
                   <Text style={styles.statValue}>{formatBDT(periodStats.commission)}</Text>
                 </View>

@@ -172,25 +172,35 @@ export default function WorkEntriesScreen({navigation}: any): React.ReactElement
     const employee = orgUsers.find(e => e.id === selectedEmployee);
     if (!employee) return null;
 
-    // Commission from work entries computed entry-by-entry based on org commission settings
     const employeeCommissionValue = employee.commissionPercentage || 0;
+    // Effective mode: per-employee override takes priority over org default
+    const effectiveMode =
+      employee.commissionMode ?? currentOrg?.defaultCommissionMode ?? 'percentage';
+
     const employeeEntries = unifiedTransactions.filter(
       txn => txn.type === 'entry' && txn.raw.employeeId === selectedEmployee,
     );
     let commission = 0;
     if (currentOrg) {
-      employeeEntries.forEach(txn => {
-        commission += calculateEmployeeCommission(
-          txn.raw.price,
-          currentOrg,
-          employeeCommissionValue,
-        );
-      });
+      if (effectiveMode === 'salary') {
+        // Pro-rate salary for current visible period (month approximation)
+        commission = Math.round(employee.monthlySalary || 0);
+      } else {
+        employeeEntries.forEach(txn => {
+          commission += calculateEmployeeCommission(
+            txn.raw.price,
+            currentOrg,
+            employeeCommissionValue,
+            employee.commissionMode, // per-employee mode override
+          );
+        });
+      }
     }
     commission = Math.round(commission);
 
     return {
       commissionPercentage: employeeCommissionValue,
+      effectiveMode,
       commission,
       acceptedPayouts: totalPayoutsAmount,
       netAmount: commission + totalTips - totalPayoutsAmount,

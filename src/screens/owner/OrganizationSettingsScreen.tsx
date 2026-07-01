@@ -1,6 +1,6 @@
 /**
  * OrganizationSettingsScreen.tsx
- * Edit organization details and configuration
+ * Edit organization details and configuration – fully backend-connected
  */
 
 import React, {useState} from 'react';
@@ -15,6 +15,7 @@ import {
   Alert,
   Switch,
   Share,
+  ActivityIndicator,
 } from 'react-native';
 import {useOrg, useTheme, useLanguage} from '@/context';
 import {CommissionMode} from '@/types';
@@ -22,6 +23,79 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import MaterialIcons from '@react-native-vector-icons/material-icons';
 import {useThemedStyles} from '@/hooks/useThemedStyles';
 import {ThemeColors} from '@/constants/theme';
+
+// ============================================================================
+// COMMISSION MODE CONFIG
+// ============================================================================
+
+const getModeConfig = (language: string) => [
+  {
+    mode: CommissionMode.PERCENTAGE,
+    icon: 'percent' as const,
+    label:
+      language === 'en'
+        ? 'Percentage'
+        : language === 'bn'
+          ? 'শতাংশ'
+          : language === 'es'
+            ? 'Porcentaje'
+            : 'प्रतिशत',
+    unit: '%',
+    description:
+      language === 'en'
+        ? 'Employees earn a % of each service price. e.g. 30% of ৳500 = ৳150'
+        : language === 'bn'
+          ? 'কর্মীরা প্রতিটি সেবার মূল্যের একটি % উপার্জন করে। যেমন, ৫০০৳ এর ৩০% = ১৫০৳'
+          : language === 'es'
+            ? 'Los empleados ganan un % del precio de cada servicio. p.ej. 30% de ৳500 = ৳150'
+            : 'कर्मचारी प्रत्येक सेवा मूल्य का एक % कमाते हैं। जैसे ৳500 का 30% = ৳150',
+    accentColor: '#3B82F6',
+  },
+  {
+    mode: CommissionMode.FIXED,
+    icon: 'attach-money' as const,
+    label:
+      language === 'en'
+        ? 'Fixed Amount'
+        : language === 'bn'
+          ? 'নির্দিষ্ট পরিমাণ'
+          : language === 'es'
+            ? 'Monto Fijo'
+            : 'निश्चित राशि',
+    unit: '৳',
+    description:
+      language === 'en'
+        ? 'Employees earn a fixed ৳ per service. e.g. ৳100 per haircut regardless of price'
+        : language === 'bn'
+          ? 'কর্মীরা প্রতি সেবায় নির্দিষ্ট ৳ পাবে। যেমন, প্রতিটি কাটে ১০০৳ মূল্য নির্বিশেষে'
+          : language === 'es'
+            ? 'Los empleados ganan ৳ fijo por servicio. p.ej. ৳100 por corte de precio'
+            : 'कर्मचारी प्रति सेवा एक निश्चित ৳ कमाते हैं। जैसे ৳100 प्रति हेयरकट मूल्य की परवाह किए बिना',
+    accentColor: '#10B981',
+  },
+  {
+    mode: CommissionMode.SALARY,
+    icon: 'account-balance-wallet' as const,
+    label:
+      language === 'en'
+        ? 'Monthly Salary'
+        : language === 'bn'
+          ? 'মাসিক বেতন'
+          : language === 'es'
+            ? 'Salario Mensual'
+            : 'मासिक वेतन',
+    unit: '৳/mo',
+    description:
+      language === 'en'
+        ? 'Employees receive a fixed monthly salary regardless of service count. Tips are theirs to keep.'
+        : language === 'bn'
+          ? 'কর্মীরা সেবা সংখ্যা নির্বিশেষে নির্দিষ্ট মাসিক বেতন পান। টিপস তাদের নিজেদের।'
+          : language === 'es'
+            ? 'Los empleados reciben un salario mensual fijo independientemente de los servicios. Las propinas son suyas.'
+            : 'कर्मचारी सेवा संख्या की परवाह किए बिना एक निश्चित मासिक वेतन प्राप्त करते हैं। टिप्स उनके हैं।',
+    accentColor: '#8B5CF6',
+  },
+];
 
 // ============================================================================
 // COMPONENT
@@ -38,14 +112,15 @@ export default function OrganizationSettingsScreen({navigation}: any): React.Rea
   const [timezone, setTimezone] = useState(currentOrg?.timezone || 'Asia/Dhaka');
   const [currency, setCurrency] = useState(currentOrg?.currency || 'BDT');
   const [commissionMode, setCommissionMode] = useState<CommissionMode>(
-    currentOrg?.defaultCommissionMode || CommissionMode.PERCENTAGE,
+    (currentOrg?.defaultCommissionMode as CommissionMode) || CommissionMode.PERCENTAGE,
   );
   const [autoBackup, setAutoBackup] = useState(true);
   const [isDirty, setIsDirty] = useState(false);
-  const [_generatingCode, setGeneratingCode] = useState(false);
+  const [saving, setSaving] = useState(false);
 
-  // Organization code from Firestore
-  const orgCode = currentOrg?.inviteCode || 'LOADING...';
+  const orgCode = currentOrg?.inviteCode || '------';
+  const modeConfigs = getModeConfig(language);
+  const selectedModeConfig = modeConfigs.find(c => c.mode === commissionMode);
 
   // ============================================================================
   // HANDLERS
@@ -61,30 +136,43 @@ export default function OrganizationSettingsScreen({navigation}: any): React.Rea
       language === 'en'
         ? 'Select Timezone'
         : language === 'bn'
-          ? 'টাইমজোন নির্বাচন করুন'
+          ? 'টাইমজোন নির্বাচন'
           : language === 'es'
-            ? 'Seleccionar Zona Horaria'
-            : 'समय क्षेत्र चुनें',
-      language === 'en'
-        ? 'Choose your timezone'
-        : language === 'bn'
-          ? 'আপনার টাইমজোন বেছে নিন'
-          : language === 'es'
-            ? 'Elija su zona horaria'
-            : 'अपना समय क्षेत्र चुनें',
+            ? 'Zona Horaria'
+            : 'समय क्षेत्र',
+      '',
       [
-        {text: 'Asia/Dhaka', onPress: () => updateTimezone('Asia/Dhaka')},
-        {text: 'Asia/Kolkata', onPress: () => updateTimezone('Asia/Kolkata')},
-        {text: 'Asia/Karachi', onPress: () => updateTimezone('Asia/Karachi')},
-        {text: 'UTC', onPress: () => updateTimezone('UTC')},
+        {
+          text: 'Asia/Dhaka',
+          onPress: () => {
+            setTimezone('Asia/Dhaka');
+            setIsDirty(true);
+          },
+        },
+        {
+          text: 'Asia/Kolkata',
+          onPress: () => {
+            setTimezone('Asia/Kolkata');
+            setIsDirty(true);
+          },
+        },
+        {
+          text: 'Asia/Karachi',
+          onPress: () => {
+            setTimezone('Asia/Karachi');
+            setIsDirty(true);
+          },
+        },
+        {
+          text: 'UTC',
+          onPress: () => {
+            setTimezone('UTC');
+            setIsDirty(true);
+          },
+        },
         {text: t.common.cancel, style: 'cancel'},
       ],
     );
-  };
-
-  const updateTimezone = (value: string) => {
-    setTimezone(value);
-    setIsDirty(true);
   };
 
   const handleCurrencyChange = () => {
@@ -92,35 +180,82 @@ export default function OrganizationSettingsScreen({navigation}: any): React.Rea
       language === 'en'
         ? 'Select Currency'
         : language === 'bn'
-          ? 'মুদ্রা নির্বাচন করুন'
+          ? 'মুদ্রা নির্বাচন'
           : language === 'es'
-            ? 'Seleccionar Moneda'
-            : 'मुद्रा चुनें',
-      language === 'en'
-        ? 'Choose your currency'
-        : language === 'bn'
-          ? 'আপনার মুদ্রা বেছে নিন'
-          : language === 'es'
-            ? 'Elija su moneda'
-            : 'अपनी मुद्रा चुनें',
+            ? 'Moneda'
+            : 'मुद्रा',
+      '',
       [
-        {text: 'BDT (৳)', onPress: () => updateCurrency('BDT')},
-        {text: 'INR (₹)', onPress: () => updateCurrency('INR')},
-        {text: 'PKR (₨)', onPress: () => updateCurrency('PKR')},
-        {text: 'USD ($)', onPress: () => updateCurrency('USD')},
+        {
+          text: 'BDT (৳)',
+          onPress: () => {
+            setCurrency('BDT');
+            setIsDirty(true);
+          },
+        },
+        {
+          text: 'INR (₹)',
+          onPress: () => {
+            setCurrency('INR');
+            setIsDirty(true);
+          },
+        },
+        {
+          text: 'PKR (₨)',
+          onPress: () => {
+            setCurrency('PKR');
+            setIsDirty(true);
+          },
+        },
+        {
+          text: 'USD ($)',
+          onPress: () => {
+            setCurrency('USD');
+            setIsDirty(true);
+          },
+        },
         {text: t.common.cancel, style: 'cancel'},
       ],
     );
   };
 
-  const updateCurrency = (value: string) => {
-    setCurrency(value);
-    setIsDirty(true);
-  };
+  const handleCommissionModeChange = (mode: CommissionMode) => {
+    if (mode === commissionMode) return;
 
-  const handleAutoBackupToggle = () => {
-    setAutoBackup(!autoBackup);
-    setIsDirty(true);
+    const modeLabel = modeConfigs.find(c => c.mode === mode)?.label || mode;
+    Alert.alert(
+      language === 'en'
+        ? 'Change Commission Mode?'
+        : language === 'bn'
+          ? 'কমিশন মোড পরিবর্তন?'
+          : language === 'es'
+            ? '¿Cambiar modo?'
+            : 'मोड बदलें?',
+      language === 'en'
+        ? `Switch to "${modeLabel}" mode? All new employees will default to this mode. Existing employees keep their current settings.`
+        : language === 'bn'
+          ? `"${modeLabel}" মোডে পরিবর্তন করবেন? নতুন কর্মীরা এই মোডে ডিফল্ট হবে। বিদ্যমান কর্মীরা তাদের বর্তমান সেটিংস রাখবে।`
+          : language === 'es'
+            ? `¿Cambiar al modo "${modeLabel}"? Los nuevos empleados usarán este modo por defecto.`
+            : `"${modeLabel}" मोड में स्विच करें? नए कर्मचारी इस मोड में डिफ़ॉल्ट होंगे।`,
+      [
+        {text: t.common.cancel, style: 'cancel'},
+        {
+          text:
+            language === 'en'
+              ? 'Switch'
+              : language === 'bn'
+                ? 'পরিবর্তন করুন'
+                : language === 'es'
+                  ? 'Cambiar'
+                  : 'बदलें',
+          onPress: () => {
+            setCommissionMode(mode);
+            setIsDirty(true);
+          },
+        },
+      ],
+    );
   };
 
   const handleSave = async () => {
@@ -132,95 +267,61 @@ export default function OrganizationSettingsScreen({navigation}: any): React.Rea
           : language === 'bn'
             ? 'প্রতিষ্ঠানের নাম আবশ্যক'
             : language === 'es'
-              ? 'El nombre de la organización es obligatorio'
-              : 'संगठन का नाम आवश्यक है',
-        [{text: t.common.done}],
+              ? 'Nombre requerido'
+              : 'नाम आवश्यक है',
       );
       return;
     }
 
-    Alert.alert(
-      language === 'en'
-        ? 'Save Changes'
-        : language === 'bn'
-          ? 'পরিবর্তন সংরক্ষণ'
-          : language === 'es'
-            ? 'Guardar Cambios'
-            : 'परिवर्तन सहेजें',
-      language === 'en'
-        ? 'Are you sure you want to update organization settings?'
-        : language === 'bn'
-          ? 'আপনি কি নিশ্চিত যে আপনি প্রতিষ্ঠানের সেটিংস আপডেট করতে চান?'
-          : language === 'es'
-            ? '¿Está seguro de que desea actualizar la configuración de la organización?'
-            : 'क्या आप वाकई संगठन सेटिंग्स अपडेट करना चाहते हैं?',
-      [
-        {text: t.common.cancel, style: 'cancel'},
-        {
-          text: t.common.save,
-          onPress: async () => {
-            try {
-              await updateOrg({
-                name: orgName.trim(),
-                timezone: timezone,
-                currency: currency,
-                defaultCommissionMode: commissionMode,
-              });
-              setIsDirty(false);
-              Alert.alert(
-                t.common.success,
-                language === 'en'
-                  ? 'Organization settings updated successfully!'
-                  : language === 'bn'
-                    ? 'প্রতিষ্ঠানের সেটিংস সফলভাবে আপডেট করা হয়েছে!'
-                    : language === 'es'
-                      ? '¡Configuración de la organización actualizada con éxito!'
-                      : 'संगठन सेटिंग्स सफलतापूर्वक अपडेट की गईं!',
-                [
-                  {
-                    text: t.common.done,
-                    onPress: () => navigation.goBack(),
-                  },
-                ],
-              );
-            } catch (err: any) {
-              Alert.alert(t.common.error, err.message || 'Failed to update organization settings');
-            }
-          },
-        },
-      ],
-    );
+    setSaving(true);
+    try {
+      await updateOrg({
+        name: orgName.trim(),
+        timezone,
+        currency,
+        defaultCommissionMode: commissionMode,
+      });
+      setIsDirty(false);
+      Alert.alert(
+        t.common.success,
+        language === 'en'
+          ? '✅ Organization settings saved successfully!'
+          : language === 'bn'
+            ? '✅ প্রতিষ্ঠানের সেটিংস সফলভাবে সংরক্ষিত!'
+            : language === 'es'
+              ? '✅ ¡Configuración guardada!'
+              : '✅ सेटिंग्स सफलतापूर्वक सहेजी गईं!',
+        [{text: t.common.done, onPress: () => navigation.goBack()}],
+      );
+    } catch (err: any) {
+      Alert.alert(t.common.error, err.message || 'Failed to update organization settings');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleCopyOrgCode = () => {
     Share.share({
       message:
         language === 'en'
-          ? `Join my salon on CutBook! Use this code to join: ${orgCode}`
+          ? `Join my salon on CutBook! Use this code: ${orgCode}`
           : language === 'bn'
-            ? `আমার সেলুনে যোগ দিন কাটবুকে! যোগ দিতে এই কোডটি ব্যবহার করুন: ${orgCode}`
+            ? `আমার সেলুনে যোগ দিন CutBook-এ! কোড: ${orgCode}`
             : language === 'es'
-              ? `¡Únete a mi salón en CutBook! Usa este código para unirte: ${orgCode}`
-              : `कटबुक पर मेरे सैलून में शामिल हों! शामिल होने के लिए इस कोड का उपयोग करें: ${orgCode}`,
+              ? `¡Únete a mi salón en CutBook! Código: ${orgCode}`
+              : `CutBook पर मेरे सैलून से जुड़ें! कोड: ${orgCode}`,
       title: 'CutBook Organization Code',
       url: undefined,
-    }).catch(err => {
-      console.log('Share error:', err);
+    }).catch(() => {
       Alert.alert(
         language === 'en'
-          ? 'Code Ready to Share'
+          ? 'Organization Code'
           : language === 'bn'
-            ? 'শেয়ার করার জন্য কোড প্রস্তুত'
+            ? 'প্রতিষ্ঠানের কোড'
             : language === 'es'
-              ? 'Código Listo para Compartir'
-              : 'साझा करने के लिए कोड तैयार',
-        language === 'en'
-          ? `Organization code: ${orgCode}\n\nShare this code with employees to let them join your organization.`
-          : language === 'bn'
-            ? `প্রতিষ্ঠানের কোড: ${orgCode}\n\nকর্মীদের আপনার প্রতিষ্ঠানে যোগ দিতে এই কোডটি শেয়ার করুন।`
-            : language === 'es'
-              ? `Código de organización: ${orgCode}\n\nComparta este código con los empleados para permitirles unirse a su organización.`
-              : `संगठन कोड: ${orgCode}\n\nकर्मचारियों को अपने संगठन में शामिल होने देने के लिए इस कोड को उनके साथ साझा करें।`,
+              ? 'Código'
+              : 'कोड',
+        `${orgCode}`,
         [{text: t.common.done}],
       );
     });
@@ -229,19 +330,19 @@ export default function OrganizationSettingsScreen({navigation}: any): React.Rea
   const handleGenerateNewCode = () => {
     Alert.alert(
       language === 'en'
-        ? 'Generate New Code'
+        ? 'Generate New Code?'
         : language === 'bn'
-          ? 'নতুন কোড তৈরি করুন'
+          ? 'নতুন কোড?'
           : language === 'es'
-            ? 'Generar Nuevo Código'
-            : 'नया कोड जनरेट करें',
+            ? '¿Nuevo código?'
+            : 'नया कोड?',
       language === 'en'
-        ? 'Are you sure you want to generate a new organization code?\n\nThe old code will no longer work for new employees.'
+        ? 'The old code will stop working. Employees already joined are unaffected.'
         : language === 'bn'
-          ? 'আপনি কি নিশ্চিত যে আপনি একটি নতুন প্রতিষ্ঠানের কোড তৈরি করতে চান?\n\nপুরানো কোডটি আর নতুন কর্মীদের জন্য কাজ করবে না।'
+          ? 'পুরানো কোড কাজ করবে না। ইতিমধ্যে যোগদানকারী কর্মীরা প্রভাবিত হবে না।'
           : language === 'es'
-            ? '¿Está seguro de que desea generar un nuevo código de organización?\n\nEl código antiguo ya no funcionará para los nuevos empleados.'
-            : 'क्या आप वाकई एक नया संगठन कोड जनरेट करना चाहते हैं?\n\nपुराना कोड अब नए कर्मचारियों के लिए काम नहीं करेगा।',
+            ? 'El código antiguo dejará de funcionar. Los empleados ya unidos no se verán afectados.'
+            : 'पुराना कोड काम करना बंद कर देगा। पहले से जुड़े कर्मचारी प्रभावित नहीं होंगे।',
       [
         {text: t.common.cancel, style: 'cancel'},
         {
@@ -255,41 +356,29 @@ export default function OrganizationSettingsScreen({navigation}: any): React.Rea
                   : 'उत्पन्न करें',
           style: 'destructive',
           onPress: async () => {
+            setSaving(true);
             try {
-              setGeneratingCode(true);
-
-              // Generate new 6-character uppercase code
               const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
               let newCode = '';
               for (let i = 0; i < 6; i++) {
                 newCode += chars.charAt(Math.floor(Math.random() * chars.length));
               }
-
-              // Update organization in Firestore
               await updateOrg({inviteCode: newCode});
-
               Alert.alert(
                 language === 'en'
                   ? 'New Code Generated'
                   : language === 'bn'
-                    ? 'নতুন কোড তৈরি হয়েছে'
+                    ? 'নতুন কোড তৈরি'
                     : language === 'es'
-                      ? 'Nuevo Código Generado'
-                      : 'नया कोड जनरेट किया गया',
-                language === 'en'
-                  ? `New organization code: ${newCode}\n\nShare this with new employees.`
-                  : language === 'bn'
-                    ? `নতুন প্রতিষ্ঠানের কোড: ${newCode}\n\nএটি নতুন কর্মীদের সাথে শেয়ার করুন।`
-                    : language === 'es'
-                      ? `Nuevo código de organización: ${newCode}\n\nComparta esto con los nuevos empleados.`
-                      : `नया संगठन कोड: ${newCode}\n\nइसे नए कर्मचारियों के साथ साझा करें।`,
+                      ? 'Nuevo código'
+                      : 'नया कोड',
+                `${newCode}`,
                 [{text: t.common.done}],
               );
             } catch (err: any) {
-              console.error('Error generating new code:', err);
               Alert.alert(t.common.error, err.message || 'Failed to generate new code');
             } finally {
-              setGeneratingCode(false);
+              setSaving(false);
             }
           },
         },
@@ -304,15 +393,15 @@ export default function OrganizationSettingsScreen({navigation}: any): React.Rea
         : language === 'bn'
           ? '⚠️ প্রতিষ্ঠান মুছুন'
           : language === 'es'
-            ? '⚠️ Eliminar Organización'
-            : '⚠️ संगठन हटाएं',
+            ? '⚠️ Eliminar'
+            : '⚠️ हटाएं',
       language === 'en'
-        ? 'This action cannot be undone!\n\nAll data including employees, services, and work entries will be permanently deleted.'
+        ? 'This will permanently delete ALL data: employees, services, entries. This cannot be undone.'
         : language === 'bn'
-          ? 'এই কাজটি পূর্বাবস্থায় ফেরানো যাবে না!\n\nকর্মী, সেবা এবং কাজের এন্ট্রি সহ সমস্ত ডেটা স্থায়ীভাবে মুছে ফেলা হবে।'
+          ? 'এটি সমস্ত ডেটা স্থায়ীভাবে মুছে ফেলবে। এই কাজটি পূর্বাবস্থায় ফেরানো যাবে না।'
           : language === 'es'
-            ? '¡Esta acción no se puede deshacer!\n\nTodos los datos, incluidos los empleados, los servicios y las entradas de trabajo, se eliminarán permanentemente.'
-            : 'यह कार्रवाई पूर्ववत नहीं की जा सकती!\n\nकर्मचारियों, सेवाओं और कार्य प्रविष्टियों सहित सभी डेटा स्थायी रूप से हटा दिए जाएंगे।',
+            ? 'Esto eliminará permanentemente todos los datos. Esta acción no se puede deshacer.'
+            : 'यह सभी डेटा स्थायी रूप से हटा देगा। यह पूर्ववत नहीं किया जा सकता।',
       [
         {text: t.common.cancel, style: 'cancel'},
         {
@@ -325,59 +414,34 @@ export default function OrganizationSettingsScreen({navigation}: any): React.Rea
                 : language === 'bn'
                   ? 'চূড়ান্ত নিশ্চিতকরণ'
                   : language === 'es'
-                    ? 'Confirmación Final'
+                    ? 'Confirmación final'
                     : 'अंतिम पुष्टि',
               language === 'en'
-                ? 'Are you absolutely sure you want to permanently delete your organization and all data?'
+                ? 'Are you absolutely sure?'
                 : language === 'bn'
-                  ? 'আপনি কি নিশ্চিত যে আপনি আপনার প্রতিষ্ঠান এবং সমস্ত ডেটা স্থায়ীভাবে মুছে ফেলতে চান?'
+                  ? 'আপনি কি সত্যিই নিশ্চিত?'
                   : language === 'es'
-                    ? '¿Está seguro de que desea eliminar permanentemente su organización y todos los datos?'
-                    : 'क्या आप वाकई अपने संगठन और सभी डेटा को स्थायी रूप से हटाना चाहते हैं?',
+                    ? '¿Está absolutamente seguro?'
+                    : 'क्या आप पूरी तरह सुनिश्चित हैं?',
               [
                 {text: t.common.cancel, style: 'cancel'},
                 {
                   text:
                     language === 'en'
-                      ? 'I Understand, Delete'
+                      ? 'Yes, Delete'
                       : language === 'bn'
-                        ? 'আমি বুঝতে পেরেছি, মুছুন'
+                        ? 'হ্যাঁ, মুছুন'
                         : language === 'es'
-                          ? 'Entiendo, eliminar'
-                          : 'मैं समझता हूँ, हटाएँ',
+                          ? 'Sí, eliminar'
+                          : 'हाँ, हटाएँ',
                   style: 'destructive',
                   onPress: async () => {
+                    setSaving(true);
                     try {
                       await deleteOrg();
-                      Alert.alert(
-                        language === 'en'
-                          ? 'Organization Deleted'
-                          : language === 'bn'
-                            ? 'প্রতিষ্ঠান মুছে ফেলা হয়েছে'
-                            : language === 'es'
-                              ? 'Organización Eliminada'
-                              : 'संगठन हटा दिया गया',
-                        language === 'en'
-                          ? 'Your organization and all associated data have been permanently deleted.'
-                          : language === 'bn'
-                            ? 'আপনার প্রতিষ্ঠান এবং সমস্ত সংশ্লিষ্ট ডেটা স্থায়ীভাবে মুছে ফেলা হয়েছে।'
-                            : language === 'es'
-                              ? 'Su organización y todos los datos asociados han sido eliminados permanentemente.'
-                              : 'आपका संगठन और सभी संबद्ध डेटा स्थायी रूप से हटा दिए गए हैं।',
-                        [{text: t.common.done}],
-                      );
                     } catch (err: any) {
-                      Alert.alert(
-                        t.common.error,
-                        err.message ||
-                          (language === 'en'
-                            ? 'Failed to delete organization. Please try again.'
-                            : language === 'bn'
-                              ? 'প্রতিষ্ঠান মুছতে ব্যর্থ হয়েছে। আবার চেষ্টা করুন।'
-                              : language === 'es'
-                                ? 'Error al eliminar la organización. Por favor intente de nuevo.'
-                                : 'संगठन हटाने में विफल। कृपया पुनः प्रयास करें।'),
-                      );
+                      Alert.alert(t.common.error, err.message || 'Failed to delete');
+                      setSaving(false);
                     }
                   },
                 },
@@ -403,13 +467,25 @@ export default function OrganizationSettingsScreen({navigation}: any): React.Rea
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <MaterialIcons name="arrow-back" style={styles.backIcon} size={24} />
+          <MaterialIcons name="arrow-back" size={24} color={colors.text.primary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{t.settings.organizationSettings}</Text>
-        {isDirty && (
+        <View style={styles.headerCenter}>
+          <Text style={styles.headerTitle}>{t.settings.organizationSettings}</Text>
+          {currentOrg?.name ? <Text style={styles.headerSubtitle}>{currentOrg.name}</Text> : null}
+        </View>
+        {saving ? (
+          <ActivityIndicator
+            size="small"
+            color={colors.primary[500]}
+            style={{paddingHorizontal: 8}}
+          />
+        ) : isDirty ? (
           <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
+            <MaterialIcons name="check" size={18} color="#fff" />
             <Text style={styles.saveButtonText}>{t.common.save}</Text>
           </TouchableOpacity>
+        ) : (
+          <View style={{width: 70}} />
         )}
       </View>
 
@@ -417,276 +493,323 @@ export default function OrganizationSettingsScreen({navigation}: any): React.Rea
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}>
-        {/* Basic Information */}
+        {/* ── Basic Information ── */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
-            {language === 'en'
-              ? 'Basic Information'
-              : language === 'bn'
-                ? 'সাধারণ তথ্য'
-                : language === 'es'
-                  ? 'Información Básica'
-                  : 'बुनियादी जानकारी'}
-          </Text>
-
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>{t.organization.orgName} *</Text>
-            <TextInput
-              style={styles.input}
-              value={orgName}
-              onChangeText={handleOrgNameChange}
-              placeholder={
-                language === 'en'
-                  ? 'Enter organization name'
-                  : language === 'bn'
-                    ? 'প্রতিষ্ঠানের নাম লিখুন'
-                    : language === 'es'
-                      ? 'Ingrese el nombre de la organización'
-                      : 'संगठन का नाम दर्ज करें'
-              }
-              placeholderTextColor={colors.text.hint}
-            />
+          <View style={styles.sectionHeader}>
+            <MaterialIcons name="business" size={18} color={colors.primary[500]} />
+            <Text style={styles.sectionTitle}>
+              {language === 'en'
+                ? 'Basic Information'
+                : language === 'bn'
+                  ? 'সাধারণ তথ্য'
+                  : language === 'es'
+                    ? 'Información Básica'
+                    : 'बुनियादी जानकारी'}
+            </Text>
           </View>
-
-          <TouchableOpacity style={styles.selectButton} onPress={handleTimezoneChange}>
-            <View style={styles.selectLeft}>
-              <Text style={styles.selectLabel}>{t.organization.timezone}</Text>
-              <Text style={styles.selectValue}>{timezone}</Text>
-            </View>
-            <Text style={styles.selectArrow}>→</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.selectButton} onPress={handleCurrencyChange}>
-            <View style={styles.selectLeft}>
-              <Text style={styles.selectLabel}>{t.organization.currency}</Text>
-              <Text style={styles.selectValue}>{currency}</Text>
-            </View>
-            <Text style={styles.selectArrow}>→</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Commission Settings */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
-            {language === 'en'
-              ? '💰 Commission Settings'
-              : language === 'bn'
-                ? '💰 কমিশন সেটিংস'
-                : language === 'es'
-                  ? '💰 Configuración de Comisión'
-                  : '💰 कमीशन सेटिंग्स'}
-          </Text>
 
           <View style={styles.card}>
-            <View style={styles.cardHeader}>
-              <View>
-                <Text style={styles.cardTitle}>{t.organization.commissionMode}</Text>
-                <Text style={styles.cardSubtitle}>
-                  {language === 'en'
-                    ? 'How commissions are calculated for new employees'
-                    : language === 'bn'
-                      ? 'নতুন কর্মীদের কমিশন কীভাবে হিসাব করা হয়'
-                      : language === 'es'
-                        ? 'Cómo se calculan las comisiones para los nuevos empleados'
-                        : 'नए कर्मचारियों के लिए कमीशन की गणना कैसे की जाती है'}
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.commissionToggle}>
-              <TouchableOpacity
-                style={[
-                  styles.commissionOption,
-                  commissionMode === CommissionMode.PERCENTAGE && styles.commissionOptionActive,
-                ]}
-                onPress={() => {
-                  setCommissionMode(CommissionMode.PERCENTAGE);
-                  setIsDirty(true);
-                }}>
-                <Text
-                  style={[
-                    styles.commissionOptionText,
-                    commissionMode === CommissionMode.PERCENTAGE &&
-                      styles.commissionOptionTextActive,
-                  ]}>
-                  {language === 'en'
-                    ? 'Percentage (%)'
-                    : language === 'bn'
-                      ? 'শতাংশ (%)'
-                      : language === 'es'
-                        ? 'Porcentaje (%)'
-                        : 'प्रतिशत (%)'}
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  styles.commissionOption,
-                  commissionMode === CommissionMode.FIXED && styles.commissionOptionActive,
-                ]}
-                onPress={() => {
-                  setCommissionMode(CommissionMode.FIXED);
-                  setIsDirty(true);
-                }}>
-                <Text
-                  style={[
-                    styles.commissionOptionText,
-                    commissionMode === CommissionMode.FIXED && styles.commissionOptionTextActive,
-                  ]}>
-                  {language === 'en'
-                    ? 'Fixed Amount (৳)'
-                    : language === 'bn'
-                      ? 'নির্দিষ্ট পরিমাণ (৳)'
-                      : language === 'es'
-                        ? 'Cantidad Fija (৳)'
-                        : 'निश्चित राशि (৳)'}
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.infoBox}>
-              <Text style={styles.infoBoxText}>
-                {commissionMode === CommissionMode.PERCENTAGE
-                  ? language === 'en'
-                    ? '💡 Employees earn a percentage of each service (e.g., 30% of ৳500 = ৳150)'
-                    : language === 'bn'
-                      ? '💡 কর্মীরা প্রতিটি সেবার একটি নির্দিষ্ট শতাংশ উপার্জন করে (যেমন, ৫০০ ৳ এর ৩০% = ১৫০ ৳)'
-                      : language === 'es'
-                        ? '💡 Los empleados ganan un porcentaje de cada servicio (por ejemplo, 30% de ৳500 = ৳150)'
-                        : '💡 कर्मचारी प्रत्येक सेवा का एक प्रतिशत कमाते हैं (जैसे, ৳500 का 30% = ৳150)'
-                  : language === 'en'
-                    ? '💡 Employees earn a fixed amount per service (e.g., ৳100 per service)'
-                    : language === 'bn'
-                      ? '💡 কর্মীরা প্রতি সেবায় একটি নির্দিষ্ট পরিমাণ উপার্জন করে (যেমন, প্রতি সেবায় ১০০ ৳)'
-                      : language === 'es'
-                        ? '💡 Los empleados ganan una cantidad fija por servicio (por ejemplo, ৳100 por servicio)'
-                        : '💡 कर्मचारी प्रति सेवा एक निश्चित राशि कमाते हैं (जैसे, प्रति सेवा ৳100)'}
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>
+                {t.organization.orgName} <Text style={styles.required}>*</Text>
               </Text>
+              <TextInput
+                style={styles.input}
+                value={orgName}
+                onChangeText={handleOrgNameChange}
+                placeholder={
+                  language === 'en'
+                    ? 'Enter salon name'
+                    : language === 'bn'
+                      ? 'সেলুনের নাম লিখুন'
+                      : language === 'es'
+                        ? 'Nombre del salón'
+                        : 'सैलून का नाम'
+                }
+                placeholderTextColor={colors.text.hint}
+                maxLength={60}
+              />
             </View>
+
+            <TouchableOpacity style={styles.selectRow} onPress={handleTimezoneChange}>
+              <View style={styles.selectRowLeft}>
+                <MaterialIcons
+                  name="schedule"
+                  size={20}
+                  color={colors.text.secondary}
+                  style={styles.selectRowIcon}
+                />
+                <View>
+                  <Text style={styles.selectRowLabel}>{t.organization.timezone}</Text>
+                  <Text style={styles.selectRowValue}>{timezone}</Text>
+                </View>
+              </View>
+              <MaterialIcons name="chevron-right" size={22} color={colors.text.hint} />
+            </TouchableOpacity>
+
+            <View style={styles.rowDivider} />
+
+            <TouchableOpacity style={styles.selectRow} onPress={handleCurrencyChange}>
+              <View style={styles.selectRowLeft}>
+                <MaterialIcons
+                  name="payments"
+                  size={20}
+                  color={colors.text.secondary}
+                  style={styles.selectRowIcon}
+                />
+                <View>
+                  <Text style={styles.selectRowLabel}>{t.organization.currency}</Text>
+                  <Text style={styles.selectRowValue}>{currency}</Text>
+                </View>
+              </View>
+              <MaterialIcons name="chevron-right" size={22} color={colors.text.hint} />
+            </TouchableOpacity>
           </View>
         </View>
 
-        {/* Organization Code */}
+        {/* ── Commission / Salary Mode ── */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
+          <View style={styles.sectionHeader}>
+            <MaterialIcons name="monetization-on" size={18} color="#10B981" />
+            <Text style={styles.sectionTitle}>
+              {language === 'en'
+                ? 'Payment Mode'
+                : language === 'bn'
+                  ? 'পেমেন্ট মোড'
+                  : language === 'es'
+                    ? 'Modo de Pago'
+                    : 'भुगतान मोड'}
+            </Text>
+          </View>
+
+          <Text style={styles.sectionSubtitle}>
             {language === 'en'
-              ? '🔑 Organization Code'
+              ? 'Choose how employees are compensated. This sets the default for new employees — existing employees can have individual overrides.'
               : language === 'bn'
-                ? '🔑 প্রতিষ্ঠানের কোড'
+                ? 'কর্মীদের পারিশ্রমিক কীভাবে দেওয়া হবে তা চয়ন করুন। এটি নতুন কর্মীদের ডিফল্ট সেট করে।'
                 : language === 'es'
-                  ? '🔑 Código de Organización'
-                  : '🔑 संगठन कोड'}
+                  ? 'Elija cómo se compensa a los empleados. Este es el modo predeterminado para nuevos empleados.'
+                  : 'कर्मचारियों को कैसे मुआवजा दिया जाए। यह नए कर्मचारियों के लिए डिफ़ॉल्ट सेट करता है।'}
           </Text>
 
-          <View style={styles.codeCard}>
-            <Text style={styles.codeLabel}>
+          <View style={styles.modeGrid}>
+            {modeConfigs.map(config => {
+              const isActive = commissionMode === config.mode;
+              return (
+                <TouchableOpacity
+                  key={config.mode}
+                  style={[
+                    styles.modeCard,
+                    isActive && {
+                      borderColor: config.accentColor,
+                      backgroundColor: isDarkMode
+                        ? config.accentColor + '22'
+                        : config.accentColor + '12',
+                    },
+                  ]}
+                  onPress={() => handleCommissionModeChange(config.mode)}
+                  activeOpacity={0.75}>
+                  {/* Active check */}
+                  {isActive && (
+                    <View style={[styles.modeCheckBadge, {backgroundColor: config.accentColor}]}>
+                      <MaterialIcons name="check" size={12} color="#fff" />
+                    </View>
+                  )}
+
+                  <View style={[styles.modeIconBg, {backgroundColor: config.accentColor + '20'}]}>
+                    <MaterialIcons name={config.icon} size={26} color={config.accentColor} />
+                  </View>
+
+                  <Text style={[styles.modeLabel, isActive && {color: config.accentColor}]}>
+                    {config.label}
+                  </Text>
+                  <Text style={styles.modeUnit}>{config.unit}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          {/* Description for selected mode */}
+          {selectedModeConfig && (
+            <View
+              style={[styles.modeDescCard, {borderColor: selectedModeConfig.accentColor + '60'}]}>
+              <View
+                style={[styles.modeDescAccent, {backgroundColor: selectedModeConfig.accentColor}]}
+              />
+              <View style={styles.modeDescContent}>
+                <Text style={[styles.modeDescTitle, {color: selectedModeConfig.accentColor}]}>
+                  {selectedModeConfig.label}
+                </Text>
+                <Text style={styles.modeDescText}>{selectedModeConfig.description}</Text>
+              </View>
+            </View>
+          )}
+        </View>
+
+        {/* ── Organization Code ── */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <MaterialIcons name="vpn-key" size={18} color="#F59E0B" />
+            <Text style={styles.sectionTitle}>
               {language === 'en'
-                ? 'Share this code with employees'
+                ? 'Organization Code'
                 : language === 'bn'
-                  ? 'কর্মীদের সাথে এই কোডটি শেয়ার করুন'
+                  ? 'প্রতিষ্ঠানের কোড'
                   : language === 'es'
-                    ? 'Comparta este código con los empleados'
-                    : 'कर्मचारियों के साथ यह कोड साझा करें'}
+                    ? 'Código de Organización'
+                    : 'संगठन कोड'}
             </Text>
+          </View>
+
+          <View style={styles.codeCard}>
+            <Text style={styles.codeHint}>
+              {language === 'en'
+                ? 'Share this code with employees to let them join'
+                : language === 'bn'
+                  ? 'কর্মীদের যোগদানের জন্য এই কোড শেয়ার করুন'
+                  : language === 'es'
+                    ? 'Comparte este código con empleados para unirse'
+                    : 'कर्मचारियों को शामिल होने के लिए यह कोड साझा करें'}
+            </Text>
+
             <View style={styles.codeDisplay}>
-              <Text style={styles.codeText}>{orgCode}</Text>
+              {orgCode.split('').map((char, i) => (
+                <View key={i} style={styles.codeCharBox}>
+                  <Text style={styles.codeChar}>{char}</Text>
+                </View>
+              ))}
             </View>
 
             <View style={styles.codeActions}>
-              <TouchableOpacity style={styles.codeButton} onPress={handleCopyOrgCode}>
-                <Text style={styles.codeButtonText}>
+              <TouchableOpacity style={styles.codeBtn} onPress={handleCopyOrgCode}>
+                <MaterialIcons name="share" size={18} color="#fff" />
+                <Text style={styles.codeBtnText}>
                   {language === 'en'
-                    ? '📋 Copy Code'
+                    ? 'Share'
                     : language === 'bn'
-                      ? '📋 কোড কপি করুন'
+                      ? 'শেয়ার'
                       : language === 'es'
-                        ? '📋 Copiar Código'
-                        : '📋 कोड कॉपी करें'}
+                        ? 'Compartir'
+                        : 'साझा करें'}
                 </Text>
               </TouchableOpacity>
-
               <TouchableOpacity
-                style={[styles.codeButton, styles.codeButtonSecondary]}
+                style={[styles.codeBtn, styles.codeBtnOutline]}
                 onPress={handleGenerateNewCode}>
-                <Text style={styles.codeButtonSecondaryText}>
+                <MaterialIcons name="refresh" size={18} color="#F59E0B" />
+                <Text style={[styles.codeBtnText, {color: '#F59E0B'}]}>
                   {language === 'en'
-                    ? '🔄 Generate New'
+                    ? 'New Code'
                     : language === 'bn'
-                      ? '🔄 নতুন তৈরি করুন'
+                      ? 'নতুন কোড'
                       : language === 'es'
-                        ? '🔄 Generar Nuevo'
-                        : '🔄 नया उत्पन्न करें'}
+                        ? 'Nuevo'
+                        : 'नया कोड'}
                 </Text>
               </TouchableOpacity>
             </View>
+          </View>
+        </View>
 
-            <View style={styles.infoBox}>
-              <Text style={styles.infoBoxText}>
-                {language === 'en'
-                  ? 'Employees need this code to join your organization during registration.'
-                  : language === 'bn'
-                    ? 'কর্মীদের নিবন্ধনের সময় আপনার প্রতিষ্ঠানে যোগদানের জন্য এই কোডটি প্রয়োজন।'
-                    : language === 'es'
-                      ? 'Los empleados necesitan este código para unirse a su organización durante el registro.'
-                      : 'कर्मचारियों को पंजीकरण के दौरान आपके संगठन में शामिल होने के लिए इस कोड की आवश्यकता होती है।'}
-              </Text>
+        {/* ── Advanced Settings ── */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <MaterialIcons name="settings" size={18} color={colors.text.secondary} />
+            <Text style={styles.sectionTitle}>
+              {language === 'en'
+                ? 'Advanced Settings'
+                : language === 'bn'
+                  ? 'উন্নত সেটিংস'
+                  : language === 'es'
+                    ? 'Config. Avanzada'
+                    : 'उन्नत सेटिंग्स'}
+            </Text>
+          </View>
+
+          <View style={styles.card}>
+            <View style={styles.settingRow}>
+              <View style={styles.settingLeft}>
+                <MaterialIcons
+                  name="backup"
+                  size={20}
+                  color={colors.text.secondary}
+                  style={{marginRight: 12}}
+                />
+                <View>
+                  <Text style={styles.settingTitle}>
+                    {language === 'en'
+                      ? 'Auto Backup'
+                      : language === 'bn'
+                        ? 'স্বয়ংক্রিয় ব্যাকআপ'
+                        : language === 'es'
+                          ? 'Copia Automática'
+                          : 'ऑटो बैकअप'}
+                  </Text>
+                  <Text style={styles.settingSubtitle}>
+                    {language === 'en'
+                      ? 'Daily data backup to cloud'
+                      : language === 'bn'
+                        ? 'দৈনিক ক্লাউড ব্যাকআপ'
+                        : language === 'es'
+                          ? 'Copia diaria a la nube'
+                          : 'दैनिक क्लाउड बैकअप'}
+                  </Text>
+                </View>
+              </View>
+              <Switch
+                value={autoBackup}
+                onValueChange={v => {
+                  setAutoBackup(v);
+                  setIsDirty(true);
+                }}
+                trackColor={{false: colors.border.main, true: colors.success.light}}
+                thumbColor={autoBackup ? colors.success.main : colors.neutral[400]}
+              />
             </View>
           </View>
         </View>
 
-        {/* Advanced Settings */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
-            {language === 'en'
-              ? '⚙️ Advanced Settings'
-              : language === 'bn'
-                ? '⚙️ উন্নত সেটিংস'
-                : language === 'es'
-                  ? '⚙️ Configuración Avanzada'
-                  : '⚙️ उन्नत सेटिंग्स'}
-          </Text>
-
-          <View style={styles.settingRow}>
-            <View style={styles.settingLeft}>
-              <Text style={styles.settingTitle}>
-                {language === 'en'
-                  ? 'Auto Backup'
-                  : language === 'bn'
-                    ? 'স্বয়ংক্রিয় ব্যাকআপ'
-                    : language === 'es'
-                      ? 'Copia de Seguridad Automática'
-                      : 'ऑटो बैकअप'}
-              </Text>
-              <Text style={styles.settingSubtitle}>
-                {language === 'en'
-                  ? 'Automatically backup data daily'
-                  : language === 'bn'
-                    ? 'প্রতিদিন স্বয়ংক্রিয়ভাবে ডেটা ব্যাকআপ করুন'
-                    : language === 'es'
-                      ? 'Realizar copia de seguridad automáticamente todos los días'
-                      : 'दैनिक रूप से स्वचालित रूप से डेटा बैकअप करें'}
-              </Text>
-            </View>
-            <Switch
-              value={autoBackup}
-              onValueChange={handleAutoBackupToggle}
-              trackColor={{false: colors.border.main, true: colors.success.light}}
-              thumbColor={autoBackup ? colors.success.main : colors.neutral[400]}
-            />
+        {/* ── Save Button ── */}
+        {isDirty && (
+          <View style={styles.section}>
+            <TouchableOpacity
+              style={[styles.primaryButton, saving && styles.buttonDisabled]}
+              onPress={handleSave}
+              disabled={saving}>
+              {saving ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <>
+                  <MaterialIcons name="save" size={20} color="#fff" />
+                  <Text style={styles.primaryButtonText}>
+                    {language === 'en'
+                      ? 'Save Changes'
+                      : language === 'bn'
+                        ? 'পরিবর্তন সংরক্ষণ'
+                        : language === 'es'
+                          ? 'Guardar Cambios'
+                          : 'परिवर्तन सहेजें'}
+                  </Text>
+                </>
+              )}
+            </TouchableOpacity>
           </View>
-        </View>
+        )}
 
-        {/* Danger Zone */}
+        {/* ── Danger Zone ── */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
-            {language === 'en'
-              ? '⚠️ Danger Zone'
-              : language === 'bn'
-                ? '⚠️ ঝুঁকিপূর্ণ অঞ্চল'
-                : language === 'es'
-                  ? '⚠️ Zona de Peligro'
-                  : '⚠️ खतरा क्षेत्र'}
-          </Text>
+          <View style={styles.sectionHeader}>
+            <MaterialIcons name="warning" size={18} color={colors.error.main} />
+            <Text style={[styles.sectionTitle, {color: colors.error.main}]}>
+              {language === 'en'
+                ? 'Danger Zone'
+                : language === 'bn'
+                  ? 'ঝুঁকিপূর্ণ অঞ্চল'
+                  : language === 'es'
+                    ? 'Zona de Peligro'
+                    : 'खतरा क्षेत्र'}
+            </Text>
+          </View>
 
           <View style={styles.dangerCard}>
             <Text style={styles.dangerTitle}>
@@ -700,43 +823,32 @@ export default function OrganizationSettingsScreen({navigation}: any): React.Rea
             </Text>
             <Text style={styles.dangerText}>
               {language === 'en'
-                ? 'Permanently delete your organization and all associated data. This action cannot be undone.'
+                ? 'Permanently delete your organization and all data. Cannot be undone.'
                 : language === 'bn'
-                  ? 'স্থায়ীভাবে আপনার প্রতিষ্ঠান এবং সমস্ত সংশ্লিষ্ট ডেটা মুছে ফেলুন। এই কাজটি পূর্বাবস্থায় ফেরানো যাবে না।'
+                  ? 'আপনার প্রতিষ্ঠান এবং সমস্ত ডেটা স্থায়ীভাবে মুছে ফেলুন। পূর্বাবস্থায় ফেরানো যাবে না।'
                   : language === 'es'
-                    ? 'Elimine permanentemente su organización y todos los datos asociados. Esta acción no se puede deshacer.'
-                    : 'अपने संगठन और सभी संबद्ध डेटा को स्थायी रूप से हटाएं। यह कार्रवाई पूर्ववत नहीं की जा सकती।'}
+                    ? 'Elimine permanentemente su organización y todos los datos. No se puede deshacer.'
+                    : 'अपने संगठन और सभी डेटा को स्थायी रूप से हटाएं। पूर्ववत नहीं किया जा सकता।'}
             </Text>
-            <TouchableOpacity style={styles.dangerButton} onPress={handleDeleteOrganization}>
+            <TouchableOpacity
+              style={[styles.dangerButton, saving && styles.buttonDisabled]}
+              onPress={handleDeleteOrganization}
+              disabled={saving}>
+              <MaterialIcons name="delete-forever" size={20} color="#fff" />
               <Text style={styles.dangerButtonText}>
                 {language === 'en'
                   ? 'Delete Organization'
                   : language === 'bn'
                     ? 'প্রতিষ্ঠান মুছুন'
                     : language === 'es'
-                      ? 'Eliminar Organización'
-                      : 'संगठन हटाएं'}
+                      ? 'Eliminar'
+                      : 'हटाएं'}
               </Text>
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* Save Button (Fixed at bottom when dirty) */}
-        {isDirty && (
-          <View style={styles.section}>
-            <TouchableOpacity style={styles.primaryButton} onPress={handleSave}>
-              <Text style={styles.primaryButtonText}>
-                {language === 'en'
-                  ? '💾 Save Changes'
-                  : language === 'bn'
-                    ? '💾 পরিবর্তন সংরক্ষণ করুন'
-                    : language === 'es'
-                      ? '💾 Guardar Cambios'
-                      : '💾 परिवर्तन सहेजें'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        )}
+        <View style={{height: 32}} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -752,6 +864,7 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) =>
       flex: 1,
       backgroundColor: colors.background.default,
     },
+    // ── Header ──
     header: {
       backgroundColor: colors.background.paper,
       paddingHorizontal: 16,
@@ -760,274 +873,339 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) =>
       borderBottomColor: colors.border.light,
       flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'space-between',
+      gap: 8,
     },
     backButton: {
-      paddingVertical: 8,
-      paddingRight: 16,
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: isDarkMode ? colors.neutral[800] : colors.neutral[100],
     },
-    backIcon: {
-      color: colors.text.primary,
-    },
-    headerTitle: {
-      fontSize: 18,
-      fontWeight: '700',
-      color: colors.text.primary,
+    headerCenter: {
       flex: 1,
     },
+    headerTitle: {
+      fontSize: 17,
+      fontWeight: '700',
+      color: colors.text.primary,
+    },
+    headerSubtitle: {
+      fontSize: 12,
+      color: colors.text.secondary,
+      marginTop: 1,
+    },
     saveButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
       backgroundColor: colors.success.main,
-      paddingHorizontal: 16,
+      paddingHorizontal: 14,
       paddingVertical: 8,
-      borderRadius: 8,
+      borderRadius: 10,
     },
     saveButtonText: {
-      fontSize: 14,
-      fontWeight: '600',
+      fontSize: 13,
+      fontWeight: '700',
       color: '#FFFFFF',
     },
+    // ── Scroll ──
     scrollView: {
       flex: 1,
     },
     scrollContent: {
-      paddingBottom: 24,
+      paddingBottom: 40,
     },
+    // ── Sections ──
     section: {
       paddingHorizontal: 16,
-      marginTop: 24,
+      marginTop: 20,
+    },
+    sectionHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      marginBottom: 6,
     },
     sectionTitle: {
-      fontSize: 18,
+      fontSize: 16,
       fontWeight: '700',
       color: colors.text.primary,
-      marginBottom: 12,
     },
-    formGroup: {
-      marginBottom: 16,
-    },
-    label: {
-      fontSize: 14,
-      fontWeight: '600',
-      color: colors.text.primary,
-      marginBottom: 8,
-    },
-    input: {
-      backgroundColor: colors.background.paper,
-      borderRadius: 12,
-      padding: 16,
-      fontSize: 16,
-      color: colors.text.primary,
-      borderWidth: 1,
-      borderColor: colors.border.light,
-    },
-    selectButton: {
-      backgroundColor: colors.background.paper,
-      borderRadius: 12,
-      padding: 16,
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: 12,
-      borderWidth: 1,
-      borderColor: colors.border.light,
-    },
-    selectLeft: {
-      flex: 1,
-    },
-    selectLabel: {
+    sectionSubtitle: {
       fontSize: 13,
       color: colors.text.secondary,
-      marginBottom: 4,
+      lineHeight: 19,
+      marginBottom: 14,
     },
-    selectValue: {
-      fontSize: 16,
-      fontWeight: '600',
-      color: colors.text.primary,
-    },
-    selectArrow: {
-      fontSize: 20,
-      color: colors.text.hint,
-    },
+    // ── Card ──
     card: {
       backgroundColor: colors.background.paper,
-      borderRadius: 12,
-      padding: 20,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: colors.border.light,
+      overflow: 'hidden',
+    },
+    formGroup: {
+      padding: 16,
+      paddingBottom: 8,
+    },
+    label: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: colors.text.secondary,
+      marginBottom: 8,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+    },
+    required: {
+      color: colors.error.main,
+    },
+    input: {
+      backgroundColor: colors.background.default,
+      borderRadius: 10,
+      padding: 14,
+      fontSize: 16,
+      color: colors.text.primary,
       borderWidth: 1,
       borderColor: colors.border.light,
     },
-    cardHeader: {
-      marginBottom: 16,
+    selectRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 16,
+      paddingVertical: 14,
     },
-    cardTitle: {
-      fontSize: 16,
+    selectRowLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+    },
+    selectRowIcon: {},
+    selectRowLabel: {
+      fontSize: 12,
+      color: colors.text.secondary,
+      marginBottom: 2,
+    },
+    selectRowValue: {
+      fontSize: 15,
       fontWeight: '600',
       color: colors.text.primary,
+    },
+    rowDivider: {
+      height: 1,
+      backgroundColor: colors.border.light,
+      marginHorizontal: 16,
+    },
+    // ── Commission Mode ──
+    modeGrid: {
+      flexDirection: 'row',
+      gap: 10,
+      marginBottom: 14,
+    },
+    modeCard: {
+      flex: 1,
+      backgroundColor: colors.background.paper,
+      borderRadius: 14,
+      borderWidth: 2,
+      borderColor: colors.border.light,
+      padding: 14,
+      alignItems: 'center',
+      gap: 8,
+      position: 'relative',
+    },
+    modeCheckBadge: {
+      position: 'absolute',
+      top: 8,
+      right: 8,
+      width: 20,
+      height: 20,
+      borderRadius: 10,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    modeIconBg: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    modeLabel: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: colors.text.primary,
+      textAlign: 'center',
+    },
+    modeUnit: {
+      fontSize: 11,
+      color: colors.text.hint,
+      fontWeight: '500',
+    },
+    modeDescCard: {
+      flexDirection: 'row',
+      backgroundColor: colors.background.paper,
+      borderRadius: 12,
+      borderWidth: 1,
+      overflow: 'hidden',
+    },
+    modeDescAccent: {
+      width: 4,
+    },
+    modeDescContent: {
+      flex: 1,
+      padding: 14,
+    },
+    modeDescTitle: {
+      fontSize: 13,
+      fontWeight: '700',
       marginBottom: 4,
     },
-    cardSubtitle: {
+    modeDescText: {
       fontSize: 13,
       color: colors.text.secondary,
+      lineHeight: 19,
     },
-    commissionToggle: {
-      flexDirection: 'row',
-      gap: 12,
-      marginBottom: 16,
-    },
-    commissionOption: {
-      flex: 1,
-      backgroundColor: colors.background.default,
-      borderRadius: 8,
-      paddingVertical: 12,
-      alignItems: 'center',
-      borderWidth: 2,
-      borderColor: 'transparent',
-    },
-    commissionOptionActive: {
-      backgroundColor: isDarkMode ? colors.neutral[100] : colors.primary[50],
-      borderColor: colors.primary[500],
-    },
-    commissionOptionText: {
-      fontSize: 14,
-      fontWeight: '600',
-      color: colors.text.secondary,
-    },
-    commissionOptionTextActive: {
-      color: colors.primary[500],
-    },
+    // ── Org Code ──
     codeCard: {
-      backgroundColor: isDarkMode ? colors.background.paper : '#E8F5E9',
-      borderRadius: 12,
+      backgroundColor: isDarkMode ? colors.background.paper : '#FFFBEB',
+      borderRadius: 14,
       padding: 20,
       borderWidth: 1,
-      borderColor: colors.success.main,
+      borderColor: '#F59E0B60',
+      alignItems: 'center',
     },
-    codeLabel: {
-      fontSize: 14,
-      color: isDarkMode ? colors.text.primary : '#2E7D32',
-      marginBottom: 12,
+    codeHint: {
+      fontSize: 13,
+      color: colors.text.secondary,
+      marginBottom: 16,
       textAlign: 'center',
     },
     codeDisplay: {
-      backgroundColor: colors.background.default,
-      borderRadius: 8,
-      paddingVertical: 20,
-      alignItems: 'center',
-      marginBottom: 16,
-      borderWidth: 1,
-      borderColor: colors.border.light,
+      flexDirection: 'row',
+      gap: 8,
+      marginBottom: 20,
     },
-    codeText: {
-      fontSize: 32,
-      fontWeight: '700',
-      color: colors.success.main,
-      letterSpacing: 4,
+    codeCharBox: {
+      width: 42,
+      height: 52,
+      backgroundColor: colors.background.default,
+      borderRadius: 10,
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: '#F59E0B60',
+    },
+    codeChar: {
+      fontSize: 22,
+      fontWeight: '800',
+      color: '#D97706',
+      letterSpacing: 0,
     },
     codeActions: {
       flexDirection: 'row',
       gap: 12,
-      marginBottom: 16,
+      width: '100%',
     },
-    codeButton: {
+    codeBtn: {
       flex: 1,
-      backgroundColor: colors.success.main,
-      borderRadius: 8,
-      paddingVertical: 12,
-      alignItems: 'center',
-    },
-    codeButtonText: {
-      fontSize: 14,
-      fontWeight: '600',
-      color: '#FFFFFF',
-    },
-    codeButtonSecondary: {
-      backgroundColor: colors.background.paper,
-      borderWidth: 1,
-      borderColor: colors.success.main,
-    },
-    codeButtonSecondaryText: {
-      fontSize: 14,
-      fontWeight: '600',
-      color: colors.success.main,
-    },
-    infoBox: {
-      backgroundColor: colors.background.default,
-      borderRadius: 8,
-      padding: 12,
-      borderWidth: 1,
-      borderColor: colors.border.light,
-    },
-    infoBoxText: {
-      fontSize: 13,
-      color: colors.text.secondary,
-      lineHeight: 20,
-    },
-    settingRow: {
-      backgroundColor: colors.background.paper,
-      borderRadius: 12,
-      padding: 16,
       flexDirection: 'row',
-      justifyContent: 'space-between',
       alignItems: 'center',
-      borderWidth: 1,
-      borderColor: colors.border.light,
+      justifyContent: 'center',
+      gap: 6,
+      backgroundColor: '#F59E0B',
+      borderRadius: 10,
+      paddingVertical: 12,
+    },
+    codeBtnOutline: {
+      backgroundColor: 'transparent',
+      borderWidth: 1.5,
+      borderColor: '#F59E0B',
+    },
+    codeBtnText: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: '#fff',
+    },
+    // ── Advanced ──
+    settingRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: 16,
     },
     settingLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
       flex: 1,
     },
     settingTitle: {
-      fontSize: 16,
+      fontSize: 15,
       fontWeight: '600',
       color: colors.text.primary,
-      marginBottom: 2,
     },
     settingSubtitle: {
-      fontSize: 13,
+      fontSize: 12,
       color: colors.text.secondary,
+      marginTop: 2,
     },
-    dangerCard: {
-      backgroundColor: isDarkMode ? colors.background.paper : '#FFEBEE',
-      borderRadius: 12,
-      padding: 20,
-      borderWidth: 1,
-      borderColor: colors.error.main,
-    },
-    dangerTitle: {
-      fontSize: 18,
-      fontWeight: '700',
-      color: isDarkMode ? colors.error.main : '#C62828',
-      marginBottom: 8,
-    },
-    dangerText: {
-      fontSize: 14,
-      color: colors.error.main,
-      lineHeight: 20,
-      marginBottom: 16,
-    },
-    dangerButton: {
-      backgroundColor: colors.error.main,
-      borderRadius: 8,
-      paddingVertical: 12,
-      alignItems: 'center',
-    },
-    dangerButtonText: {
-      fontSize: 16,
-      fontWeight: '600',
-      color: '#FFFFFF',
-    },
+    // ── Save ──
     primaryButton: {
-      backgroundColor: colors.success.main,
-      borderRadius: 12,
-      paddingVertical: 16,
+      flexDirection: 'row',
       alignItems: 'center',
-      shadowColor: '#000',
+      justifyContent: 'center',
+      gap: 8,
+      backgroundColor: colors.success.main,
+      borderRadius: 14,
+      paddingVertical: 16,
+      shadowColor: colors.success.main,
       shadowOffset: {width: 0, height: 4},
-      shadowOpacity: isDarkMode ? 0.3 : 0.2,
+      shadowOpacity: 0.35,
       shadowRadius: 8,
       elevation: 5,
     },
     primaryButtonText: {
-      fontSize: 18,
-      fontWeight: '600',
+      fontSize: 16,
+      fontWeight: '700',
+      color: '#FFFFFF',
+    },
+    buttonDisabled: {
+      opacity: 0.55,
+    },
+    // ── Danger ──
+    dangerCard: {
+      backgroundColor: isDarkMode ? colors.background.paper : '#FFF5F5',
+      borderRadius: 14,
+      padding: 20,
+      borderWidth: 1,
+      borderColor: colors.error.main + '60',
+    },
+    dangerTitle: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: colors.error.main,
+      marginBottom: 8,
+    },
+    dangerText: {
+      fontSize: 13,
+      color: isDarkMode ? colors.error.light : colors.error.main,
+      lineHeight: 19,
+      marginBottom: 16,
+    },
+    dangerButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8,
+      backgroundColor: colors.error.main,
+      borderRadius: 10,
+      paddingVertical: 13,
+    },
+    dangerButtonText: {
+      fontSize: 15,
+      fontWeight: '700',
       color: '#FFFFFF',
     },
   });

@@ -6,13 +6,13 @@ import {
   ScrollView,
   TextInput,
   TouchableOpacity,
-  SafeAreaView,
   StatusBar,
   Alert,
   ActivityIndicator,
   Modal,
   FlatList,
 } from 'react-native';
+import {SafeAreaView} from 'react-native-safe-area-context';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import {useAuth, useOrg, useData, useTheme, useLanguage} from '@/context';
 import {formatBDT} from '@/utils/currency';
@@ -203,7 +203,7 @@ export default function ExpensesScreen(): React.ReactElement {
   // ============================================================================
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom', 'left', 'right']}>
       <StatusBar
         barStyle={isDarkMode ? 'light-content' : 'dark-content'}
         backgroundColor={colors.background.paper}

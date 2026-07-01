@@ -14,8 +14,7 @@ export type {OnboardingStackParamList} from './OnboardingNavigator';
 export type {
   OwnerTabParamList,
   DashboardStackParamList,
-  EmployeesStackParamList,
-  ServicesStackParamList,
+  TeamServicesStackParamList,
   SettingsStackParamList,
 } from './OwnerNavigator';
 export type {
